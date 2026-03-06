@@ -570,7 +570,7 @@ E-PKL/
     <td align="center">
       <a href="https://github.com/suhendararyadi">
         <img src="https://github.com/suhendararyadi.png" width="100px;" alt=""/>
-        <br /><sub><b>Suhendra Ryadi</b></sub>
+        <br /><sub><b>Suhendar Aryadi</b></sub>
       </a>
       <br/>Lead Developer
     </td>
@@ -607,7 +607,7 @@ Anda bebas menggunakan, memodifikasi, dan mendistribusikan proyek ini untuk kepe
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/suhendararyadi">Suhendra Ryadi</a>
+  Made with ❤️ by <a href="https://github.com/suhendararyadi">Suhendar Aryadi</a>
   <br/>
   <sub>© 2026 E-PKL — Open Source under MIT License</sub>
 </p>
