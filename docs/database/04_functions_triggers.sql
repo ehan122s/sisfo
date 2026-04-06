@@ -189,7 +189,7 @@ BEGIN
                 );
                 -- NOTE: Update URL below to match your Supabase project URL
                 PERFORM net.http_post(
-                    url := 'https://<YOUR_PROJECT_ID>.supabase.co/functions/v1/send-whatsapp',
+                    url := 'https://vvvcwxialnbzrcaitkql.supabase.co/functions/v1/send-whatsapp',
                     body := payload,
                     headers := '{"Content-Type": "application/json"}'::jsonb
                 );
@@ -242,7 +242,7 @@ BEGIN
                     'message', violation_title || E'\n' || violation_message
                 );
                 PERFORM net.http_post(
-                    url := 'https://<YOUR_PROJECT_ID>.supabase.co/functions/v1/send-whatsapp',
+                    url := 'https://vvvcwxialnbzrcaitkql.supabase.co/functions/v1/send-whatsapp',
                     body := payload,
                     headers := '{"Content-Type": "application/json"}'::jsonb
                 );
