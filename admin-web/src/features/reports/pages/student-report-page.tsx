@@ -259,7 +259,7 @@ export function StudentReportPage() {
                         <div className="flex-1 text-center px-6">
                             <h2 className="text-base font-bold uppercase leading-tight">Pemerintah Provinsi Jawa Barat</h2>
                             <h2 className="text-sm font-bold uppercase leading-tight">Dinas Pendidikan</h2>
-                            <h1 className="text-2xl font-black uppercase leading-none tracking-tighter my-1">NAMA SMK ANDA</h1>
+                            <h1 className="text-2xl font-black uppercase leading-none tracking-tighter my-1">SMKN 1 Garut</h1>
                             <p className="text-[9px] italic font-sans font-medium">
                                 Jl. Alamat Sekolah No. 123, Kota, Provinsi 00000 <br />
                                 Telp: (0xxx) xxxxxx | Website: www.smkanda.sch.id | Email: info@smkanda.sch.id

@@ -82,7 +82,7 @@ export function LoginPage() {
                 <div className="relative z-10 flex items-center gap-4 text-sm text-slate-500">
                     <span>&copy; 2024 E-PKL System System</span>
                     <div className="h-1 w-1 rounded-full bg-slate-700" />
-                    <span>Nama SMK Anda</span>
+                    <span>SMKN 1 Garut</span>
                 </div>
             </div>
 
