@@ -543,23 +543,25 @@ class _TopDudiList extends ConsumerWidget {
                 child: Row(
                   children: [
                     CircleAvatar(
+                      radius: 12,
                       backgroundColor: Colors.blue.withValues(alpha: 0.1),
                       child: Text(
                         name[0],
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.blue,
+                          fontSize: 12,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                           const SizedBox(height: 4),
                           LinearProgressIndicator(
@@ -567,7 +569,7 @@ class _TopDudiList extends ConsumerWidget {
                                 1.0, // Relative to what? Just full for now or we can verify against total
                             color: Colors.blue[300],
                             backgroundColor: Colors.grey[100],
-                            minHeight: 6,
+                            minHeight: 4,
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ],
