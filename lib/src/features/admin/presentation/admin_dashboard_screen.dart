@@ -25,7 +25,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Panel K-MOB Sagar'),
+        title: const Text('Admin Panel K-MOB SMEA'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
