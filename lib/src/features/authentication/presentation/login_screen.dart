@@ -101,7 +101,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   Text(
-                    'SMKN 9 GARUT',
+                    'SMKN 1 GARUT',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -151,7 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         _buildLabel('EMAIL / ID'),
                         _buildTextField(
                           controller: _emailController,
-                          hint: 'user@smkn9garut.sch.id',
+                          hint: 'user@smkn1garut.sch.id',
                           icon: Icons.mail_outline,
                         ),
                         const SizedBox(height: 20),
@@ -264,7 +264,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    '© 2024 SMKN 9 GARUT',
+                    '© 2024 SMKN 1 GARUT',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 9,
                       fontWeight: FontWeight.w900,

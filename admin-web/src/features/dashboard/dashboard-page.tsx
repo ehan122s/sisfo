@@ -39,7 +39,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Halo, Selamat Pagi! 👋</h1>
-            <p className="text-slate-500 text-sm mt-1">Sistem Informasi PKL SMKN 9 Garut</p>
+            <p className="text-slate-500 text-sm mt-1">Sistem Informasi PKL SMKN 1 Garut</p>
           </div>
           
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -175,7 +175,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-[9px] uppercase tracking-[0.25em] text-slate-500 font-bold mb-1">Nama Lengkap</p>
                     <p className="font-black text-lg tracking-tight">MUHAMMAD REZA</p>
-                    <p className="text-[10px] text-blue-400 font-bold mt-1">SMKN 9 GARUT</p>
+                    <p className="text-[10px] text-blue-400 font-bold mt-1">SMKN 1 GARUT</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[9px] uppercase tracking-[0.25em] text-slate-500 font-bold mb-1">NISN</p>
@@ -210,7 +210,7 @@ export default function DashboardPage() {
       {/* Footer Branding */}
       <footer className="pt-8 pb-4 text-center">
         <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">
-          &copy; 2026 E-PKL | SMKN 9 GARUT - PROJEK JUNIORRR
+          &copy; 2026 E-PKL | SMKN 1 GARUT
         </p>
       </footer>
     </div>
