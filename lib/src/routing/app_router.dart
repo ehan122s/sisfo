@@ -15,7 +15,7 @@ import '../features/profile/presentation/profile_screen.dart';
 import '../features/home/presentation/main_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/home/presentation/announcement_detail_screen.dart';
-import '../features/home/domain/announcement_model.dart';
+import '../features/home/domain/announcement_model.dart'; 
 
 import '../features/attendance/presentation/attendance_history_screen.dart';
 
@@ -36,10 +36,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     refreshListenable: _GoRouterRefreshStream(authStream),
 
-    /// 🔥 REDIRECT LOGIN ONLY (ROLE DI HANDLE DI GUARD)
     redirect: (context, state) {
       final currentUser = authRepository.currentUser;
-
       final isLoggedIn = currentUser != null;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
@@ -101,7 +99,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      /// MAIN APP
+      /// MAIN APP (STUDENT/TEACHER SHELL)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return _ProfileGuard(navigationShell: navigationShell);
@@ -119,11 +117,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     path: 'announcements/detail',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) {
-                      final announcement =
-                          state.extra as AnnouncementModel;
-                      return AnnouncementDetailScreen(
-                        announcement: announcement,
-                      );
+                      final announcement = state.extra as AnnouncementModel;
+                      return AnnouncementDetailScreen(announcement: announcement);
                     },
                   ),
                 ],
@@ -136,8 +131,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/history',
-                builder: (context, state) =>
-                    const AttendanceHistoryScreen(),
+                builder: (context, state) => const AttendanceHistoryScreen(),
               ),
             ],
           ),
@@ -147,14 +141,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/journal',
-                builder: (context, state) =>
-                    const DailyJournalScreen(),
+                builder: (context, state) => const DailyJournalScreen(),
                 routes: [
                   GoRoute(
                     path: 'create',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) =>
-                        const JournalFormScreen(),
+                    builder: (context, state) => const JournalFormScreen(),
                   ),
                 ],
               ),
@@ -166,8 +158,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/profile',
-                builder: (context, state) =>
-                    const ProfileScreen(),
+                builder: (context, state) => const ProfileScreen(),
               ),
             ],
           ),
@@ -184,9 +175,7 @@ class _GoRouterRefreshStream extends ChangeNotifier {
       notifyListeners();
     });
   }
-
   late final dynamic _subscription;
-
   @override
   void dispose() {
     _subscription.cancel();
@@ -194,7 +183,7 @@ class _GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-/// 🔥 ROLE GUARD (FIX UTAMA)
+/// 🔥 ROLE GUARD
 class _ProfileGuard extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -202,7 +191,6 @@ class _ProfileGuard extends ConsumerWidget {
 
   Future<String?> _getRole() async {
     final user = supabase.auth.currentUser;
-
     if (user == null) return null;
 
     final data = await supabase
@@ -227,8 +215,6 @@ class _ProfileGuard extends ConsumerWidget {
 
         final role = snapshot.data;
 
-        print("ROLE DARI DB: $role"); // DEBUG
-
         if (role == 'admin') {
           return const AdminDashboardScreen();
         }
@@ -237,7 +223,7 @@ class _ProfileGuard extends ConsumerWidget {
           return const TeacherDashboardScreen();
         }
 
-        /// DEFAULT = STUDENT
+        /// DEFAULT = STUDENT (MainScreen)
         return MainScreen(navigationShell: navigationShell);
       },
     );

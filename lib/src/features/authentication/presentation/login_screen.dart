@@ -93,7 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'E-PKL',
+                    'SIP SMEA',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
@@ -197,7 +197,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        'MASUK AKUN',
+                                        'MASUK',
                                         style: GoogleFonts.plusJakartaSans(
                                           color: Colors.white,
                                           fontWeight: FontWeight.w900,
@@ -264,7 +264,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    '© 2024 SMKN 1 GARUT',
+
+                    '© 2026 SMKN 1 GARUT',
+           
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
