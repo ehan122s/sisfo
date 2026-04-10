@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../data/auth_repository.dart';
-import '../../authentication/presentation/register_screen.dart';
-import '../../../services/biometric_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -13,87 +11,34 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
   bool _isLoading = false;
-  bool _isBiometricAvailable = false;
-  bool _hasStoredCredentials = false;
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _checkBiometricStatus();
-  }
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-  Future<void> _checkBiometricStatus() async {
-    final bioService = ref.read(biometricServiceProvider);
-    final available = await bioService.isBiometricAvailable;
-    final enabled = await bioService.isBiometricEnabled;
-
-    if (mounted) {
-      setState(() {
-        _isBiometricAvailable = available;
-        _hasStoredCredentials = enabled;
-      });
-    }
-  }
-
-  Future<void> _handleBiometricLogin() async {
-    final bioService = ref.read(biometricServiceProvider);
-
-    // 1. Authenticate
-    final authenticated = await bioService.authenticate();
-    if (!authenticated) return;
-
-    // 2. Get Credentials
-    final credentials = await bioService.getCredentials();
-    if (!mounted) return;
-
-    if (credentials == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data login tidak ditemukan. Silakan login manual.'),
-          ),
-        );
-      }
-      return;
-    }
-
-    // 3. Auto Login
-    if (mounted) {
-      _emailController.text = credentials['email']!;
-      _passwordController.text = credentials['password']!;
-      _handleLogin(isBiometric: true);
-    }
-  }
-
-  Future<void> _handleLogin({bool isBiometric = false}) async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan Password harus diisi')),
+        const SnackBar(content: Text('Email dan Password harus diisi')), 
       );
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      await ref
-          .read(authRepositoryProvider)
-          .loginWithEmail(
-            _emailController.text.trim(),
-            _passwordController.text.trim(),
-          );
-      debugPrint("Login successful. Waiting for redirect...");
-
-      // Prompt to enable biometric if available and not yet enabled, and manual login
-      if (!isBiometric && _isBiometricAvailable && !_hasStoredCredentials) {
-        if (mounted) {
-          await _showEnableBiometricDialog();
-        }
+      await ref.read(authRepositoryProvider).loginWithEmail(email, password);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login berhasil!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
-      debugPrint("Login error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
@@ -104,192 +49,315 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _showEnableBiometricDialog() async {
-    if (!mounted) return;
-    return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Aktifkan Biometric?"),
-        content: const Text(
-          "Login lebih cepat berikutnya dengan sidik jari/wajah.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Nanti"),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9),
+      body: Stack(
+        children: [
+          // Background Decoration
+          Positioned(
+            top: -100,
+            left: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref
-                  .read(biometricServiceProvider)
-                  .enableBiometric(
-                    _emailController.text.trim(),
-                    _passwordController.text.trim(),
-                  );
+          
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo Section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        )
+                      ],
+                    ),
+                    child: const Icon(Icons.school, size: 40, color: Color(0xFF2563EB)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'SIP SMEA',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                  Text(
+                    'SMKN 1 GARUT',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 3,
+                      color: const Color(0xFF2563EB),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
 
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Biometric Login Diaktifkan!')),
-                );
-              }
-            },
-            child: const Text("Aktifkan"),
+                  // Login Card
+                  Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(40),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 40,
+                          offset: const Offset(0, 20),
+                        )
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Selamat Datang',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Silakan masuk ke akun Anda',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Email Field
+                        _buildLabel('EMAIL / ID'),
+                        _buildTextField(
+                          controller: _emailController,
+                          hint: 'user@smkn1garut.sch.id',
+                          icon: Icons.mail_outline,
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Password Field
+                        _buildLabel('PASSWORD'),
+                        _buildTextField(
+                          controller: _passwordController,
+                          hint: '••••••••',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                          obscureText: _obscurePassword,
+                          onToggleVisibility: () {
+                            setState(() => _obscurePassword = !_obscurePassword);
+                          },
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Login Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleLogin,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF0F172A),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2.5,
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'MASUK',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 12,
+                                          letterSpacing: 1.5,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.chevron_right, color: Colors.white, size: 18),
+                                    ],
+                                  ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+                        Center(
+                          child: Wrap(
+                            children: [
+                              Text(
+                                'Belum punya akun? ',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  color: Colors.grey[500],
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {},
+                                child: Text(
+                                  'Hubungi Admin PKL',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    color: const Color(0xFF2563EB),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Footer Social Media
+                  const SizedBox(height: 40),
+                  Text(
+                    'HUBUNGI BANTUAN',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _socialButton(Icons.camera_alt_outlined, Colors.pink),
+                      const SizedBox(width: 16),
+                      _socialButton(Icons.chat_bubble_outline, Colors.green),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+
+                    '© 2026 SMKN 1 GARUT',
+           
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 4,
+                      color: Colors.grey[400],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(
-                Icons.school,
-                size: 80,
-                color: Color(0xFF006400),
-              ), // Dark Green
-              const SizedBox(height: 24),
-              Text(
-                'Selamat Datang di K-MOB Sagar',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF333333),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Silakan login untuk melanjutkan',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 48),
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _handleLogin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF006400),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        'LOGIN',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-              ),
-              // Registration disabled by admin request
-              /*
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Belum punya akun? "),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RegisterScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      "Daftar Sekarang",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              */
-              if (_hasStoredCredentials) ...[
-                const SizedBox(height: 24),
-                const Row(
-                  children: [
-                    Expanded(child: Divider()),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text("ATAU", style: TextStyle(color: Colors.grey)),
-                    ),
-                    Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Center(
-                  child: InkWell(
-                    onTap: _handleBiometricLogin,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFF006400)),
-                        borderRadius: BorderRadius.circular(16),
-                        color: const Color(0xFF006400).withValues(alpha: 0.1),
-                      ),
-                      child: const Column(
-                        children: [
-                          Icon(
-                            Icons.fingerprint,
-                            size: 48,
-                            color: Color(0xFF006400),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            "Login dengan Biometric",
-                            style: TextStyle(
-                              color: Color(0xFF006400),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        text,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          color: Colors.grey[500],
+          letterSpacing: 1.5,
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+    bool obscureText = false,
+    VoidCallback? onToggleVisibility,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 2),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF1E293B),
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+          prefixIcon: Icon(icon, color: Colors.grey[500], size: 20),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    color: Colors.grey[400],
+                    size: 20,
+                  ),
+                  onPressed: onToggleVisibility,
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        ),
+      ),
+    );
+  }
+
+  Widget _socialButton(IconData icon, Color hoverColor) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Icon(icon, color: Colors.grey[500], size: 22),
     );
   }
 }

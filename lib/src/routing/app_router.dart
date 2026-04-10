@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../features/authentication/data/auth_repository.dart';
 import '../features/authentication/presentation/login_screen.dart';
-import '../features/authentication/presentation/verification_status_screen.dart';
+import '../features/authentication/presentation/splash_screen.dart';
+
 import '../features/admin/presentation/admin_dashboard_screen.dart';
-import '../features/profile/data/profile_repository.dart';
+import '../features/teacher/presentation/teacher_dashboard_screen.dart';
+
 import '../features/profile/presentation/profile_screen.dart';
+
 import '../features/home/presentation/main_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/home/presentation/announcement_detail_screen.dart';
 import '../features/home/domain/announcement_model.dart'; 
+
 import '../features/attendance/presentation/attendance_history_screen.dart';
+
 import '../features/journal/presentation/daily_journal_screen.dart';
 import '../features/journal/presentation/journal_form_screen.dart';
-import '../features/teacher/presentation/teacher_dashboard_screen.dart';
-import '../features/authentication/presentation/splash_screen.dart';
+
+final supabase = Supabase.instance.client;
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -30,14 +35,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: _GoRouterRefreshStream(authStream),
+
     redirect: (context, state) {
-      final currentUser = ref.read(authRepositoryProvider).currentUser;
+      final currentUser = authRepository.currentUser;
       final isLoggedIn = currentUser != null;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
 
+      if (isSplash) return null;
+
       if (!isLoggedIn) {
-        return (isLoggingIn || isSplash) ? null : '/login';
+        return isLoggingIn ? null : '/login';
       }
 
       if (isLoggedIn && isLoggingIn) {
@@ -46,26 +54,58 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
       return null;
     },
+
     routes: [
+      /// SPLASH
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      
-      // Tetap sediakan route admin secara manual jika ingin pindah lewat URL
+
+      /// LOGIN
       GoRoute(
-        path: '/admin',
-        builder: (context, state) => const AdminDashboardScreen(),
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
       ),
 
-      // Mobile App Shell (Tampilan Siswa)
+      /// 🔒 ADMIN ROUTE (PROTECTED)
+      GoRoute(
+        path: '/admin',
+        builder: (context, state) {
+          return FutureBuilder(
+            future: supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', supabase.auth.currentUser!.id)
+                .single(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final role = snapshot.data!['role'];
+
+              if (role != 'admin') {
+                return const Scaffold(
+                  body: Center(child: Text("Unauthorized")),
+                );
+              }
+
+              return const AdminDashboardScreen();
+            },
+          );
+        },
+      ),
+
+      /// MAIN APP (STUDENT/TEACHER SHELL)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          // BYPASS: Langsung return _ProfileGuard tanpa cek kIsWeb
           return _ProfileGuard(navigationShell: navigationShell);
         },
         branches: [
+          /// HOME
           StatefulShellBranch(
             navigatorKey: _shellNavigatorKey,
             routes: [
@@ -85,6 +125,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+
+          /// HISTORY
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -93,6 +135,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+
+          /// JOURNAL
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -108,6 +152,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+
+          /// PROFILE
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -122,12 +168,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
+/// 🔄 REFRESH ROUTER
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
-    _subscription = stream.asBroadcastStream().listen(
-      (dynamic _) => notifyListeners(),
-    );
+    _subscription = stream.listen((_) {
+      notifyListeners();
+    });
   }
   late final dynamic _subscription;
   @override
@@ -137,15 +183,49 @@ class _GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-// --- BYPASS MODE ---
+/// 🔥 ROLE GUARD
 class _ProfileGuard extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
+
   const _ProfileGuard({required this.navigationShell});
+
+  Future<String?> _getRole() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return null;
+
+    final data = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+    return data['role'];
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // SEMUA LOGIKA PENGECEKAN ROLE DIHAPUS.
-    // SIAPAPUN YANG LOGIN AKAN MASUK KE MAINSCREEN (HOME MOBILE).
-    return MainScreen(navigationShell: navigationShell);
+    return FutureBuilder<String?>(
+      future: _getRole(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final role = snapshot.data;
+
+        if (role == 'admin') {
+          return const AdminDashboardScreen();
+        }
+
+        if (role == 'teacher') {
+          return const TeacherDashboardScreen();
+        }
+
+        /// DEFAULT = STUDENT (MainScreen)
+        return MainScreen(navigationShell: navigationShell);
+      },
+    );
   }
 }
