@@ -24,10 +24,10 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xFFF1F8E9), // Very light green background
+      backgroundColor: const Color(0xFFF0F4F8), // Biru sangat muda & kalem
       body: Stack(
         children: [
-          // 1. Background Decorations
+          // 1. Background Decorations (Ubah ke Biru)
           Positioned(
             top: -100,
             right: -50,
@@ -35,7 +35,7 @@ class HomeScreen extends ConsumerWidget {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF006400).withValues(alpha: 0.05),
+                color: const Color(0xFF2196F3).withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
             ),
@@ -47,7 +47,7 @@ class HomeScreen extends ConsumerWidget {
               width: 250,
               height: 250,
               decoration: BoxDecoration(
-                color: Colors.teal.withValues(alpha: 0.05),
+                color: Colors.blue.withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
             ),
@@ -125,17 +125,17 @@ class HomeScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: const Color(0xFF006400),
+                          color: const Color(0xFF1976D2), // Biru primer
                           width: 2,
                         ),
                       ),
                       child: CircleAvatar(
                         radius: 26,
-                        backgroundColor: const Color(0xFFE8F5E9),
+                        backgroundColor: const Color(0xFFE3F2FD), // Biru muda
                         child: Text(
                           user?.email?.substring(0, 2).toUpperCase() ?? "ST",
                           style: GoogleFonts.poppins(
-                            color: const Color(0xFF006400),
+                            color: const Color(0xFF1976D2),
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
@@ -228,7 +228,7 @@ class HomeScreen extends ConsumerWidget {
                                   Icon(
                                     Icons.business_center_outlined,
                                     size: 14,
-                                    color: Colors.green[700],
+                                    color: Colors.blue[700], // Biru
                                   ),
                                   const SizedBox(width: 4),
                                   Expanded(
@@ -236,7 +236,7 @@ class HomeScreen extends ConsumerWidget {
                                       companyName,
                                       style: GoogleFonts.poppins(
                                         fontSize: 11,
-                                        color: Colors.green[800],
+                                        color: Colors.blue[800], // Biru
                                         fontWeight: FontWeight.w500,
                                       ),
                                       overflow: TextOverflow.ellipsis,
@@ -257,7 +257,7 @@ class HomeScreen extends ConsumerWidget {
                         IconButton(
                           icon: const Icon(
                             Icons.notifications_none_rounded,
-                            color: Color(0xFF006400),
+                            color: Color(0xFF1976D2), // Biru
                           ),
                           onPressed: () {},
                         ),
@@ -310,7 +310,7 @@ class HomeScreen extends ConsumerWidget {
                         subLabelColor = Colors.white.withValues(alpha: 0.8);
                         icon = Icons.warning_amber_rounded;
                       } else {
-                        backgroundColor = Colors.green;
+                        backgroundColor = Colors.blue; // Ubah ke Biru
                         iconColor = Colors.white;
                         textColor = Colors.white;
                         subLabelColor = Colors.white.withValues(alpha: 0.8);
@@ -500,7 +500,7 @@ class _PulseCheckInButtonState extends ConsumerState<_PulseCheckInButton>
 
     _scaleAnimation = Tween<double>(
       begin: 1.0,
-      end: 1.05, // Slightly subtler pulse
+      end: 1.05,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
@@ -562,12 +562,12 @@ class _PulseCheckInButtonState extends ConsumerState<_PulseCheckInButton>
         shape: BoxShape.circle,
         color: Colors.white,
         border: Border.all(
-          color: Colors.green.withValues(alpha: 0.3),
+          color: Colors.blue.withValues(alpha: 0.3), // Ubah ke Biru
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.green.withValues(alpha: 0.1),
+            color: Colors.blue.withValues(alpha: 0.1),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -579,13 +579,13 @@ class _PulseCheckInButtonState extends ConsumerState<_PulseCheckInButton>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green[50],
+              color: Colors.blue[50],
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.check_circle_outline_rounded,
               size: 48,
-              color: Colors.green,
+              color: Colors.blue[600],
             ),
           ),
           const SizedBox(height: 16),
@@ -594,7 +594,7 @@ class _PulseCheckInButtonState extends ConsumerState<_PulseCheckInButton>
             style: GoogleFonts.poppins(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.green[800],
+              color: Colors.blue[800],
             ),
           ),
           Text(
@@ -715,27 +715,26 @@ class _PulseCheckInButtonState extends ConsumerState<_PulseCheckInButton>
           return Transform.scale(
             scale: _scaleAnimation.value,
             child: Container(
-              width: 180, // Reduced from 240 for smaller screens
+              width: 180,
               height: 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: isCheckedIn
                       ? [const Color(0xFFFF5252), const Color(0xFFC62828)]
-                      : [const Color(0xFF4CAF50), const Color(0xFF1B5E20)],
+                      : [const Color(0xFF42A5F5), const Color(0xFF1565C0)], // Biru Kalem
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: (isCheckedIn ? Colors.red : Colors.green).withValues(
+                    color: (isCheckedIn ? Colors.red : Colors.blue).withValues(
                       alpha: 0.3,
                     ),
                     blurRadius: 30,
                     spreadRadius: 1,
                     offset: const Offset(0, 10),
                   ),
-                  // Inner glow
                   BoxShadow(
                     color: Colors.white.withValues(alpha: 0.2),
                     blurRadius: 10,
