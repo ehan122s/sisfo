@@ -4,10 +4,27 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../authentication/data/auth_repository.dart';
+
 final journalRepositoryProvider = Provider((ref) {
 
   return JournalRepository();
 
+});
+
+final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((ref) async {
+  final user = ref.watch(authRepositoryProvider).currentUser;
+  if (user == null) return false;
+
+  final today = DateTime.now().toIso8601String().split('T')[0];
+  final res = await Supabase.instance.client
+      .from('daily_journals')
+      .select()
+      .eq('student_id', user.id)
+      .eq('date', today)
+      .limit(1);
+
+  return res.isNotEmpty;
 });
 
 class JournalRepository {
@@ -71,16 +88,15 @@ class JournalRepository {
 
   }) async {
 
-    await supabase.from("journals").insert({
+    await supabase.from("daily_journals").insert({
 
-      "title": title,
+      "activities": title,
 
-      "description": description,
+      "challenges": description,
 
-      "image_url": imageUrl,
+      "evidence_url": imageUrl,
 
-      "created_at":
-          DateTime.now().toIso8601String(),
+      "date": DateTime.now().toIso8601String().split('T')[0], // YYYY-MM-DD
     });
   }
 
@@ -89,7 +105,7 @@ class JournalRepository {
 
     final res = await supabase
 
-        .from("journals")
+        .from("daily_journals")
 
         .select()
 
@@ -97,5 +113,22 @@ class JournalRepository {
             ascending: false);
 
     return res;
+  }
+
+  /// ambil jurnal saya dengan pagination
+  Future<List<Map<String, dynamic>>> getMyJournals({
+    required String studentId,
+    required int page,
+    required int pageSize,
+  }) async {
+    final offset = (page - 1) * pageSize;
+    final res = await supabase
+        .from("daily_journals")
+        .select()
+        .eq("student_id", studentId)
+        .order("date", ascending: false)
+        .range(offset, offset + pageSize - 1);
+
+    return List<Map<String, dynamic>>.from(res);
   }
 }
