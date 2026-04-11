@@ -1,29 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Import repositories
 import '../features/authentication/data/auth_repository.dart';
+import '../features/profile/data/profile_repository.dart';
+
+// Import screens
 import '../features/authentication/presentation/login_screen.dart';
-import '../features/authentication/presentation/splash_screen.dart';
-
+import '../features/authentication/presentation/verification_status_screen.dart';
 import '../features/admin/presentation/admin_dashboard_screen.dart';
-import '../features/teacher/presentation/teacher_dashboard_screen.dart';
-
 import '../features/profile/presentation/profile_screen.dart';
-
 import '../features/home/presentation/main_screen.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/home/presentation/announcement_detail_screen.dart';
 import '../features/home/domain/announcement_model.dart';
-
 import '../features/attendance/presentation/attendance_history_screen.dart';
-
 import '../features/journal/presentation/daily_journal_screen.dart';
 import '../features/journal/presentation/journal_form_screen.dart';
+import '../features/teacher/presentation/teacher_dashboard_screen.dart';
+import '../features/authentication/presentation/splash_screen.dart';
 
-final supabase = Supabase.instance.client;
-
+// Navigator Keys
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -36,18 +34,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     refreshListenable: _GoRouterRefreshStream(authStream),
 
-    /// 🔥 REDIRECT LOGIN ONLY (ROLE DI HANDLE DI GUARD)
+    // 🔥 REDIRECT LOGIN
     redirect: (context, state) {
-      final currentUser = authRepository.currentUser;
-
+      final currentUser = ref.read(authRepositoryProvider).currentUser;
       final isLoggedIn = currentUser != null;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
 
-      if (isSplash) return null;
-
       if (!isLoggedIn) {
-        return isLoggingIn ? null : '/login';
+        return (isLoggingIn || isSplash) ? null : '/login';
       }
 
       if (isLoggedIn && isLoggingIn) {
@@ -58,56 +53,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     },
 
     routes: [
-      /// SPLASH
+      // SPLASH
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
 
-      /// LOGIN
+      // LOGIN
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
       ),
 
-      /// 🔒 ADMIN ROUTE (PROTECTED)
+      // ADMIN ROUTE (optional)
       GoRoute(
         path: '/admin',
-        builder: (context, state) {
-          return FutureBuilder(
-            future: supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', supabase.auth.currentUser!.id)
-                .single(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              final role = snapshot.data!['role'];
-
-              if (role != 'admin') {
-                return const Scaffold(
-                  body: Center(child: Text("Unauthorized")),
-                );
-              }
-
-              return const AdminDashboardScreen();
-            },
-          );
-        },
+        builder: (context, state) => const AdminDashboardScreen(),
       ),
 
-      /// MAIN APP
+      // 🔥 MAIN APP (SHELL)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return _ProfileGuard(navigationShell: navigationShell);
         },
         branches: [
-          /// HOME
+          // HOME
           StatefulShellBranch(
             navigatorKey: _shellNavigatorKey,
             routes: [
@@ -131,7 +101,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          /// HISTORY
+          // HISTORY
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -142,7 +112,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          /// JOURNAL
+          // JOURNAL
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -161,7 +131,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          /// PROFILE
+          // PROFILE
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -177,12 +147,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// 🔄 REFRESH ROUTER
+// 🔁 REFRESH STREAM
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
-    _subscription = stream.listen((_) {
-      notifyListeners();
-    });
+    _subscription = stream.asBroadcastStream().listen(
+      (dynamic _) => notifyListeners(),
+    );
   }
 
   late final dynamic _subscription;
@@ -194,52 +164,57 @@ class _GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-/// 🔥 ROLE GUARD (FIX UTAMA)
+// 🔥 PROFILE GUARD (FIX UTAMA ADA DI SINI)
 class _ProfileGuard extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const _ProfileGuard({required this.navigationShell});
 
-  Future<String?> _getRole() async {
-    final user = supabase.auth.currentUser;
-
-    if (user == null) return null;
-
-    final data = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-    return data['role'];
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return FutureBuilder<String?>(
-      future: _getRole(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+    final profileAsync = ref.watch(userProfileProvider);
+
+    return profileAsync.when(
+      data: (profile) {
+        if (profile == null) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+            body: Center(child: Text("Profil tidak ditemukan")),
           );
         }
 
-        final role = snapshot.data;
+        final role = profile['role'] ?? 'student';
+        final status = profile['status'] ?? 'pending';
 
-        print("ROLE DARI DB: $role"); // DEBUG
+        // 🔥 DEBUG (lihat di console)
+        debugPrint("ROLE: $role");
+        debugPrint("STATUS: $status");
 
+        // 🔴 ADMIN
         if (role == 'admin') {
           return const AdminDashboardScreen();
         }
 
+        // 🟡 TEACHER
         if (role == 'teacher') {
           return const TeacherDashboardScreen();
         }
 
-        /// DEFAULT = STUDENT
+        // ⚠️ BELUM AKTIF
+        if (status != 'active') {
+          return VerificationStatusScreen(status: status);
+        }
+
+        // 🟢 SISWA (DEFAULT)
         return MainScreen(navigationShell: navigationShell);
       },
+
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+
+      error: (e, _) => Scaffold(
+        body: Center(child: Text('Error: $e')),
+      ),
     );
   }
 }
