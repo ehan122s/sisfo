@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Import repositories
 import '../features/authentication/data/auth_repository.dart';
@@ -36,7 +37,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 
     // 🔥 REDIRECT LOGIN
     redirect: (context, state) {
-      final currentUser = ref.read(authRepositoryProvider).currentUser;
+      final currentUser = authRepository.currentUser;
       final isLoggedIn = currentUser != null;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
@@ -44,11 +45,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       if (!isLoggedIn) {
         return (isLoggingIn || isSplash) ? null : '/login';
       }
-
       if (isLoggedIn && isLoggingIn) {
         return '/';
       }
-
       return null;
     },
 
@@ -65,13 +64,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
 
-      // ADMIN ROUTE (optional)
+      // ADMIN
       GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminDashboardScreen(),
       ),
 
-      // 🔥 MAIN APP (SHELL)
+      // MAIN APP (SHELL)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return _ProfileGuard(navigationShell: navigationShell);
@@ -89,8 +88,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     path: 'announcements/detail',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) {
-                      final announcement =
-                          state.extra as AnnouncementModel;
+                      final announcement = state.extra as AnnouncementModel;
                       return AnnouncementDetailScreen(
                         announcement: announcement,
                       );
@@ -117,14 +115,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/journal',
-                builder: (context, state) =>
-                    const DailyJournalScreen(),
+                builder: (context, state) => const DailyJournalScreen(),
                 routes: [
                   GoRoute(
                     path: 'create',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) =>
-                        const JournalFormScreen(),
+                    builder: (context, state) => const JournalFormScreen(),
                   ),
                 ],
               ),
@@ -136,8 +132,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/profile',
-                builder: (context, state) =>
-                    const ProfileScreen(),
+                builder: (context, state) => const ProfileScreen(),
               ),
             ],
           ),
@@ -154,9 +149,7 @@ class _GoRouterRefreshStream extends ChangeNotifier {
       (dynamic _) => notifyListeners(),
     );
   }
-
   late final dynamic _subscription;
-
   @override
   void dispose() {
     _subscription.cancel();
@@ -164,7 +157,7 @@ class _GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-// 🔥 PROFILE GUARD (FIX UTAMA ADA DI SINI)
+// 🔥 PROFILE GUARD
 class _ProfileGuard extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -185,33 +178,24 @@ class _ProfileGuard extends ConsumerWidget {
         final role = profile['role'] ?? 'student';
         final status = profile['status'] ?? 'pending';
 
-        // 🔥 DEBUG (lihat di console)
         debugPrint("ROLE: $role");
         debugPrint("STATUS: $status");
 
-        // 🔴 ADMIN
         if (role == 'admin') {
           return const AdminDashboardScreen();
         }
-
-        // 🟡 TEACHER
         if (role == 'teacher') {
           return const TeacherDashboardScreen();
         }
-
-        // ⚠️ BELUM AKTIF
         if (status != 'active') {
           return VerificationStatusScreen(status: status);
         }
 
-        // 🟢 SISWA (DEFAULT)
         return MainScreen(navigationShell: navigationShell);
       },
-
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
-
       error: (e, _) => Scaffold(
         body: Center(child: Text('Error: $e')),
       ),
