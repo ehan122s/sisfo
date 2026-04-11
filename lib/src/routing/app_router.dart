@@ -34,9 +34,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     refreshListenable: _GoRouterRefreshStream(authStream),
 
-    // 🔥 REDIRECT LOGIN
+    /// 🔥 AUTH REDIRECT
     redirect: (context, state) {
       final currentUser = ref.read(authRepositoryProvider).currentUser;
+
       final isLoggedIn = currentUser != null;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
@@ -53,31 +54,31 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     },
 
     routes: [
-      // SPLASH
+      /// SPLASH
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
 
-      // LOGIN
+      /// LOGIN
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
       ),
 
-      // ADMIN ROUTE (optional)
+      /// ADMIN (optional direct access)
       GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminDashboardScreen(),
       ),
 
-      // 🔥 MAIN APP (SHELL)
+      /// 🔥 MAIN APP (SHELL)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return _ProfileGuard(navigationShell: navigationShell);
         },
         branches: [
-          // HOME
+          /// HOME
           StatefulShellBranch(
             navigatorKey: _shellNavigatorKey,
             routes: [
@@ -101,7 +102,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // HISTORY
+          /// HISTORY
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -112,7 +113,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // JOURNAL
+          /// JOURNAL
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -131,7 +132,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          // PROFILE
+          /// PROFILE
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -147,11 +148,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-// 🔁 REFRESH STREAM
+/// 🔁 REFRESH STREAM
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
     _subscription = stream.asBroadcastStream().listen(
-      (dynamic _) => notifyListeners(),
+      (_) => notifyListeners(),
     );
   }
 
@@ -164,7 +165,7 @@ class _GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-// 🔥 PROFILE GUARD (FIX UTAMA ADA DI SINI)
+/// 🔥 PROFILE + ROLE GUARD
 class _ProfileGuard extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -185,26 +186,22 @@ class _ProfileGuard extends ConsumerWidget {
         final role = profile['role'] ?? 'student';
         final status = profile['status'] ?? 'pending';
 
-        // 🔥 DEBUG (lihat di console)
-        debugPrint("ROLE: $role");
-        debugPrint("STATUS: $status");
-
-        // 🔴 ADMIN
+        /// 🔴 ADMIN
         if (role == 'admin') {
           return const AdminDashboardScreen();
         }
 
-        // 🟡 TEACHER
+        /// 🟡 TEACHER
         if (role == 'teacher') {
           return const TeacherDashboardScreen();
         }
 
-        // ⚠️ BELUM AKTIF
+        /// ⚠️ BELUM AKTIF
         if (status != 'active') {
           return VerificationStatusScreen(status: status);
         }
 
-        // 🟢 SISWA (DEFAULT)
+        /// 🟢 STUDENT (DEFAULT)
         return MainScreen(navigationShell: navigationShell);
       },
 

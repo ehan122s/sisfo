@@ -1,112 +1,146 @@
 import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
-import '../../authentication/data/auth_repository.dart';
-import '../../attendance/data/attendance_repository.dart';
-import '../data/journal_repository.dart';
-import '../../../services/image_compression_service.dart';
-
-class JournalFormScreen extends ConsumerStatefulWidget {
+class JournalFormScreen extends StatefulWidget {
   const JournalFormScreen({super.key});
 
   @override
-  ConsumerState<JournalFormScreen> createState() => _JournalFormScreenState();
+  State<JournalFormScreen> createState() => _JournalFormScreenState();
 }
 
-class _JournalFormScreenState extends ConsumerState<JournalFormScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descController = TextEditingController();
+class _JournalFormScreenState extends State<JournalFormScreen> {
 
-  File? _imageFile;
-  bool _isLoading = false;
-  int? _placementId;
+  final formKey = GlobalKey<FormState>();
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchPlacement();
-  }
+  final titleC = TextEditingController();
+  final descC = TextEditingController();
 
-  Future<void> _fetchPlacement() async {
+  File? imageFile;
+  Uint8List? webImage;
+
+  /// PICK IMAGE SUPPORT WEB + ANDROID
+  Future pick(ImageSource source) async {
+
     try {
-      final user = ref.read(authRepositoryProvider).currentUser;
-      if (user == null) return;
 
-      final placement = await ref
-          .read(attendanceRepositoryProvider)
-          .getStudentPlacement(user.id);
+      final picker = ImagePicker();
 
-      if (placement != null) {
+      final picked = await picker.pickImage(
+        source: source,
+        imageQuality: 75,
+      );
+
+      if (picked == null) return;
+
+      /// WEB
+      if (kIsWeb) {
+
+        final bytes = await picked.readAsBytes();
+
         setState(() {
-          _placementId = placement['id'];
+
+          webImage = bytes;
+
+          imageFile = null;
+
         });
+
       }
+
+      /// ANDROID / IOS
+      else {
+
+        final file = File(picked.path);
+
+        setState(() {
+
+          imageFile = file;
+
+          webImage = null;
+
+        });
+
+      }
+
     } catch (e) {
-      // Ignore placement fetch errors for now, or log them
-      debugPrint("Error fetching placement: $e");
+
+      debugPrint("error pick image: $e");
+
     }
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source, imageQuality: 50);
+  void chooseImage() {
 
-    if (pickedFile != null) {
-      final originalFile = File(pickedFile.path);
-      final compressedFile = await ref
-          .read(imageCompressionServiceProvider)
-          .compressImage(originalFile);
-
-      setState(() {
-        _imageFile = compressedFile;
-      });
-    }
-  }
-
-  void _showImageSourceSelection() {
     showModalBottomSheet(
+
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
+
+      builder: (_) {
+
         return Padding(
-          padding: const EdgeInsets.all(20.0),
+
+          padding: const EdgeInsets.all(20),
+
           child: Column(
+
             mainAxisSize: MainAxisSize.min,
+
             children: [
+
               const Text(
-                'Pilih Sumber Foto',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+
+                "Upload Foto",
+
+                style: TextStyle(
+
+                  fontSize: 18,
+
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+
               const SizedBox(height: 20),
+
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
                 children: [
-                  _buildSourceOption(
-                    icon: LucideIcons.camera,
-                    label: 'Kamera',
-                    onTap: () {
-                      context.pop();
-                      _pickImage(ImageSource.camera);
-                    },
+
+                  Expanded(
+                    child: imgBtn(
+                      LucideIcons.camera,
+                      "Kamera",
+                      () {
+
+                        Navigator.pop(context);
+
+                        pick(ImageSource.camera);
+
+                      },
+                    ),
                   ),
-                  _buildSourceOption(
-                    icon: LucideIcons.image,
-                    label: 'Galeri',
-                    onTap: () {
-                      context.pop();
-                      _pickImage(ImageSource.gallery);
-                    },
+
+                  const SizedBox(width: 16),
+
+                  Expanded(
+                    child: imgBtn(
+                      LucideIcons.image,
+                      "Galeri",
+                      () {
+
+                        Navigator.pop(context);
+
+                        pick(ImageSource.gallery);
+
+                      },
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
             ],
           ),
         );
@@ -114,213 +148,315 @@ class _JournalFormScreenState extends ConsumerState<JournalFormScreen> {
     );
   }
 
-  Widget _buildSourceOption({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+  Widget imgBtn(
+
+    IconData icon,
+
+    String label,
+
+    VoidCallback onTap,
+
+  ) {
+
     return InkWell(
+
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+
       child: Container(
-        width: 100,
-        padding: const EdgeInsets.symmetric(vertical: 16),
+
+        padding: const EdgeInsets.all(18),
+
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(12),
+
+          color: const Color(0xffeef2ff),
+
+          borderRadius: BorderRadius.circular(18),
         ),
+
         child: Column(
+
           children: [
-            Icon(icon, size: 32, color: const Color(0xFF006400)),
+
+            Icon(
+
+              icon,
+
+              size: 28,
+
+              color: const Color(0xff4f46e5),
+            ),
+
             const SizedBox(height: 8),
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+
+            Text(
+
+              label,
+
+              style: const TextStyle(
+
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _submitJournal() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_imageFile == null) {
+  void submit() {
+
+    if (!formKey.currentState!.validate()) return;
+
+    if (imageFile == null && webImage == null) {
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Harap sertakan foto bukti kegiatan')),
+
+        const SnackBar(
+
+          content: Text("foto wajib diupload"),
+        ),
       );
+
       return;
     }
 
-    setState(() => _isLoading = true);
+    ScaffoldMessenger.of(context).showSnackBar(
 
-    try {
-      final user = ref.read(authRepositoryProvider).currentUser;
-      if (user == null) throw Exception('User not logged in');
+      const SnackBar(
 
-      // 1. Upload Evidence
-      final imageUrl = await ref
-          .read(journalRepositoryProvider)
-          .uploadEvidence(_imageFile!, user.id);
+        content: Text("jurnal berhasil disimpan"),
+      ),
+    );
 
-      // 2. Submit Data
-      await ref
-          .read(journalRepositoryProvider)
-          .submitJournal(
-            studentId: user.id,
-            title: _titleController.text.trim(),
-            description: _descController.text.trim(),
-            evidenceUrl: imageUrl,
-            placementId: _placementId,
-          );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Jurnal berhasil disimpan!')),
-        );
-        context.pop(true); // Go back with success result
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descController.dispose();
-    super.dispose();
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
+
+      backgroundColor: const Color(0xfff8fafc),
+
       appBar: AppBar(
-        title: const Text('Tulis Jurnal Harian'),
+
+        title: const Text(
+
+          "Tulis Jurnal",
+
+          style: TextStyle(
+
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+
+        foregroundColor: const Color(0xff0f172a),
+
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Title Field
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: 'Judul Kegiatan',
-                  hintText: 'Contoh: Maintenance Server',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  prefixIcon: const Icon(LucideIcons.type),
-                ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Judul wajib diisi' : null,
-              ),
-              const SizedBox(height: 16),
 
-              // Description Field
-              TextFormField(
-                controller: _descController,
-                maxLines: 5,
-                decoration: InputDecoration(
-                  labelText: 'Deskripsi Kegiatan',
-                  hintText: 'Jelaskan apa yang Anda kerjakan hari ini...',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+      body: SingleChildScrollView(
+
+        padding: const EdgeInsets.all(20),
+
+        child: Form(
+
+          key: formKey,
+
+          child: Column(
+
+            children: [
+
+              /// FOTO
+              InkWell(
+
+                onTap: chooseImage,
+
+                child: Container(
+
+                  height: 200,
+
+                  width: double.infinity,
+
+                  decoration: BoxDecoration(
+
+                    color: const Color(0xffeef2ff),
+
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                  alignLabelWithHint: true,
+
+                  child: previewImage(),
                 ),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Deskripsi wajib diisi'
-                    : null,
               ),
+
               const SizedBox(height: 20),
 
-              // Image Picker
-              InkWell(
-                onTap: _showImageSourceSelection,
-                child: Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                    image: _imageFile != null
-                        ? DecorationImage(
-                            image: FileImage(_imageFile!),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: _imageFile == null
-                      ? const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              LucideIcons.camera,
-                              size: 48,
-                              color: Colors.grey,
-                            ),
-                            SizedBox(height: 8),
-                            Text("Ambil Foto Kegiatan"),
-                          ],
-                        )
-                      : null,
+              TextFormField(
+
+                controller: titleC,
+
+                decoration: inputStyle(
+
+                  "Judul kegiatan",
+
+                  LucideIcons.fileText,
                 ),
+
+                validator: (v) =>
+                    v!.isEmpty ? "wajib diisi" : null,
               ),
-              if (_imageFile != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: TextButton.icon(
-                    onPressed: _showImageSourceSelection,
-                    icon: const Icon(LucideIcons.refreshCw),
-                    label: const Text("Ganti Foto"),
-                  ),
+
+              const SizedBox(height: 16),
+
+              TextFormField(
+
+                controller: descC,
+
+                maxLines: 5,
+
+                decoration: inputStyle(
+
+                  "Deskripsi kegiatan",
+
+                  LucideIcons.clipboard,
                 ),
 
-              const SizedBox(height: 32),
+                validator: (v) =>
+                    v!.isEmpty ? "wajib diisi" : null,
+              ),
 
-              // Submit Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitJournal,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF006400),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 30),
+
+              SizedBox(
+
+                width: double.infinity,
+
+                child: ElevatedButton(
+
+                  onPressed: submit,
+
+                  style: ElevatedButton.styleFrom(
+
+                    backgroundColor:
+                        const Color(0xff4f46e5),
+
+                    padding:
+                        const EdgeInsets.symmetric(
+                      vertical: 16,
+                    ),
+
+                    shape: RoundedRectangleBorder(
+
+                      borderRadius:
+                          BorderRadius.circular(16),
+                    ),
                   ),
-                  disabledBackgroundColor: Colors.grey,
+
+                  child: const Text(
+
+                    "Simpan Jurnal",
+
+                    style: TextStyle(
+
+                      fontSize: 16,
+
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Simpan Jurnal',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget previewImage() {
+
+    if (webImage != null) {
+
+      return ClipRRect(
+
+        borderRadius: BorderRadius.circular(24),
+
+        child: Image.memory(
+
+          webImage!,
+
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+
+    if (imageFile != null) {
+
+      return ClipRRect(
+
+        borderRadius: BorderRadius.circular(24),
+
+        child: Image.file(
+
+          imageFile!,
+
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+
+    return const Column(
+
+      mainAxisAlignment: MainAxisAlignment.center,
+
+      children: [
+
+        Icon(
+
+          LucideIcons.image,
+
+          size: 50,
+
+          color: Color(0xff6366f1),
+        ),
+
+        SizedBox(height: 10),
+
+        Text("upload foto kegiatan"),
+      ],
+    );
+  }
+
+  InputDecoration inputStyle(
+
+    String label,
+
+    IconData icon,
+
+  ) {
+
+    return InputDecoration(
+
+      labelText: label,
+
+      prefixIcon: Icon(
+
+        icon,
+
+        color: const Color(0xff6366f1),
+      ),
+
+      filled: true,
+
+      fillColor: Colors.white,
+
+      border: OutlineInputBorder(
+
+        borderRadius:
+            BorderRadius.circular(18),
+
+        borderSide: BorderSide.none,
       ),
     );
   }
