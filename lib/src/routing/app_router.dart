@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Import repositories
 import '../features/authentication/data/auth_repository.dart';
@@ -35,9 +34,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     refreshListenable: _GoRouterRefreshStream(authStream),
 
-    // 🔥 REDIRECT LOGIN
+    /// 🔥 AUTH REDIRECT
     redirect: (context, state) {
-      final currentUser = authRepository.currentUser;
+      final currentUser = ref.read(authRepositoryProvider).currentUser;
+
       final isLoggedIn = currentUser != null;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
@@ -64,13 +64,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
 
-      // ADMIN
+      /// ADMIN (optional direct access)
       GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminDashboardScreen(),
       ),
 
-      // MAIN APP (SHELL)
+      /// 🔥 MAIN APP (SHELL)
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return _ProfileGuard(navigationShell: navigationShell);
@@ -104,8 +104,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/history',
-                builder: (context, state) =>
-                    const AttendanceHistoryScreen(),
+                builder: (context, state) => const AttendanceHistoryScreen(),
               ),
             ],
           ),
@@ -142,14 +141,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-// 🔁 REFRESH STREAM
+/// 🔁 REFRESH STREAM
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
     _subscription = stream.asBroadcastStream().listen(
-      (dynamic _) => notifyListeners(),
-    );
+          (_) => notifyListeners(),
+        );
   }
+
   late final dynamic _subscription;
+
   @override
   void dispose() {
     _subscription.cancel();
@@ -157,7 +158,7 @@ class _GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
-// 🔥 PROFILE GUARD
+/// 🔥 PROFILE + ROLE GUARD
 class _ProfileGuard extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -178,19 +179,22 @@ class _ProfileGuard extends ConsumerWidget {
         final role = profile['role'] ?? 'student';
         final status = profile['status'] ?? 'pending';
 
-        debugPrint("ROLE: $role");
-        debugPrint("STATUS: $status");
-
+        /// 🔴 ADMIN
         if (role == 'admin') {
           return const AdminDashboardScreen();
         }
+
+        /// 🟡 TEACHER
         if (role == 'teacher') {
           return const TeacherDashboardScreen();
         }
+
+        /// ⚠️ BELUM AKTIF
         if (status != 'active') {
           return VerificationStatusScreen(status: status);
         }
 
+        /// 🟢 STUDENT (DEFAULT)
         return MainScreen(navigationShell: navigationShell);
       },
       loading: () => const Scaffold(

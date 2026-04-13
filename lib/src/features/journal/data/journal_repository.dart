@@ -12,6 +12,21 @@ final journalRepositoryProvider = Provider((ref) {
 
 });
 
+final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((ref) async {
+  final user = ref.watch(authRepositoryProvider).currentUser;
+  if (user == null) return false;
+
+  final today = DateTime.now().toIso8601String().split('T')[0];
+  final res = await Supabase.instance.client
+      .from('daily_journals')
+      .select()
+      .eq('student_id', user.id)
+      .eq('date', today)
+      .limit(1);
+
+  return res.isNotEmpty;
+});
+
 class JournalRepository {
 
   final supabase = Supabase.instance.client;
@@ -73,16 +88,15 @@ class JournalRepository {
 
   }) async {
 
-    await supabase.from("journals").insert({
+    await supabase.from("daily_journals").insert({
 
-      "title": title,
+      "activities": title,
 
-      "description": description,
+      "challenges": description,
 
-      "image_url": imageUrl,
+      "evidence_url": imageUrl,
 
-      "created_at":
-          DateTime.now().toIso8601String(),
+      "date": DateTime.now().toIso8601String().split('T')[0], // YYYY-MM-DD
     });
   }
 
@@ -91,7 +105,7 @@ class JournalRepository {
 
     final res = await supabase
 
-        .from("journals")
+        .from("daily_journals")
 
         .select()
 
