@@ -115,20 +115,47 @@ class JournalRepository {
     return res;
   }
 
-  /// ambil jurnal saya dengan pagination
+  /// ambil data jurnal user tertentu dengan pagination
   Future<List<Map<String, dynamic>>> getMyJournals({
     required String studentId,
-    required int page,
-    required int pageSize,
+    int page = 1,
+    int pageSize = 10,
   }) async {
-    final offset = (page - 1) * pageSize;
+    final from = (page - 1) * pageSize;
+    final to = from + pageSize - 1;
+
     final res = await supabase
-        .from("daily_journals")
+        .from("journals")
         .select()
-        .eq("student_id", studentId)
-        .order("date", ascending: false)
-        .range(offset, offset + pageSize - 1);
+        .eq('student_id', studentId)
+        .order("created_at", ascending: false)
+        .range(from, to);
 
     return List<Map<String, dynamic>>.from(res);
   }
+
+  /// cek apakah user sudah submit journal hari ini
+  Future<bool> hasSubmittedJournalToday(String studentId) async {
+    final today = DateTime.now();
+    final startOfDay = DateTime(today.year, today.month, today.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final res = await supabase
+        .from("journals")
+        .select()
+        .eq('student_id', studentId)
+        .gte('created_at', startOfDay.toIso8601String())
+        .lt('created_at', endOfDay.toIso8601String())
+        .limit(1);
+
+    return res.isNotEmpty;
+  }
 }
+
+final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((ref) {
+  final user = ref.watch(authRepositoryProvider).currentUser;
+  if (user == null) return Future.value(false);
+
+  final repository = ref.watch(journalRepositoryProvider);
+  return repository.hasSubmittedJournalToday(user.id);
+});

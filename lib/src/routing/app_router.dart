@@ -45,22 +45,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       if (!isLoggedIn) {
         return (isLoggingIn || isSplash) ? null : '/login';
       }
-
       if (isLoggedIn && isLoggingIn) {
         return '/';
       }
-
       return null;
     },
 
     routes: [
-      /// SPLASH
+      // SPLASH
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
 
-      /// LOGIN
+      // LOGIN
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
@@ -78,7 +76,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           return _ProfileGuard(navigationShell: navigationShell);
         },
         branches: [
-          /// HOME
+          // HOME
           StatefulShellBranch(
             navigatorKey: _shellNavigatorKey,
             routes: [
@@ -90,8 +88,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     path: 'announcements/detail',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) {
-                      final announcement =
-                          state.extra as AnnouncementModel;
+                      final announcement = state.extra as AnnouncementModel;
                       return AnnouncementDetailScreen(
                         announcement: announcement,
                       );
@@ -102,43 +99,39 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
-          /// HISTORY
+          // HISTORY
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/history',
-                builder: (context, state) =>
-                    const AttendanceHistoryScreen(),
+                builder: (context, state) => const AttendanceHistoryScreen(),
               ),
             ],
           ),
 
-          /// JOURNAL
+          // JOURNAL
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/journal',
-                builder: (context, state) =>
-                    const DailyJournalScreen(),
+                builder: (context, state) => const DailyJournalScreen(),
                 routes: [
                   GoRoute(
                     path: 'create',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) =>
-                        const JournalFormScreen(),
+                    builder: (context, state) => const JournalFormScreen(),
                   ),
                 ],
               ),
             ],
           ),
 
-          /// PROFILE
+          // PROFILE
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/profile',
-                builder: (context, state) =>
-                    const ProfileScreen(),
+                builder: (context, state) => const ProfileScreen(),
               ),
             ],
           ),
@@ -152,8 +145,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
 class _GoRouterRefreshStream extends ChangeNotifier {
   _GoRouterRefreshStream(Stream<dynamic> stream) {
     _subscription = stream.asBroadcastStream().listen(
-      (_) => notifyListeners(),
-    );
+          (_) => notifyListeners(),
+        );
   }
 
   late final dynamic _subscription;
@@ -204,11 +197,9 @@ class _ProfileGuard extends ConsumerWidget {
         /// 🟢 STUDENT (DEFAULT)
         return MainScreen(navigationShell: navigationShell);
       },
-
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
-
       error: (e, _) => Scaffold(
         body: Center(child: Text('Error: $e')),
       ),
