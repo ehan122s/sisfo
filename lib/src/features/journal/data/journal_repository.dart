@@ -4,10 +4,27 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../authentication/data/auth_repository.dart';
+
 final journalRepositoryProvider = Provider((ref) {
 
   return JournalRepository();
 
+});
+
+final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((ref) async {
+  final user = ref.watch(authRepositoryProvider).currentUser;
+  if (user == null) return false;
+
+  final today = DateTime.now().toIso8601String().split('T')[0];
+  final res = await Supabase.instance.client
+      .from('daily_journals')
+      .select()
+      .eq('student_id', user.id)
+      .eq('date', today)
+      .limit(1);
+
+  return res.isNotEmpty;
 });
 
 class JournalRepository {
@@ -71,16 +88,15 @@ class JournalRepository {
 
   }) async {
 
-    await supabase.from("journals").insert({
+    await supabase.from("daily_journals").insert({
 
-      "title": title,
+      "activities": title,
 
-      "description": description,
+      "challenges": description,
 
-      "image_url": imageUrl,
+      "evidence_url": imageUrl,
 
-      "created_at":
-          DateTime.now().toIso8601String(),
+      "date": DateTime.now().toIso8601String().split('T')[0], // YYYY-MM-DD
     });
   }
 
@@ -89,7 +105,7 @@ class JournalRepository {
 
     final res = await supabase
 
-        .from("journals")
+        .from("daily_journals")
 
         .select()
 
@@ -98,4 +114,48 @@ class JournalRepository {
 
     return res;
   }
+
+  /// ambil data jurnal user tertentu dengan pagination
+  Future<List<Map<String, dynamic>>> getMyJournals({
+    required String studentId,
+    int page = 1,
+    int pageSize = 10,
+  }) async {
+    final from = (page - 1) * pageSize;
+    final to = from + pageSize - 1;
+
+    final res = await supabase
+        .from("journals")
+        .select()
+        .eq('student_id', studentId)
+        .order("created_at", ascending: false)
+        .range(from, to);
+
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  /// cek apakah user sudah submit journal hari ini
+  Future<bool> hasSubmittedJournalToday(String studentId) async {
+    final today = DateTime.now();
+    final startOfDay = DateTime(today.year, today.month, today.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final res = await supabase
+        .from("journals")
+        .select()
+        .eq('student_id', studentId)
+        .gte('created_at', startOfDay.toIso8601String())
+        .lt('created_at', endOfDay.toIso8601String())
+        .limit(1);
+
+    return res.isNotEmpty;
+  }
 }
+
+final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((ref) {
+  final user = ref.watch(authRepositoryProvider).currentUser;
+  if (user == null) return Future.value(false);
+
+  final repository = ref.watch(journalRepositoryProvider);
+  return repository.hasSubmittedJournalToday(user.id);
+});

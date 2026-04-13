@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:google_fonts/google_fonts.dart'; // Tambahkan ini jika belum ada
 import '../../authentication/data/auth_repository.dart';
 import '../data/attendance_repository.dart';
 import '../../../common_widgets/skeleton_widget.dart';
@@ -95,10 +96,24 @@ class _AttendanceHistoryScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Riwayat Kehadiran'), centerTitle: true),
+      backgroundColor: const Color(0xFFF0F4F8), // Background Biru Kalem Muda
+      appBar: AppBar(
+        title: Text(
+          'Riwayat Kehadiran',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF1976D2), // Biru Kalem
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
 
       body: RefreshIndicator(
         onRefresh: _refresh,
+        color: const Color(0xFF1976D2), 
         child: _history.isEmpty && _isLoading
             ? ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -109,142 +124,171 @@ class _AttendanceHistoryScreenState
                     width: double.infinity,
                     height: 100,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderRadius: BorderRadius.all(Radius.circular(16)),
                     ),
                   ),
                 ),
               )
             : _history.isEmpty
-            ? const Center(child: Text("Belum ada riwayat kehadiran"))
-            : ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: _history.length + (_hasMore ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == _history.length) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-
-                  final item = _history[index];
-                  final date = DateTime.parse(item['created_at']).toLocal();
-                  final dateStr = DateFormat(
-                    'EEEE, d MMM yyyy',
-                    'id_ID',
-                  ).format(date);
-                  final timeStr = DateFormat('HH:mm').format(date);
-                  final status = item['status'] ?? 'Hadir';
-
-                  Color statusColor = Colors.green;
-                  if (status == 'Telat') statusColor = Colors.orange;
-                  if (status == 'Alpa') statusColor = Colors.red;
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(LucideIcons.calendarX, size: 64, color: Colors.blue.withOpacity(0.3)),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Belum ada riwayat kehadiran",
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF1976D2).withOpacity(0.6),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: statusColor.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              LucideIcons.calendarCheck,
-                              color: statusColor,
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _history.length + (_hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _history.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF1976D2),
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  dateStr,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                        );
+                      }
+
+                      final item = _history[index];
+                      final date = DateTime.parse(item['created_at']).toLocal();
+                      final dateStr = DateFormat(
+                        'EEEE, d MMM yyyy',
+                        'id_ID',
+                      ).format(date);
+                      final timeStr = DateFormat('HH:mm').format(date);
+                      final status = item['status'] ?? 'Hadir';
+
+                      // LOGIKA WARNA STATUS (Fokus Biru untuk Hadir)
+                      Color statusColor = const Color(0xFF1976D2); // Biru Kalem
+                      if (status == 'Telat') {
+                        statusColor = Colors.orange.shade600;
+                      } else if (status == 'Alpa') {
+                        statusColor = Colors.red.shade600;
+                      }
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: Colors.blue.shade50,
+                            width: 1,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: statusColor.withOpacity(0.1),
+                                  shape: BoxShape.circle,
                                 ),
-                                const SizedBox(height: 4),
-                                Wrap(
-                                  spacing: 12,
-                                  runSpacing: 4,
+                                child: Icon(
+                                  LucideIcons.calendarCheck,
+                                  color: statusColor,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Text(
+                                      dateStr,
+                                      style: GoogleFonts.poppins(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: const Color(0xFF1F2937),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
                                     Row(
-                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
                                           LucideIcons.clock,
                                           size: 14,
-                                          color: Colors.grey[600],
+                                          color: Colors.grey[400],
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           "Masuk: $timeStr",
-                                          style: TextStyle(
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12,
                                             color: Colors.grey[600],
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                    if (item['check_out_time'] != null)
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(
+                                        if (item['check_out_time'] != null) ...[
+                                          const SizedBox(width: 12),
+                                          Icon(
                                             LucideIcons.logOut,
                                             size: 14,
-                                            color: Colors.grey,
+                                            color: Colors.grey[400],
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
                                             "Pulang: ${DateFormat('HH:mm').format(DateTime.parse(item['check_out_time']).toLocal())}",
-                                            style: TextStyle(
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
                                               color: Colors.grey[600],
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ],
-                                      ),
+                                      ],
+                                    ),
                                   ],
                                 ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              status.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
                               ),
-                            ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: statusColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  status.toUpperCase(),
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+                        ),
+                      );
+                    },
+                  ),
       ),
     );
   }

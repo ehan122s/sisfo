@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:geolocator/geolocator.dart'; // Jangan lupa import ini agar tidak eror
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../data/attendance_repository.dart';
@@ -23,7 +23,6 @@ class AttendanceScreen extends ConsumerStatefulWidget {
 }
 
 class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
-  // ... existing variables ...
   GoogleMapController? _mapController;
   Position? _currentPosition;
   bool _isLoading = true;
@@ -34,7 +33,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   LatLng? _companyLocation;
   double _radiusMeter = 100;
   String _companyName = "Lokasi PKL";
-  // int? _placementId; // Removed as it is handled server-side now
 
   Set<Marker> _markers = {};
   Set<Circle> _circles = {};
@@ -45,13 +43,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     _initData();
   }
 
-  // ... _initData and _updateMapUI remain mostly same ...
-  // But we need to verify if checkIn/checkOut is allowed in _initData?
-  // No, repo handles that.
-
   Future<void> _initData() async {
     try {
-      // ... same logic ...
       final user = ref.read(authRepositoryProvider).currentUser;
       if (user == null) return;
 
@@ -62,15 +55,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
       if (placement != null) {
         final company = placement['companies'];
-        // _placementId no longer needed client side for checkIn
         _companyName = company['name'];
         _radiusMeter = (company['radius_meter'] as num).toDouble();
         _companyLocation = LatLng(
           (company['latitude'] as num).toDouble(),
           (company['longitude'] as num).toDouble(),
         );
-      } else {
-        // ... error ...
       }
 
       // 2. Get Current Location
@@ -86,13 +76,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         _updateMapUI();
       }
     } catch (e) {
-      // ... error ...
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _updateMapUI() {
-    // ... logic is same ...
     if (_currentPosition == null) return;
 
     final userLatLng = LatLng(
@@ -100,7 +88,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       _currentPosition!.longitude,
     );
 
-    // If company location is available, calculate distance
     if (_companyLocation != null) {
       final distance = ref
           .read(attendanceRepositoryProvider)
@@ -113,38 +100,36 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       _distance = distance;
       _isWithinRange = distance <= _radiusMeter;
 
-      // ... markers ...
       _markers = {
         Marker(
-          markerId: MarkerId('company'),
+          markerId: const MarkerId('company'),
           position: _companyLocation!,
           infoWindow: InfoWindow(title: _companyName),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         ),
         Marker(
-          markerId: MarkerId('user'),
+          markerId: const MarkerId('user'),
           position: userLatLng,
-          infoWindow: InfoWindow(title: 'Lokasi Anda'),
+          infoWindow: const InfoWindow(title: 'Lokasi Anda'),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         ),
       };
       _circles = {
         Circle(
-          circleId: CircleId('radius'),
+          circleId: const CircleId('radius'),
           center: _companyLocation!,
           radius: _radiusMeter,
-          fillColor: Colors.blue.withValues(alpha: 0.2),
-          strokeColor: Colors.blue,
-          strokeWidth: 1,
+          fillColor: Colors.blue.withOpacity(0.15),
+          strokeColor: Colors.blue.shade700,
+          strokeWidth: 2,
         ),
       };
     } else {
-      // ...
       _markers = {
         Marker(
-          markerId: MarkerId('user'),
+          markerId: const MarkerId('user'),
           position: userLatLng,
-          infoWindow: InfoWindow(title: 'Lokasi Anda'),
+          infoWindow: const InfoWindow(title: 'Lokasi Anda'),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         ),
       };
@@ -153,26 +138,17 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     setState(() {});
 
-    // ... camera code ...
     if (_mapController != null) {
-      if (_companyLocation != null) {
-        // Basic bounds logic
-        _mapController!.animateCamera(CameraUpdate.newLatLng(userLatLng));
-      } else {
-        _mapController!.animateCamera(CameraUpdate.newLatLng(userLatLng));
-      }
+      _mapController!.animateCamera(CameraUpdate.newLatLng(userLatLng));
     }
   }
 
   Future<void> _handleAction() async {
     final picker = ImagePicker();
-    // Only require selfie for CheckIn? Or both? User said "Upload Selfie" for both roughly.
-    // Let's require for both.
-
     final pickedFile = await picker.pickImage(
       source: ImageSource.camera,
       preferredCameraDevice: CameraDevice.front,
-      imageQuality: 50, // Compress
+      imageQuality: 50,
     );
 
     if (pickedFile == null) return;
@@ -184,27 +160,21 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       if (user == null) throw Exception('User not logged in');
 
       final File originalFile = File(pickedFile.path);
-
-      // Compress Image
       final File imageFile = await ref
           .read(imageCompressionServiceProvider)
           .compressImage(originalFile);
 
       String photoUrl;
-
-      // Check Connectivity for Upload
       final connectivityResult = await Connectivity().checkConnectivity();
+      
       if (connectivityResult.contains(ConnectivityResult.none)) {
-        // Offline: Use local path
         photoUrl = imageFile.path;
       } else {
-        // Online: Upload Photo
         photoUrl = await ref
             .read(attendanceRepositoryProvider)
             .uploadSelfie(imageFile, user.id);
       }
 
-      // Submit Data
       String successMessage = '';
       if (widget.mode == AttendanceMode.checkIn) {
         successMessage = await ref
@@ -232,13 +202,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           SnackBar(
             content: Text(successMessage),
             backgroundColor: Colors.green,
-          ), // Updated checkIn call
+          ),
         );
-        ref.invalidate(
-          todaysAttendanceLogProvider,
-        ); // Refresh attendance status
-        ref.invalidate(todaysJournalStatusProvider); // Refresh journal warning
-        Navigator.pop(context); // Back to Home
+        ref.invalidate(todaysAttendanceLogProvider);
+        ref.invalidate(todaysJournalStatusProvider);
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
@@ -264,13 +232,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.mode == AttendanceMode.checkIn
-              ? 'Absen Masuk'
-              : 'Absen Pulang',
+          widget.mode == AttendanceMode.checkIn ? 'Absen Masuk' : 'Absen Pulang',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
+        backgroundColor: Colors.blue.shade700, // Header Biru
+        foregroundColor: Colors.white,
       ),
       body: _currentPosition == null
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: Colors.blue.shade700))
           : Column(
               children: [
                 Expanded(
@@ -287,7 +257,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     myLocationEnabled: true,
                     onMapCreated: (controller) {
                       _mapController = controller;
-                      _updateMapUI(); // Refresh bounds
+                      _updateMapUI();
                     },
                   ),
                 ),
@@ -296,12 +266,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(32), // More rounded
+                      topLeft: Radius.circular(32),
                       topRight: Radius.circular(32),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withOpacity(0.1),
                         blurRadius: 20,
                         offset: const Offset(0, -5),
                       ),
@@ -316,32 +286,23 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: _isWithinRange
-                              ? Colors.green.withValues(alpha: 0.1)
-                              : Colors.red.withValues(alpha: 0.1),
+                              ? Colors.green.withOpacity(0.1)
+                              : Colors.red.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: _isWithinRange
-                                ? Colors.green.withValues(alpha: 0.3)
-                                : Colors.red.withValues(alpha: 0.3),
+                                ? Colors.green.withOpacity(0.3)
+                                : Colors.red.withOpacity(0.3),
                           ),
                         ),
                         child: Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                _isWithinRange
-                                    ? Icons.check_circle_rounded
-                                    : Icons.location_off_rounded,
-                                color: _isWithinRange
-                                    ? Colors.green
-                                    : Colors.red,
-                                size: 24,
-                              ),
+                            Icon(
+                              _isWithinRange
+                                  ? Icons.check_circle_rounded
+                                  : Icons.location_off_rounded,
+                              color: _isWithinRange ? Colors.green : Colors.red,
+                              size: 24,
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -352,8 +313,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                     _companyLocation == null
                                         ? "Belum ada Penempatan"
                                         : (_isWithinRange
-                                              ? "Lokasi Terverifikasi"
-                                              : "Diluar Jangkauan"),
+                                            ? "Lokasi Terverifikasi"
+                                            : "Diluar Jangkauan"),
                                     style: GoogleFonts.poppins(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -366,7 +327,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                     Text(
                                       "$_companyName (${_distance.toStringAsFixed(0)}m)",
                                       style: GoogleFonts.poppins(
-                                        color: Colors.grey[600],
+                                        color: Colors.blue.shade900, // Teks detail Biru Gelap
                                         fontSize: 13,
                                       ),
                                     ),
@@ -376,66 +337,39 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           ],
                         ),
                       ),
-
                       const SizedBox(height: 24),
-
                       // Action Button
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            if (_isWithinRange && !_isLoading)
-                              BoxShadow(
-                                color:
-                                    (widget.mode == AttendanceMode.checkIn
-                                            ? Colors.green
-                                            : Colors.red)
-                                        .withValues(alpha: 0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                          ],
+                      ElevatedButton.icon(
+                        onPressed: (_isWithinRange && !_isLoading) ? _handleAction : null,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Icon(Icons.camera_alt_rounded),
+                        label: Text(
+                          _isLoading
+                              ? 'Memproses...'
+                              : (widget.mode == AttendanceMode.checkIn
+                                  ? 'Ambil Selfie & Masuk'
+                                  : 'Ambil Selfie & Pulang'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                        child: ElevatedButton.icon(
-                          onPressed: (_isWithinRange && !_isLoading)
-                              ? _handleAction
-                              : null,
-                          icon: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.camera_alt_rounded),
-                          label: Text(
-                            _isLoading
-                                ? 'Memproses...'
-                                : (widget.mode == AttendanceMode.checkIn
-                                      ? 'Ambil Selfie & Masuk'
-                                      : 'Ambil Selfie & Pulang'),
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: widget.mode == AttendanceMode.checkIn
+                              ? const Color(0xFF4CAF50)
+                              : const Color(0xFFEF5350),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                widget.mode == AttendanceMode.checkIn
-                                ? const Color(0xFF4CAF50)
-                                : const Color(0xFFEF5350),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            elevation:
-                                0, // DIsable default elevation, we use Container shadow
-                            disabledBackgroundColor: Colors.grey[300],
-                            disabledForegroundColor: Colors.grey[500],
-                          ),
+                          elevation: 0,
+                          disabledBackgroundColor: Colors.grey[300],
                         ),
                       ),
                     ],
