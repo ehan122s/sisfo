@@ -11,7 +11,9 @@ final journalRepositoryProvider = Provider((ref) {
 });
 
 // --- PROVIDER PINDAH KE SINI (HANYA SATU) ---
-final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((ref) async {
+final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
   final user = ref.watch(authRepositoryProvider).currentUser;
   if (user == null) return false;
 
@@ -67,17 +69,18 @@ class JournalRepository {
     return res;
   }
 
-  /// ambil data jurnal user tertentu dengan pagination
   Future<List<Map<String, dynamic>>> getMyJournals({
     required String studentId,
-    int page = 1,
+    int page = 0,
     int pageSize = 10,
   }) async {
-    final from = (page - 1) * pageSize;
+    final from = page * pageSize;
     final to = from + pageSize - 1;
 
     final res = await supabase
-        .from("daily_journals") // Pastikan nama tabel konsisten 'daily_journals'
+        .from(
+          "daily_journals",
+        ) // Pastikan nama tabel konsisten 'daily_journals'
         .select()
         .eq('student_id', studentId)
         .order("created_at", ascending: false)
