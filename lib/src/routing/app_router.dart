@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// Import repositories
 import '../features/authentication/data/auth_repository.dart';
 import '../features/profile/data/profile_repository.dart';
-
-// Import screens
 import '../features/authentication/presentation/login_screen.dart';
 import '../features/authentication/presentation/verification_status_screen.dart';
 import '../features/admin/presentation/admin_dashboard_screen.dart';
@@ -24,9 +21,38 @@ import '../features/authentication/presentation/splash_screen.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
+// Helper: Fade + Slide transition
+CustomTransitionPage _buildPageWithTransition({
+  required BuildContext context,
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 350),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // Fade + slide up
+      final fadeTween = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: animation, curve: Curves.easeOut),
+      );
+      final slideTween =
+          Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero)
+              .animate(
+        CurvedAnimation(parent: animation, curve: Curves.easeOut),
+      );
+      return FadeTransition(
+        opacity: fadeTween,
+        child: SlideTransition(position: slideTween, child: child),
+      );
+    },
+  );
+}
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  
+
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
@@ -35,8 +61,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final currentUser = ref.read(authRepositoryProvider).currentUser;
       final isLoggedIn = currentUser != null;
-      final isLoggingIn = state.uri.toString() == '/login';
-      final isSplash = state.uri.toString() == '/splash';
+      final path = state.uri.toString();
+      final isLoggingIn = path == '/login';
+      final isSplash = path == '/splash';
 
       if (!isLoggedIn) {
         return (isLoggingIn || isSplash) ? null : '/login';
@@ -52,30 +79,59 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/splash',
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const SplashScreen(),
+        ),
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const LoginScreen(),
+        ),
       ),
-
+      GoRoute(
+        path: '/verification',
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: VerificationStatusScreen(
+            status: state.extra as String? ?? 'pending',
+          ),
+        ),
+      ),
       GoRoute(
         path: '/',
-        builder: (context, state) => const _RoleBaseRedirector(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const _RoleBaseRedirector(),
+        ),
       ),
 
       // --- ADMIN ROUTE ---
       GoRoute(
         path: '/admin',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AdminDashboardScreen(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const AdminDashboardScreen(),
+        ),
       ),
 
       // --- TEACHER ROUTE ---
       GoRoute(
         path: '/teacher',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const TeacherDashboardScreen(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const TeacherDashboardScreen(),
+        ),
       ),
 
       // --- STUDENT SHELL ---
@@ -89,15 +145,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/home',
-                builder: (context, state) => const HomeScreen(),
+                pageBuilder: (context, state) => _buildPageWithTransition(
+                  context: context,
+                  state: state,
+                  child: const HomeScreen(),
+                ),
                 routes: [
                   GoRoute(
                     path: 'announcements/detail',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) {
-                      final announcement = state.extra as AnnouncementModel;
-                      return AnnouncementDetailScreen(announcement: announcement);
-                    },
+                    pageBuilder: (context, state) => _buildPageWithTransition(
+                      context: context,
+                      state: state,
+                      child: AnnouncementDetailScreen(
+                        announcement: state.extra as AnnouncementModel,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -106,22 +169,33 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/history', 
-                builder: (context, state) => const AttendanceHistoryScreen()
+                path: '/history',
+                pageBuilder: (context, state) => _buildPageWithTransition(
+                  context: context,
+                  state: state,
+                  child: const AttendanceHistoryScreen(),
+                ),
               ),
             ],
           ),
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/journal', 
-                builder: (context, state) => const DailyJournalScreen(),
+                path: '/journal',
+                pageBuilder: (context, state) => _buildPageWithTransition(
+                  context: context,
+                  state: state,
+                  child: const DailyJournalScreen(),
+                ),
                 routes: [
-                  // FIX: Menambahkan sub-route /create agar /journal/create bisa diakses
                   GoRoute(
                     path: 'create',
-                    parentNavigatorKey: _rootNavigatorKey, // Supaya form menutupi bottom nav
-                    builder: (context, state) => const JournalFormScreen(),
+                    parentNavigatorKey: _rootNavigatorKey,
+                    pageBuilder: (context, state) => _buildPageWithTransition(
+                      context: context,
+                      state: state,
+                      child: const JournalFormScreen(),
+                    ),
                   ),
                 ],
               ),
@@ -130,8 +204,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/profile', 
-                builder: (context, state) => const ProfileScreen()
+                path: '/profile',
+                pageBuilder: (context, state) => _buildPageWithTransition(
+                  context: context,
+                  state: state,
+                  child: const ProfileScreen(),
+                ),
               ),
             ],
           ),
@@ -150,10 +228,23 @@ class _RoleBaseRedirector extends ConsumerWidget {
 
     return profileAsync.when(
       data: (profile) {
-        if (profile == null) return const LoginScreen();
+        print('=== PROFILE DATA: $profile');
+
+        if (profile == null) {
+          print('=== PROFILE NULL, ke login');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.go('/login');
+          });
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
         final role = profile['role']?.toString().toLowerCase() ?? 'student';
-        final status = profile['status']?.toString().toLowerCase() ?? 'pending';
+        final status =
+            profile['status']?.toString().toLowerCase() ?? 'pending';
+
+        print('=== ROLE: $role, STATUS: $status');
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (role == 'admin') {
@@ -161,14 +252,10 @@ class _RoleBaseRedirector extends ConsumerWidget {
           } else if (role == 'teacher') {
             context.go('/teacher');
           } else {
-            if (status != 'active') {
-              context.go('/login'); // Atau arahkan ke VerificationStatusScreen
-              showDialog(
-                context: context,
-                builder: (context) => VerificationStatusScreen(status: status),
-              );
-            } else {
+            if (status == 'active') {
               context.go('/home');
+            } else {
+              context.go('/verification', extra: status);
             }
           }
         });
@@ -177,12 +264,45 @@ class _RoleBaseRedirector extends ConsumerWidget {
           body: Center(child: CircularProgressIndicator()),
         );
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (err, stack) => Scaffold(
-        body: Center(child: Text('Gagal memuat profil: $err')),
-      ),
+      loading: () {
+        print('=== PROFILE LOADING...');
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      },
+      error: (err, stack) {
+        print('=== PROFILE ERROR: $err');
+        return Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  'Gagal memuat profil',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  err.toString(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Kembali ke Login'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -192,6 +312,7 @@ class _GoRouterRefreshStream extends ChangeNotifier {
     _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
   }
   late final dynamic _subscription;
+
   @override
   void dispose() {
     _subscription.cancel();
