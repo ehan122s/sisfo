@@ -21,6 +21,35 @@ import '../features/authentication/presentation/splash_screen.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
+// Helper: Fade + Slide transition
+CustomTransitionPage _buildPageWithTransition({
+  required BuildContext context,
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 350),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // Fade + slide up
+      final fadeTween = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: animation, curve: Curves.easeOut),
+      );
+      final slideTween =
+          Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero)
+              .animate(
+        CurvedAnimation(parent: animation, curve: Curves.easeOut),
+      );
+      return FadeTransition(
+        opacity: fadeTween,
+        child: SlideTransition(position: slideTween, child: child),
+      );
+    },
+  );
+}
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
 
@@ -50,36 +79,59 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: '/splash',
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const SplashScreen(),
+        ),
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const LoginScreen(),
+        ),
       ),
       GoRoute(
         path: '/verification',
-        builder: (context, state) {
-          final status = state.extra as String? ?? 'pending';
-          return VerificationStatusScreen(status: status);
-        },
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: VerificationStatusScreen(
+            status: state.extra as String? ?? 'pending',
+          ),
+        ),
       ),
       GoRoute(
         path: '/',
-        builder: (context, state) => const _RoleBaseRedirector(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const _RoleBaseRedirector(),
+        ),
       ),
 
       // --- ADMIN ROUTE ---
       GoRoute(
         path: '/admin',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AdminDashboardScreen(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const AdminDashboardScreen(),
+        ),
       ),
 
       // --- TEACHER ROUTE ---
       GoRoute(
         path: '/teacher',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const TeacherDashboardScreen(),
+        pageBuilder: (context, state) => _buildPageWithTransition(
+          context: context,
+          state: state,
+          child: const TeacherDashboardScreen(),
+        ),
       ),
 
       // --- STUDENT SHELL ---
@@ -93,16 +145,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/home',
-                builder: (context, state) => const HomeScreen(),
+                pageBuilder: (context, state) => _buildPageWithTransition(
+                  context: context,
+                  state: state,
+                  child: const HomeScreen(),
+                ),
                 routes: [
                   GoRoute(
                     path: 'announcements/detail',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) {
-                      final announcement = state.extra as AnnouncementModel;
-                      return AnnouncementDetailScreen(
-                          announcement: announcement);
-                    },
+                    pageBuilder: (context, state) => _buildPageWithTransition(
+                      context: context,
+                      state: state,
+                      child: AnnouncementDetailScreen(
+                        announcement: state.extra as AnnouncementModel,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -112,7 +170,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/history',
-                builder: (context, state) => const AttendanceHistoryScreen(),
+                pageBuilder: (context, state) => _buildPageWithTransition(
+                  context: context,
+                  state: state,
+                  child: const AttendanceHistoryScreen(),
+                ),
               ),
             ],
           ),
@@ -120,12 +182,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/journal',
-                builder: (context, state) => const DailyJournalScreen(),
+                pageBuilder: (context, state) => _buildPageWithTransition(
+                  context: context,
+                  state: state,
+                  child: const DailyJournalScreen(),
+                ),
                 routes: [
                   GoRoute(
                     path: 'create',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) => const JournalFormScreen(),
+                    pageBuilder: (context, state) => _buildPageWithTransition(
+                      context: context,
+                      state: state,
+                      child: const JournalFormScreen(),
+                    ),
                   ),
                 ],
               ),
@@ -135,7 +205,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/profile',
-                builder: (context, state) => const ProfileScreen(),
+                pageBuilder: (context, state) => _buildPageWithTransition(
+                  context: context,
+                  state: state,
+                  child: const ProfileScreen(),
+                ),
               ),
             ],
           ),
