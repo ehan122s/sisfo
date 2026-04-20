@@ -24,7 +24,7 @@ class MyApp extends ConsumerWidget {
     ref.watch(syncServiceProvider); // Initialize Sync Service
 
     return MaterialApp.router(
-      title: 'K-MOB SMEAr',
+      title: 'SIP SMEA',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

@@ -6,18 +6,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../authentication/data/auth_repository.dart';
 
-// --- PROVIDER SECTION (Di luar Class) ---
+// --- PROVIDER SECTION ---
 
 final journalRepositoryProvider = Provider((ref) {
   return JournalRepository();
 });
 
-// HANYA BOLEH ADA SATU SEPERTI INI
 final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((ref) async {
   final user = ref.watch(authRepositoryProvider).currentUser;
   if (user == null) return false;
 
   final repository = ref.watch(journalRepositoryProvider);
+  // Menggunakan await karena hasSubmittedJournalToday adalah Future
   return await repository.hasSubmittedJournalToday(user.id);
 });
 
@@ -29,6 +29,7 @@ class JournalRepository {
   Future<String> uploadEvidenceFile(File file) async {
     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
     final path = "journals/$fileName.jpg";
+    
     await supabase.storage.from("journal").upload(path, file);
     return supabase.storage.from("journal").getPublicUrl(path);
   }
@@ -36,16 +37,17 @@ class JournalRepository {
   Future<String> uploadEvidenceBytes(Uint8List bytes) async {
     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
     final path = "journals/$fileName.jpg";
+
     await supabase.storage.from("journal").uploadBinary(path, bytes);
     return supabase.storage.from("journal").getPublicUrl(path);
   }
 
-  Future submitJournal({
+  Future<void> submitJournal({
     required String title,
     required String description,
     required String imageUrl,
   }) async {
-    await supabase.from("journals").insert({
+    await supabase.from("daily_journals").insert({
       "title": title,
       "description": description,
       "image_url": imageUrl,
@@ -53,6 +55,16 @@ class JournalRepository {
     });
   }
 
+  /// Ambil semua data jurnal
+  Future<List<Map<String, dynamic>>> getJournals() async {
+    final res = await supabase
+        .from("daily_journals")
+        .select()
+        .order("created_at", ascending: false);
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  /// Ambil data jurnal user tertentu dengan pagination
   Future<List<Map<String, dynamic>>> getMyJournals({
     required String studentId,
     int page = 1,
@@ -61,7 +73,7 @@ class JournalRepository {
     final from = (page - 1) * pageSize;
     final to = from + pageSize - 1;
     final res = await supabase
-        .from("journals")
+        .from("daily_journals")
         .select()
         .eq('student_id', studentId)
         .order("created_at", ascending: false)
@@ -69,16 +81,15 @@ class JournalRepository {
     return List<Map<String, dynamic>>.from(res);
   }
 
+  /// Cek apakah user sudah isi jurnal hari ini
   Future<bool> hasSubmittedJournalToday(String studentId) async {
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final today = DateTime.now().toIso8601String().split('T')[0];
+
     final res = await supabase
-        .from("journals")
+        .from("daily_journals")
         .select()
         .eq('student_id', studentId)
-        .gte('created_at', startOfDay.toIso8601String())
-        .lt('created_at', endOfDay.toIso8601String())
+        .eq('date', today)
         .limit(1);
     return res.isNotEmpty;
   }

@@ -21,23 +21,19 @@ import '../features/journal/presentation/journal_form_screen.dart';
 import '../features/teacher/presentation/teacher_dashboard_screen.dart';
 import '../features/authentication/presentation/splash_screen.dart';
 
-// Navigator Keys
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  final authStream = authRepository.authStateChanges;
-
+  
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
-    refreshListenable: _GoRouterRefreshStream(authStream),
+    refreshListenable: _GoRouterRefreshStream(authRepository.authStateChanges),
 
-    /// 🔥 AUTH REDIRECT
     redirect: (context, state) {
       final currentUser = ref.read(authRepositoryProvider).currentUser;
-
       final isLoggedIn = currentUser != null;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/splash';
@@ -45,43 +41,54 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       if (!isLoggedIn) {
         return (isLoggingIn || isSplash) ? null : '/login';
       }
-      if (isLoggedIn && isLoggingIn) {
+
+      if (isLoggedIn && (isLoggingIn || isSplash)) {
         return '/';
       }
+
       return null;
     },
 
     routes: [
-      // SPLASH
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
-
-      // LOGIN
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
       ),
 
-      /// ADMIN (optional direct access)
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const _RoleBaseRedirector(),
+      ),
+
+      // --- ADMIN ROUTE ---
       GoRoute(
         path: '/admin',
+        parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const AdminDashboardScreen(),
       ),
 
-      /// 🔥 MAIN APP (SHELL)
+      // --- TEACHER ROUTE ---
+      GoRoute(
+        path: '/teacher',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const TeacherDashboardScreen(),
+      ),
+
+      // --- STUDENT SHELL ---
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          return _ProfileGuard(navigationShell: navigationShell);
+          return MainScreen(navigationShell: navigationShell);
         },
         branches: [
-          // HOME
           StatefulShellBranch(
             navigatorKey: _shellNavigatorKey,
             routes: [
               GoRoute(
-                path: '/',
+                path: '/home',
                 builder: (context, state) => const HomeScreen(),
                 routes: [
                   GoRoute(
@@ -89,49 +96,42 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) {
                       final announcement = state.extra as AnnouncementModel;
-                      return AnnouncementDetailScreen(
-                        announcement: announcement,
-                      );
+                      return AnnouncementDetailScreen(announcement: announcement);
                     },
                   ),
                 ],
               ),
             ],
           ),
-
-          // HISTORY
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/history',
-                builder: (context, state) => const AttendanceHistoryScreen(),
+                path: '/history', 
+                builder: (context, state) => const AttendanceHistoryScreen()
               ),
             ],
           ),
-
-          // JOURNAL
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/journal',
+                path: '/journal', 
                 builder: (context, state) => const DailyJournalScreen(),
                 routes: [
+                  // FIX: Menambahkan sub-route /create agar /journal/create bisa diakses
                   GoRoute(
                     path: 'create',
-                    parentNavigatorKey: _rootNavigatorKey,
+                    parentNavigatorKey: _rootNavigatorKey, // Supaya form menutupi bottom nav
                     builder: (context, state) => const JournalFormScreen(),
                   ),
                 ],
               ),
             ],
           ),
-
-          // PROFILE
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/profile',
-                builder: (context, state) => const ProfileScreen(),
+                path: '/profile', 
+                builder: (context, state) => const ProfileScreen()
               ),
             ],
           ),
@@ -141,28 +141,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// 🔁 REFRESH STREAM
-class _GoRouterRefreshStream extends ChangeNotifier {
-  _GoRouterRefreshStream(Stream<dynamic> stream) {
-    _subscription = stream.asBroadcastStream().listen(
-          (_) => notifyListeners(),
-        );
-  }
-
-  late final dynamic _subscription;
-
-  @override
-  void dispose() {
-    _subscription.cancel();
-    super.dispose();
-  }
-}
-
-/// 🔥 PROFILE + ROLE GUARD
-class _ProfileGuard extends ConsumerWidget {
-  final StatefulNavigationShell navigationShell;
-
-  const _ProfileGuard({required this.navigationShell});
+class _RoleBaseRedirector extends ConsumerWidget {
+  const _RoleBaseRedirector();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -170,39 +150,51 @@ class _ProfileGuard extends ConsumerWidget {
 
     return profileAsync.when(
       data: (profile) {
-        if (profile == null) {
-          return const Scaffold(
-            body: Center(child: Text("Profil tidak ditemukan")),
-          );
-        }
+        if (profile == null) return const LoginScreen();
 
-        final role = profile['role'] ?? 'student';
-        final status = profile['status'] ?? 'pending';
+        final role = profile['role']?.toString().toLowerCase() ?? 'student';
+        final status = profile['status']?.toString().toLowerCase() ?? 'pending';
 
-        /// 🔴 ADMIN
-        if (role == 'admin') {
-          return const AdminDashboardScreen();
-        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (role == 'admin') {
+            context.go('/admin');
+          } else if (role == 'teacher') {
+            context.go('/teacher');
+          } else {
+            if (status != 'active') {
+              context.go('/login'); // Atau arahkan ke VerificationStatusScreen
+              showDialog(
+                context: context,
+                builder: (context) => VerificationStatusScreen(status: status),
+              );
+            } else {
+              context.go('/home');
+            }
+          }
+        });
 
-        /// 🟡 TEACHER
-        if (role == 'teacher') {
-          return const TeacherDashboardScreen();
-        }
-
-        /// ⚠️ BELUM AKTIF
-        if (status != 'active') {
-          return VerificationStatusScreen(status: status);
-        }
-
-        /// 🟢 STUDENT (DEFAULT)
-        return MainScreen(navigationShell: navigationShell);
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
       },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),
-      error: (e, _) => Scaffold(
-        body: Center(child: Text('Error: $e')),
+      error: (err, stack) => Scaffold(
+        body: Center(child: Text('Gagal memuat profil: $err')),
       ),
     );
+  }
+}
+
+class _GoRouterRefreshStream extends ChangeNotifier {
+  _GoRouterRefreshStream(Stream<dynamic> stream) {
+    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+  late final dynamic _subscription;
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
   }
 }
