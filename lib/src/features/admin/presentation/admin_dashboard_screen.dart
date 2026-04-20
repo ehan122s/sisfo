@@ -257,6 +257,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         crossAxisSpacing: 12,
         childAspectRatio: 0.8,
       ),
+<<<<<<< HEAD
       itemCount: menus.length,
       itemBuilder: (context, index) {
         return InkWell(
@@ -270,6 +271,59 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 decoration: BoxDecoration(
                   color: (menus[index]['color'] as Color).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(18),
+=======
+      child: dudiAsync.when(
+        data: (dudis) {
+          if (dudis.isEmpty) return const Text("Belum ada data DUDI.");
+
+          return Column(
+            children: dudis.map((d) {
+              final name = d['name'];
+              final count = d['count'];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12.0),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 12,
+                      backgroundColor: Colors.blue.withValues(alpha: 0.1),
+                      child: Text(
+                        name[0],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                          const SizedBox(height: 4),
+                          LinearProgressIndicator(
+                            value:
+                                1.0, // Relative to what? Just full for now or we can verify against total
+                            color: Colors.blue[300],
+                            backgroundColor: Colors.grey[100],
+                            minHeight: 4,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      "$count Siswa",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+>>>>>>> f3ef4564e6eb4e51a44b725b32c1b9605c2b9853
                 ),
                 child: Icon(menus[index]['icon'], color: menus[index]['color'], size: 28),
               ),

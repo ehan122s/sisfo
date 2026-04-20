@@ -28,7 +28,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFE3F2FD), // Light blue background like login page
       body: SafeArea(
         child: Column(
           children: [
@@ -37,26 +37,55 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.school,
-                      size: 100,
-                      color: Color(0xFF006400),
+                    // Logo with white circular background and shadow
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.school,
+                        size: 50,
+                        color: Color(0xFF1976D2), // Blue color like login page
+                      ),
                     ),
                     const SizedBox(height: 24),
+                    // Main title - Dark color like login page
                     Text(
-                      'K-MOB Sagar',
+                      'E-PKL',
                       style: GoogleFonts.poppins(
-                        fontSize: 32,
+                        fontSize: 36,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF006400),
+                        color: const Color(0xFF212121), // Dark text like login page
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Subtitle - Blue accent
+                    Text(
+                      'SMKN 1 GARUT',
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1976D2), // Blue accent
+                        letterSpacing: 1.5,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
+            // Bottom developer info
             Padding(
-              padding: const EdgeInsets.only(bottom: 32.0),
+              padding: const EdgeInsets.only(bottom: 40.0),
               child: Column(
                 children: [
                   Text(
@@ -72,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF006400),
+                      color: const Color(0xFF1976D2), // Blue color matching login theme
                     ),
                   ),
                 ],
