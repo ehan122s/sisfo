@@ -45,6 +45,7 @@ class SyncService {
       try {
         final type = item['type'];
         final studentId = item['student_id'];
+        final placementId = item['placement_id'] as int? ?? 0;
         final lat = item['lat'];
         final long = item['long'];
         String photoUrl = item['photo_path'];
@@ -71,6 +72,7 @@ class SyncService {
         if (type == 'check_in') {
           await _attendanceRepository.checkIn(
             studentId: studentId,
+            placementId: placementId,
             lat: lat,
             long: long,
             photoUrl: photoUrl,
@@ -78,6 +80,7 @@ class SyncService {
         } else if (type == 'check_out') {
           await _attendanceRepository.checkOut(
             studentId: studentId,
+            placementId: placementId,
             lat: lat,
             long: long,
             photoUrl: photoUrl,

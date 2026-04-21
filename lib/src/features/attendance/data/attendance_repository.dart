@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import '../../../services/supabase_config.dart';
 import '../../authentication/data/auth_repository.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -161,9 +162,25 @@ class AttendanceRepository {
     return imageUrl;
   }
 
+  // 3b. Upload Photo from Bytes
+  Future<String> uploadSelfieBytes(Uint8List bytes, String userId) async {
+    final fileName =
+        'selfie_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final path = 'selfies/$fileName';
+    await _supabase.storage
+        .from('attendance')
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(upsert: true),
+        );
+    return _supabase.storage.from('attendance').getPublicUrl(path);
+  }
+
   // 4. Check In (RPC)
   Future<String> checkIn({
     required String studentId,
+    required int placementId,
     required double lat,
     required double long,
     required String photoUrl,
@@ -174,6 +191,7 @@ class AttendanceRepository {
       await _queueRepository.addToQueue({
         'type': 'check_in',
         'student_id': studentId,
+        'placement_id': placementId,
         'lat': lat,
         'long': long,
         'photo_path': photoUrl,
@@ -196,6 +214,7 @@ class AttendanceRepository {
         'submit_check_in',
         params: {
           'p_student_id': studentId,
+          'p_placement_id': placementId,
           'p_lat': lat,
           'p_long': long,
           'p_photo_url': photoUrl,
@@ -218,6 +237,7 @@ class AttendanceRepository {
   // 4b. Check Out
   Future<void> checkOut({
     required String studentId,
+    required int placementId,
     required double lat,
     required double long,
     String? photoUrl, // Optional for checkout
@@ -229,6 +249,7 @@ class AttendanceRepository {
         await _queueRepository.addToQueue({
           'type': 'check_out',
           'student_id': studentId,
+          'placement_id': placementId,
           'lat': lat,
           'long': long,
           'photo_path': photoUrl,
@@ -247,6 +268,7 @@ class AttendanceRepository {
         'submit_check_out',
         params: {
           'p_student_id': studentId,
+          'p_placement_id': placementId,
           'p_lat': lat,
           'p_long': long,
           'p_photo_url': photoUrl,
