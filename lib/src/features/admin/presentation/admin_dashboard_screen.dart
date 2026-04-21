@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../data/admin_repository.dart';
 import 'student_management_screen.dart';
@@ -66,7 +67,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.school_rounded, size: 18, color: Colors.white),
+            child: const Icon(
+              Icons.school_rounded,
+              size: 18,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(width: 10),
           Flexible(
@@ -88,7 +93,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: TextButton.icon(
               onPressed: () => ref.read(authRepositoryProvider).signOut(),
-              icon: const Icon(Icons.logout_rounded, size: 16, color: Colors.white),
+              icon: const Icon(
+                Icons.logout_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
               label: Text(
                 'Keluar',
                 style: GoogleFonts.poppins(color: Colors.white, fontSize: 12),
@@ -124,8 +133,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   color: Colors.white.withOpacity(0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.admin_panel_settings_rounded,
-                    color: Colors.white, size: 40),
+                child: const Icon(
+                  Icons.admin_panel_settings_rounded,
+                  color: Colors.white,
+                  size: 40,
+                ),
               ),
               const SizedBox(height: 12),
               Text(
@@ -148,7 +160,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 final item = _navItems[i];
                 final isSelected = _selectedIndex == i;
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 3,
+                  ),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () {
@@ -158,7 +173,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? Colors.white.withOpacity(0.2)
@@ -170,11 +187,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       ),
                       child: Row(
                         children: [
-                          Icon(item.icon,
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.white.withOpacity(0.6),
-                              size: 20),
+                          Icon(
+                            item.icon,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.white.withOpacity(0.6),
+                            size: 20,
+                          ),
                           const SizedBox(width: 14),
                           Text(
                             item.label,
@@ -226,7 +245,9 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? _primaryBlue.withOpacity(0.1)
@@ -253,8 +274,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                           fontWeight: isSelected
                               ? FontWeight.w600
                               : FontWeight.normal,
-                          color:
-                              isSelected ? _primaryBlue : Colors.grey[400],
+                          color: isSelected ? _primaryBlue : Colors.grey[400],
                         ),
                       ),
                     ],
@@ -269,16 +289,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Widget _buildMobileBody() {
-    return IndexedStack(
-      index: _selectedIndex,
-      children: _screens,
-    );
+    return IndexedStack(index: _selectedIndex, children: _screens);
   }
 
   Widget _buildDesktopBody() {
     return Row(
       children: [
-        // Sidebar desktop
         Container(
           width: 200,
           decoration: const BoxDecoration(
@@ -298,8 +314,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     color: Colors.white.withOpacity(0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.admin_panel_settings_rounded,
-                      color: Colors.white, size: 32),
+                  child: const Icon(
+                    Icons.admin_panel_settings_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -316,14 +335,18 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   final isSelected = _selectedIndex == i;
                   return Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 3),
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
                       onTap: () => setState(() => _selectedIndex = i),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 11),
+                          horizontal: 14,
+                          vertical: 11,
+                        ),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? Colors.white.withOpacity(0.2)
@@ -332,11 +355,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(item.icon,
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.white.withOpacity(0.6),
-                                size: 18),
+                            Icon(
+                              item.icon,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.white.withOpacity(0.6),
+                              size: 18,
+                            ),
                             const SizedBox(width: 10),
                             Text(
                               item.label,
@@ -360,19 +385,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
           ),
         ),
-        // Content
         Expanded(
-          child: IndexedStack(
-            index: _selectedIndex,
-            children: _screens,
-          ),
+          child: IndexedStack(index: _selectedIndex, children: _screens),
         ),
       ],
     );
   }
 }
 
-// Nav item model
 class _NavItem {
   final IconData icon;
   final String label;
@@ -404,7 +424,6 @@ class _DashboardOverview extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
             Container(
               width: double.infinity,
               padding: EdgeInsets.all(isMobile ? 16 : 20),
@@ -448,7 +467,6 @@ class _DashboardOverview extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Total Siswa
             Text(
               'Ringkasan Data',
               style: GoogleFonts.poppins(
@@ -458,18 +476,21 @@ class _DashboardOverview extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Consumer(builder: (context, ref, _) {
-              final count = ref.watch(totalStudentsProvider);
-              return _StatCard(
-                title: 'Total Siswa Terdaftar',
-                value: count.when(
+            Consumer(
+              builder: (context, ref, _) {
+                final count = ref.watch(totalStudentsProvider);
+                return _StatCard(
+                  title: 'Total Siswa Terdaftar',
+                  value: count.when(
                     data: (d) => d.toString(),
                     loading: () => '...',
-                    error: (e, _) => '-'),
-                icon: Icons.people_rounded,
-                color: _primaryBlue,
-              );
-            }),
+                    error: (e, _) => '-',
+                  ),
+                  icon: Icons.people_rounded,
+                  color: _primaryBlue,
+                );
+              },
+            ),
 
             const SizedBox(height: 28),
 
@@ -486,7 +507,6 @@ class _DashboardOverview extends StatelessWidget {
 
             const SizedBox(height: 28),
 
-            // Analytics
             isMobile
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -494,19 +514,27 @@ class _DashboardOverview extends StatelessWidget {
                       _buildSection('Top 5 DUDI', const _TopDudiList()),
                       const SizedBox(height: 20),
                       _buildSection(
-                          'Sebaran Lokasi', const _LocationDistributionList()),
+                        'Sebaran Lokasi',
+                        const _LocationDistributionList(),
+                      ),
                     ],
                   )
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                          child: _buildSection(
-                              'Top 5 DUDI', const _TopDudiList())),
+                        child: _buildSection(
+                          'Top 5 DUDI',
+                          const _TopDudiList(),
+                        ),
+                      ),
                       const SizedBox(width: 20),
                       Expanded(
-                          child: _buildSection('Sebaran Lokasi',
-                              const _LocationDistributionList())),
+                        child: _buildSection(
+                          'Sebaran Lokasi',
+                          const _LocationDistributionList(),
+                        ),
+                      ),
                     ],
                   ),
 
@@ -575,30 +603,35 @@ class _AttendanceStatusGrid extends ConsumerWidget {
         runSpacing: 10,
         children: [
           _StatusItem(
-              label: 'Hadir',
-              count: stats['Hadir'] ?? 0,
-              color: Colors.green,
-              icon: Icons.check_circle_rounded),
+            label: 'Hadir',
+            count: stats['Hadir'] ?? 0,
+            color: Colors.green,
+            icon: Icons.check_circle_rounded,
+          ),
           _StatusItem(
-              label: 'Terlambat',
-              count: stats['Terlambat'] ?? 0,
-              color: Colors.orange,
-              icon: Icons.access_time_filled_rounded),
+            label: 'Terlambat',
+            count: stats['Terlambat'] ?? 0,
+            color: Colors.orange,
+            icon: Icons.access_time_filled_rounded,
+          ),
           _StatusItem(
-              label: 'Belum Hadir',
-              count: stats['Belum Hadir'] ?? 0,
-              color: Colors.red,
-              icon: Icons.cancel_rounded),
+            label: 'Belum Hadir',
+            count: stats['Belum Hadir'] ?? 0,
+            color: Colors.red,
+            icon: Icons.cancel_rounded,
+          ),
           _StatusItem(
-              label: 'Izin',
-              count: stats['Izin'] ?? 0,
-              color: Colors.blue,
-              icon: Icons.assignment_ind_rounded),
+            label: 'Izin',
+            count: stats['Izin'] ?? 0,
+            color: Colors.blue,
+            icon: Icons.assignment_ind_rounded,
+          ),
           _StatusItem(
-              label: 'Sakit',
-              count: stats['Sakit'] ?? 0,
-              color: Colors.purple,
-              icon: Icons.local_hospital_rounded),
+            label: 'Sakit',
+            count: stats['Sakit'] ?? 0,
+            color: Colors.purple,
+            icon: Icons.local_hospital_rounded,
+          ),
         ],
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -607,6 +640,7 @@ class _AttendanceStatusGrid extends ConsumerWidget {
   }
 }
 
+// ── Live Map (FlutterMap, no Google Maps) ─────────────────────────────────────
 class _LiveMapSection extends ConsumerWidget {
   const _LiveMapSection();
 
@@ -621,10 +655,7 @@ class _LiveMapSection extends ConsumerWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -635,8 +666,7 @@ class _LiveMapSection extends ConsumerWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.map_outlined,
-                      size: 48, color: Colors.grey[300]),
+                  Icon(Icons.map_outlined, size: 48, color: Colors.grey[300]),
                   const SizedBox(height: 12),
                   Text(
                     'Belum ada data lokasi hari ini',
@@ -650,32 +680,38 @@ class _LiveMapSection extends ConsumerWidget {
           final markers = locations.map((loc) {
             final lat = (loc['lat'] as num?)?.toDouble() ?? 0.0;
             final lng = (loc['lng'] as num?)?.toDouble() ?? 0.0;
+            final isGreen = loc['color'] == 'green';
             return Marker(
-              markerId: MarkerId(loc['id'].toString()),
-              position: LatLng(lat, lng),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                loc['color'] == 'green'
-                    ? BitmapDescriptor.hueGreen
-                    : BitmapDescriptor.hueRed,
+              point: LatLng(lat, lng),
+              child: Tooltip(
+                message: '${loc['name']} - ${loc['status']}',
+                child: Icon(
+                  Icons.location_on,
+                  color: isGreen ? Colors.green : Colors.red,
+                  size: 32,
+                ),
               ),
-              infoWindow:
-                  InfoWindow(title: loc['name'], snippet: loc['status']),
             );
-          }).toSet();
+          }).toList();
 
-          return GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: LatLng(
-                (locations.first['lat'] as num).toDouble(),
-                (locations.first['lng'] as num).toDouble(),
-              ),
-              zoom: 12,
+          final firstLat = (locations.first['lat'] as num).toDouble();
+          final firstLng = (locations.first['lng'] as num).toDouble();
+
+          return FlutterMap(
+            options: MapOptions(
+              initialCenter: LatLng(firstLat, firstLng),
+              initialZoom: 12,
             ),
-            markers: markers,
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.smkn1garut.sip',
+              ),
+              MarkerLayer(markers: markers),
+            ],
           );
         },
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Gagal memuat peta: $e')),
       ),
     );
@@ -703,9 +739,7 @@ class _StatCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withOpacity(0.2)),
-        boxShadow: [
-          BoxShadow(color: color.withOpacity(0.07), blurRadius: 12),
-        ],
+        boxShadow: [BoxShadow(color: color.withOpacity(0.07), blurRadius: 12)],
       ),
       child: Row(
         children: [
@@ -724,7 +758,9 @@ class _StatCard extends StatelessWidget {
               Text(
                 title,
                 style: GoogleFonts.poppins(
-                    color: Colors.grey[600], fontSize: 12),
+                  color: Colors.grey[600],
+                  fontSize: 12,
+                ),
               ),
               Text(
                 value,
@@ -819,46 +855,55 @@ class _TopDudiList extends ConsumerWidget {
     return dudiAsync.when(
       data: (dudis) => Column(
         children: dudis
-            .map((d) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1976D2).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.business_rounded,
-                            color: Color(0xFF1976D2), size: 16),
+            .map(
+              (d) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1976D2).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          d['name'],
-                          style: GoogleFonts.poppins(
-                              fontSize: 12, fontWeight: FontWeight.w500),
-                        ),
+                      child: const Icon(
+                        Icons.business_rounded,
+                        color: Color(0xFF1976D2),
+                        size: 16,
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1976D2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${d['count']}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        d['name'],
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ],
-                  ),
-                ))
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1976D2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${d['count']}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
             .toList(),
       ),
       loading: () => const LinearProgressIndicator(),
@@ -876,45 +921,52 @@ class _LocationDistributionList extends ConsumerWidget {
     return locationAsync.when(
       data: (locations) => Column(
         children: locations
-            .map((l) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.teal.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.location_on_rounded,
-                            color: Colors.teal, size: 16),
+            .map(
+              (l) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          l['name'],
-                          style: GoogleFonts.poppins(fontSize: 12),
+                      child: const Icon(
+                        Icons.location_on_rounded,
+                        color: Colors.teal,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        l['name'],
+                        style: GoogleFonts.poppins(fontSize: 12),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.teal,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${l['count']}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.teal,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '${l['count']}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ))
+                    ),
+                  ],
+                ),
+              ),
+            )
             .toList(),
       ),
       loading: () => const LinearProgressIndicator(),
