@@ -12,7 +12,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../data/attendance_repository.dart';
 import '../../authentication/data/auth_repository.dart';
-import '../../../core/exceptions/app_exceptions.dart';
 import '../../../services/image_compression_service.dart';
 import '../../journal/data/journal_repository.dart';
 
@@ -92,7 +91,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   void _updateStatus() {
     if (_currentPosition == null || _companyLocation == null) return;
+<<<<<<< HEAD
     final dist = ref
+=======
+
+    final distance = ref
+>>>>>>> fitur-coba
         .read(attendanceRepositoryProvider)
         .calculateDistance(
           _currentPosition!.latitude,
@@ -104,6 +108,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       _distance = dist;
       _isWithinRange = dist <= _radiusMeter;
     });
+<<<<<<< HEAD
+=======
+
+>>>>>>> fitur-coba
     _mapController.move(
       LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
       16.0,
@@ -161,12 +169,20 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       if (user == null) throw Exception('User not logged in');
 
       String photoUrl;
+<<<<<<< HEAD
 
       // Upload bytes — works on both Web & Mobile
       final connectivity = await Connectivity().checkConnectivity();
       if (!kIsWeb && connectivity.contains(ConnectivityResult.none)) {
         // Offline mobile: simpan path lokal
         photoUrl = _selfieFile!.path;
+=======
+      final List<ConnectivityResult> connectivityResult = await Connectivity()
+          .checkConnectivity();
+
+      if (connectivityResult.contains(ConnectivityResult.none)) {
+        photoUrl = imageFile.path;
+>>>>>>> fitur-coba
       } else {
         photoUrl = await ref
             .read(attendanceRepositoryProvider)
@@ -198,7 +214,16 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       }
 
       if (mounted) {
+<<<<<<< HEAD
         _showSnack(successMessage, isError: false);
+=======
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: Colors.green,
+          ),
+        );
+>>>>>>> fitur-coba
         ref.invalidate(todaysAttendanceLogProvider);
         ref.invalidate(todaysJournalStatusProvider);
         await Future.delayed(const Duration(milliseconds: 800));
@@ -206,6 +231,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       }
     } catch (e) {
       if (mounted) {
+<<<<<<< HEAD
         if (e is OfflineException) {
           _showSnack(
             'Tidak ada internet. Data disimpan lokal.',
@@ -215,6 +241,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         } else {
           _showSnack('Gagal: $e', isError: true);
         }
+=======
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
+        );
+>>>>>>> fitur-coba
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -243,10 +274,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   // ── Build ─────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final isCheckIn = widget.mode == AttendanceMode.checkIn;
     final accentColor = isCheckIn
         ? const Color(0xFF2E7D32)
         : const Color(0xFFC62828);
+=======
+>>>>>>> fitur-coba
     final userLatLng = _currentPosition != null
         ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
         : const LatLng(0, 0);
@@ -254,7 +288,18 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F5FF),
       appBar: AppBar(
+<<<<<<< HEAD
         backgroundColor: _kBlue700,
+=======
+        title: Text(
+          widget.mode == AttendanceMode.checkIn
+              ? 'Absen Masuk'
+              : 'Absen Pulang',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blue.shade700,
+>>>>>>> fitur-coba
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -267,8 +312,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18),
         ),
       ),
+<<<<<<< HEAD
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: _kBlue700))
+=======
+      body: _currentPosition == null
+          ? Center(
+              child: CircularProgressIndicator(color: Colors.blue.shade700),
+            )
+>>>>>>> fitur-coba
           : Column(
               children: [
                 // ── Map ────────────────────────────────────────────────────
@@ -276,11 +328,31 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                   flex: 5,
                   child: Stack(
                     children: [
+<<<<<<< HEAD
                       FlutterMap(
                         mapController: _mapController,
                         options: MapOptions(
                           initialCenter: userLatLng,
                           initialZoom: 16,
+=======
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.smkn1garut.sip',
+                      ),
+                      if (_companyLocation != null)
+                        CircleLayer(
+                          circles: [
+                            CircleMarker(
+                              point: _companyLocation!,
+                              radius: _radiusMeter,
+                              useRadiusInMeter: true,
+                              color: Colors.blue.withValues(alpha: 0.2),
+                              borderColor: Colors.blue.shade700,
+                              borderStrokeWidth: 2,
+                            ),
+                          ],
+>>>>>>> fitur-coba
                         ),
                         children: [
                           TileLayer(
@@ -289,6 +361,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                             userAgentPackageName: 'com.smkn1garut.sip',
                           ),
                           if (_companyLocation != null)
+<<<<<<< HEAD
                             CircleLayer(
                               circles: [
                                 CircleMarker(
@@ -338,6 +411,23 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                                 ),
                               ),
                             ],
+=======
+                            Marker(
+                              point: _companyLocation!,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.blue,
+                                size: 40,
+                              ),
+                            ),
+                          Marker(
+                            point: userLatLng,
+                            child: const Icon(
+                              Icons.person_pin_circle,
+                              color: Colors.red,
+                              size: 40,
+                            ),
+>>>>>>> fitur-coba
                           ),
                         ],
                       ),
@@ -371,8 +461,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     ],
                   ),
                 ),
+<<<<<<< HEAD
 
                 // ── Bottom Panel ───────────────────────────────────────────
+=======
+>>>>>>> fitur-coba
                 Container(
                   decoration: const BoxDecoration(
                     color: Colors.white,
@@ -381,7 +474,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
+<<<<<<< HEAD
                         color: Colors.black12,
+=======
+                        color: Colors.black.withValues(alpha: 0.1),
+>>>>>>> fitur-coba
                         blurRadius: 20,
                         offset: Offset(0, -4),
                       ),
@@ -515,6 +612,7 @@ class _StatusCard extends StatelessWidget {
         ? 'Hubungi admin untuk penempatan PKL'
         : '$companyName · ${distance.toStringAsFixed(0)}m';
 
+<<<<<<< HEAD
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -553,14 +651,78 @@ class _StatusCard extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
+=======
+  Widget _buildStatusCard() {
+    return InkWell(
+      onTap: () {
+        setState(() => _isLoading = true);
+        _initData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Memperbarui lokasi dan data...")),
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _isWithinRange
+              ? Colors.green.withValues(alpha: 0.1)
+              : Colors.red.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _isWithinRange
+                ? Colors.green.withValues(alpha: 0.3)
+                : Colors.red.withValues(alpha: 0.3),
           ),
-        ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _isWithinRange
+                  ? Icons.check_circle_rounded
+                  : Icons.location_off_rounded,
+              color: _isWithinRange ? Colors.green : Colors.red,
+              size: 28,
+>>>>>>> fitur-coba
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _companyLocation == null
+                        ? "Belum ada Penempatan (Klik untuk cek)"
+                        : (_isWithinRange
+                              ? "Lokasi Terverifikasi"
+                              : "Diluar Jangkauan"),
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: _isWithinRange
+                          ? Colors.green[800]
+                          : Colors.red[800],
+                    ),
+                  ),
+                  if (_companyLocation != null)
+                    Text(
+                      "$_companyName (${_distance.toStringAsFixed(0)}m)",
+                      style: GoogleFonts.poppins(
+                        color: Colors.blue.shade900,
+                        fontSize: 13,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+<<<<<<< HEAD
 // ─── Selfie Section ───────────────────────────────────────────────────────────
 class _SelfieSection extends StatelessWidget {
   final Uint8List? selfieBytes;
@@ -693,6 +855,38 @@ class _SelfieSection extends StatelessWidget {
                   ),
                 ],
               ),
+=======
+  Widget _buildActionButton() {
+    return ElevatedButton.icon(
+      onPressed: !_isLoading ? _handleAction : null,
+      icon: _isLoading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : const Icon(Icons.camera_alt_rounded),
+      label: Text(
+        _isLoading
+            ? 'Memproses...'
+            : (widget.mode == AttendanceMode.checkIn
+                  ? 'Ambil Selfie & Masuk'
+                  : 'Ambil Selfie & Pulang'),
+        style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: widget.mode == AttendanceMode.checkIn
+            ? const Color(0xFF4CAF50)
+            : const Color(0xFFEF5350),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 0,
+        disabledBackgroundColor: Colors.grey[300],
+>>>>>>> fitur-coba
       ),
     );
   }

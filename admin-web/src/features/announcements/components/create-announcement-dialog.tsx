@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, Plus, Megaphone } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -68,6 +68,7 @@ export function CreateAnnouncementDialog({ onSuccess }: CreateAnnouncementDialog
                 content: values.content,
                 target_role: values.target_role,
                 author_id: user.id,
+                is_active: true
             })
 
             if (error) throw error
@@ -87,29 +88,41 @@ export function CreateAnnouncementDialog({ onSuccess }: CreateAnnouncementDialog
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
+                {/* Tombol pemicu dengan warna biru primer */}
+                <Button className="bg-primary hover:bg-primary/90 text-white shadow-sm transition-all active:scale-95">
                     <Plus className="mr-2 h-4 w-4" />
                     Buat Pengumuman
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] border-primary/20">
                 <DialogHeader>
-                    <DialogTitle>Buat Pengumuman Baru</DialogTitle>
+                    <div className="flex items-center gap-3 mb-2">
+                        {/* Ikon Megaphone biru untuk mempercantik */}
+                        <div className="p-2.5 rounded-full bg-primary/10 text-primary">
+                            <Megaphone className="h-5 w-5" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold">Buat Pengumuman Baru</DialogTitle>
+                    </div>
                     <DialogDescription>
-                        Pengumuman akan muncul di aplikasi siswa/guru sesuai target.
+                        Isi detail di bawah untuk membagikan pengumuman ke sistem.
                     </DialogDescription>
                 </DialogHeader>
 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 py-2">
                         <FormField
                             control={form.control}
                             name="title"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Judul</FormLabel>
+                                    <FormLabel className="font-semibold text-foreground/80">Judul</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Contoh: Libur Nasional" {...field} />
+                                        {/* Focus ring biru */}
+                                        <Input 
+                                            placeholder="Contoh: Libur Nasional" 
+                                            {...field} 
+                                            className="focus-visible:ring-primary border-slate-200 dark:border-slate-800"
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -121,20 +134,20 @@ export function CreateAnnouncementDialog({ onSuccess }: CreateAnnouncementDialog
                             name="target_role"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Target Penerima</FormLabel>
+                                    <FormLabel className="font-semibold text-foreground/80">Target Penerima</FormLabel>
                                     <Select
                                         onValueChange={field.onChange}
                                         defaultValue={field.value}
                                     >
                                         <FormControl>
-                                            <SelectTrigger>
+                                            <SelectTrigger className="focus:ring-primary border-slate-200 dark:border-slate-800">
                                                 <SelectValue placeholder="Pilih target" />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="all">Semua</SelectItem>
-                                            <SelectItem value="student">Siswa</SelectItem>
-                                            <SelectItem value="teacher">Guru</SelectItem>
+                                            <SelectItem value="all">Semua (Siswa & Guru)</SelectItem>
+                                            <SelectItem value="student">Siswa Saja</SelectItem>
+                                            <SelectItem value="teacher">Guru Saja</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -147,11 +160,11 @@ export function CreateAnnouncementDialog({ onSuccess }: CreateAnnouncementDialog
                             name="content"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Isi Pengumuman</FormLabel>
+                                    <FormLabel className="font-semibold text-foreground/80">Isi Pengumuman</FormLabel>
                                     <FormControl>
                                         <Textarea
                                             placeholder="Tulis detail pengumuman disini..."
-                                            className="min-h-[100px]"
+                                            className="min-h-[120px] focus-visible:ring-primary border-slate-200 dark:border-slate-800"
                                             {...field}
                                         />
                                     </FormControl>
@@ -160,13 +173,28 @@ export function CreateAnnouncementDialog({ onSuccess }: CreateAnnouncementDialog
                             )}
                         />
 
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                        <DialogFooter className="gap-2 pt-4 border-t">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                onClick={() => setOpen(false)}
+                                className="hover:bg-slate-50 dark:hover:bg-slate-900"
+                            >
                                 Batal
                             </Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Simpan
+                            <Button 
+                                type="submit" 
+                                disabled={loading}
+                                className="bg-primary hover:bg-primary/90 text-white min-w-[100px]"
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Menyimpan...
+                                    </>
+                                ) : (
+                                    "Simpan"
+                                )}
                             </Button>
                         </DialogFooter>
                     </form>

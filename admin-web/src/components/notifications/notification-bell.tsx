@@ -10,7 +10,7 @@ import { useNotifications, type Notification } from '@/hooks/use-notifications'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
-// Simple time ago formatter
+// Formatter waktu biar lebih rapi
 function timeAgo(dateString: string) {
     const date = new Date(dateString)
     const now = new Date()
@@ -32,7 +32,7 @@ export function NotificationBell() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-900">
+                <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 && (
                         <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
@@ -43,29 +43,28 @@ export function NotificationBell() {
                     <span className="sr-only">Notifikasi</span>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-80 md:w-96" align="end" forceMount>
-                <div className="flex items-center justify-between px-4 py-2 border-b bg-slate-50/50">
-                    <h4 className="text-sm font-semibold text-slate-900">Notifikasi</h4>
-                    <div className="flex gap-1">
+            <DropdownMenuContent className="w-80 md:w-96 p-0 overflow-hidden" align="end">
+                {/* Header Dropdown - Sekarang adaptif dark mode */}
+                <div className="flex items-center justify-between px-4 py-2.5 border-b bg-muted/30">
+                    <h4 className="text-sm font-bold text-foreground">Notifikasi</h4>
+                    <div className="flex gap-2">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 px-2 text-xs gap-1 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                            className="h-7 px-2 text-[10px] gap-1 border-border bg-background hover:bg-muted"
                             onClick={async () => {
-                                // Trigger violation check manually
                                 await supabase.rpc('check_attendance_violations')
-                                // Optional: give feedback
                             }}
                             title="Cek Pelanggaran Manual"
                         >
-                            <CheckCheck className="w-3.5 h-3.5" />
+                            <CheckCheck className="w-3 h-3 text-primary" />
                             <span>Scan</span>
                         </Button>
                         {unreadCount > 0 && (
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-auto px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                className="h-7 px-2 text-[10px] text-primary hover:bg-primary/10"
                                 onClick={() => markAllAsRead()}
                             >
                                 Tandai dibaca
@@ -74,14 +73,14 @@ export function NotificationBell() {
                     </div>
                 </div>
 
-                {/* Notification List Container */}
+                {/* List Notifikasi */}
                 <div className="max-h-[70vh] overflow-y-auto">
                     {notifications.length === 0 ? (
-                        <div className="py-8 text-center text-slate-500 text-sm">
+                        <div className="py-10 text-center text-muted-foreground text-sm">
                             Belum ada notifikasi
                         </div>
                     ) : (
-                        <div className="grid">
+                        <div className="flex flex-col">
                             {notifications.map((item) => (
                                 <NotificationItem
                                     key={item.id}
@@ -102,43 +101,55 @@ function NotificationItem({ item, onRead }: { item: Notification; onRead: () => 
         if (!item.is_read) onRead()
     }
 
-    // Determine icon based on type (could be enhanced later)
     const isAlert = item.type === 'alert' || item.type === 'warning'
 
     return (
         <div
             onClick={handleClick}
             className={cn(
-                "flex gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer border-b last:border-0 relative group",
-                !item.is_read && "bg-blue-50/40 hover:bg-blue-50/60"
+                "flex gap-3 px-4 py-3 transition-all cursor-pointer border-b border-border last:border-0 relative group",
+                "hover:bg-slate-50 dark:hover:bg-slate-900/80",
+                // Warna background kalau belum dibaca (biru tipis transparan)
+                !item.is_read && "bg-primary/[0.04] dark:bg-primary/[0.08]"
             )}
         >
+            {/* Indikator garis vertikal biru di kiri */}
             {!item.is_read && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
             )}
 
+            {/* Titik Status (Biru/Merah/Abu) */}
             <div className={cn(
-                "mt-0.5 w-2 h-2 rounded-full flex-shrink-0",
-                isAlert ? "bg-red-500" : "bg-blue-500",
-                item.is_read && "bg-slate-300"
+                "mt-1.5 w-2 h-2 rounded-full flex-shrink-0 transition-all",
+                isAlert ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" : "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]",
+                item.is_read && "bg-slate-300 dark:bg-slate-700 shadow-none"
             )} />
 
             <div className="flex-1 space-y-1">
                 <div className="flex items-start justify-between gap-2">
-                    <p className={cn("text-sm font-medium leading-none", !item.is_read ? "text-slate-900" : "text-slate-600")}>
+                    <p className={cn(
+                        "text-sm font-semibold leading-tight",
+                        !item.is_read ? "text-foreground" : "text-muted-foreground"
+                    )}>
                         {item.title}
                     </p>
-                    <span className="text-[10px] text-slate-400 whitespace-nowrap">
+                    <span className="text-[10px] text-muted-foreground/70 whitespace-nowrap">
                         {timeAgo(item.created_at)}
                     </span>
                 </div>
-                <p className="text-xs text-slate-500 line-clamp-2">
+                
+                {/* Isi Pesan */}
+                <p className={cn(
+                    "text-xs line-clamp-2 leading-relaxed",
+                    !item.is_read ? "text-muted-foreground font-medium" : "text-muted-foreground/60"
+                )}>
                     {item.message}
                 </p>
+
                 {item.action_link && (
                     <Link
                         to={item.action_link}
-                        className="inline-block mt-1 text-xs font-medium text-blue-600 hover:underline"
+                        className="inline-block mt-1 text-[11px] font-bold text-primary hover:underline underline-offset-4 decoration-2"
                         onClick={(e) => { e.stopPropagation(); handleClick(); }}
                     >
                         Lihat Detail

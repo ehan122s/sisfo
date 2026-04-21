@@ -6,34 +6,34 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../authentication/data/auth_repository.dart';
 
+// --- PROVIDER SECTION ---
+
 final journalRepositoryProvider = Provider((ref) {
   return JournalRepository();
 });
 
-// --- PROVIDER PINDAH KE SINI (HANYA SATU) ---
-final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((
-  ref,
-) async {
+// --- PROVIDER JOURNAL STATUS ---
+final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((ref) async {
   final user = ref.watch(authRepositoryProvider).currentUser;
   if (user == null) return false;
 
   final repository = ref.watch(journalRepositoryProvider);
-  return repository.hasSubmittedJournalToday(user.id);
+  return await repository.hasSubmittedJournalToday(user.id);
 });
+
+// --- REPOSITORY CLASS SECTION ---
 
 class JournalRepository {
   final supabase = Supabase.instance.client;
 
-  /// upload file android
   Future<String> uploadEvidenceFile(File file) async {
     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
     final path = "journals/$fileName.jpg";
-
+    
     await supabase.storage.from("journal").upload(path, file);
     return supabase.storage.from("journal").getPublicUrl(path);
   }
 
-  /// upload file web
   Future<String> uploadEvidenceBytes(Uint8List bytes) async {
     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
     final path = "journals/$fileName.jpg";
@@ -42,33 +42,29 @@ class JournalRepository {
     return supabase.storage.from("journal").getPublicUrl(path);
   }
 
-  /// simpan jurnal
-  Future submitJournal({
+  Future<void> submitJournal({
     required String title,
     required String description,
     required String imageUrl,
   }) async {
-    final user = supabase.auth.currentUser; // Ambil ID user yang login
-    if (user == null) throw Exception("User tidak ditemukan");
-
     await supabase.from("daily_journals").insert({
-      "student_id": user.id, // WAJIB ADA agar tidak error di Supabase
-      "activities": title,
-      "challenges": description,
-      "evidence_url": imageUrl,
-      "date": DateTime.now().toIso8601String().split('T')[0],
+      "title": title,
+      "description": description,
+      "image_url": imageUrl,
+      "created_at": DateTime.now().toIso8601String(),
     });
   }
 
-  /// ambil data jurnal
-  Future<List> getJournals() async {
+  /// Ambil semua data jurnal
+  Future<List<Map<String, dynamic>>> getJournals() async {
     final res = await supabase
         .from("daily_journals")
         .select()
         .order("created_at", ascending: false);
-    return res;
+    return List<Map<String, dynamic>>.from(res);
   }
 
+  /// Ambil data jurnal user tertentu dengan pagination
   Future<List<Map<String, dynamic>>> getMyJournals({
     required String studentId,
     int page = 0,
@@ -76,20 +72,16 @@ class JournalRepository {
   }) async {
     final from = page * pageSize;
     final to = from + pageSize - 1;
-
     final res = await supabase
-        .from(
-          "daily_journals",
-        ) // Pastikan nama tabel konsisten 'daily_journals'
+        .from("daily_journals")
         .select()
         .eq('student_id', studentId)
         .order("created_at", ascending: false)
         .range(from, to);
-
     return List<Map<String, dynamic>>.from(res);
   }
 
-  /// cek apakah user sudah submit journal hari ini
+  /// Cek apakah user sudah isi jurnal hari ini
   Future<bool> hasSubmittedJournalToday(String studentId) async {
     final today = DateTime.now().toIso8601String().split('T')[0];
 
@@ -99,7 +91,6 @@ class JournalRepository {
         .eq('student_id', studentId)
         .eq('date', today)
         .limit(1);
-
     return res.isNotEmpty;
   }
 }
