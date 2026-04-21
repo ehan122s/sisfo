@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import {
   Bell,
   Building2,
@@ -14,15 +15,29 @@ import {
 
 export default function DashboardPage() {
   const [isLoaded, setIsLoaded] = useState(false);
+  const navigate = useNavigate(); // Inisialisasi navigasi
 
   useEffect(() => {
     setIsLoaded(true);
   }, []);
 
+  // Fungsi untuk handle klik
+  const handleDetailKantor = () => {
+    // Mengarah ke route yang merender CompaniesPage
+   navigate('/companies', { state: { searchName: 'PT. Teknologi Masa Depan' } });
+};
+
+  const handleKontakMentor = () => {
+    // Membuka WhatsApp dengan pesan otomatis
+    const phoneNumber = "6281234567890"; // Ganti dengan nomor asli mentor
+    const message = encodeURIComponent("Halo Mentor, saya ingin bertanya terkait kegiatan PKL saya hari ini.");
+    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+  };
+
   const stats = [
-    { label: 'Total Kehadiran', value: '18/22', icon: Clock, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { label: 'Tugas Selesai', value: '12', icon: ClipboardCheck, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-    { label: 'Sisa Hari PKL', value: '45', icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-100' },
+    { label: 'Total Kehadiran', value: '18/22', icon: Clock, color: '#1565C0', bg: '#E3F2FD' },
+    { label: 'Tugas Selesai', value: '12', icon: ClipboardCheck, color: '#2E7D32', bg: '#E8F5E9' },
+    { label: 'Sisa Hari PKL', value: '45', icon: Calendar, color: '#6A1B9A', bg: '#F3E5F5' },
   ];
 
   const recentActivities = [
@@ -31,188 +46,212 @@ export default function DashboardPage() {
     { title: 'Bimbingan Guru', time: '10:00 AM', status: 'Selesai', date: '2 hari lalu' },
   ];
 
+  const getStatusStyle = (status: string) => {
+    if (status === 'Tepat Waktu') return { background: '#E8F5E9', color: '#2E7D32' };
+    if (status === 'Selesai') return { background: '#E3F2FD', color: '#1565C0' };
+    return { background: '#FFF3E0', color: '#E65100' };
+  };
+
   return (
-    <div className={`min-h-screen bg-slate-50 p-4 md:p-8 space-y-8 transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-      
-      {/* Top Header Card */}
-      <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-sm border border-slate-200 p-6">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--background)',
+        padding: '20px 24px',
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        opacity: isLoaded ? 1 : 0,
+        transition: 'opacity 0.7s, background 0.3s ease',
+      }}
+    >
+      {/* BANNER UTAMA */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #1565C0 0%, #1976D2 40%, #42A5F5 100%)',
+          borderRadius: 14,
+          padding: '26px 32px',
+          marginBottom: 22,
+          boxShadow: '0 4px 20px rgba(21,101,192,0.28)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ position: 'absolute', top: -40, right: 60, width: 180, height: 180, background: 'rgba(255,255,255,0.07)', borderRadius: '50%' }} />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Halo, Selamat Pagi! 👋</h1>
-            <p className="text-slate-500 text-sm mt-1">Sistem Informasi PKL SMKN 1 Garut</p>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Halo, Selamat Pagi! 👋</h1>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)' }}>Sistem Informasi PKL SMKN 1 Garut</p>
           </div>
-          
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input
-                type="text"
-                placeholder="Cari fitur atau data..."
-                className="w-full rounded-full border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
-              />
-            </div>
-            <button className="relative inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-3 text-slate-500 transition hover:bg-slate-50 hover:text-blue-600">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 h-3 w-3 rounded-full bg-red-500 border-2 border-white" />
-            </button>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search size={16} style={{ position: 'absolute', left: 12, color: 'rgba(255,255,255,0.6)' }} />
+            <input
+              type="text"
+              placeholder="Cari fitur..."
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                borderRadius: 8,
+                padding: '8px 14px 8px 34px',
+                fontSize: 12,
+                color: '#fff',
+                outline: 'none',
+                width: 210,
+              }}
+            />
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-3">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="flex items-center gap-5 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-md hover:-translate-y-1 duration-300">
-            <div className={`${stat.bg} ${stat.color} rounded-2xl p-4`}>
-              <stat.icon size={28} />
+      {/* STATS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 22 }}>
+        {stats.map((s, i) => (
+          <div
+            key={i}
+            style={{
+              background: 'var(--card)',
+              borderRadius: 10,
+              padding: '18px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+              boxShadow: '0 1px 6px rgba(0,0,0,0.05)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div style={{ width: 46, height: 46, borderRadius: 11, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <s.icon size={22} color={s.color} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider">{stat.label}</p>
-              <p className="mt-1 text-2xl font-black text-slate-900">{stat.value}</p>
+              <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted-foreground)', textTransform: 'uppercase' }}>{s.label}</p>
+              <p style={{ fontSize: 24, fontWeight: 800, color: '#1565C0' }}>{s.value}</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid gap-8 lg:grid-cols-3">
-        
-        {/* Left Column (Activities & Company Info) */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Active Placement Card */}
-          <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-indigo-700 p-8 text-white shadow-xl shadow-blue-200/50">
-            <div className="relative z-10">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md border border-white/30">
-                <Building2 size={16} />
-                Tempat PKL Aktif
-              </div>
-              <h2 className="text-3xl font-extrabold tracking-tight">PT. Teknologi Masa Depan</h2>
-              <p className="mt-3 flex items-center gap-2 text-blue-10/80 font-medium">
-                <MapPin size={18} className="text-blue-200" /> Jl. Raya Garut - Tasik No. 123, Garut
-              </p>
-              <div className="mt-10 flex flex-wrap gap-4">
-                <button className="rounded-2xl bg-white px-8 py-3.5 text-sm font-black text-blue-700 transition hover:bg-blue-50 active:scale-95 shadow-lg shadow-blue-900/20">
-                  Lihat Detail Kantor
-                </button>
-                <button className="rounded-2xl border-2 border-white/30 bg-white/10 px-8 py-3.5 text-sm font-black text-white transition hover:bg-white/20 active:scale-95">
-                  Kontak Mentor
-                </button>
-              </div>
+      {/* MAIN GRID */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 16, marginBottom: 16 }}>
+        {/* TEMPAT PKL (DENGAN KONTAK MENTOR) */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #1565C0 0%, #1976D2 50%, #42A5F5 100%)',
+            borderRadius: 14,
+            padding: 26,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ position: 'absolute', top: -25, right: -25, width: 150, height: 150, background: 'rgba(255,255,255,0.07)', borderRadius: '50%' }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 20, padding: '4px 12px', fontSize: 10.5, fontWeight: 700, color: '#fff', textTransform: 'uppercase', marginBottom: 12 }}>
+              <Building2 size={13} /> Tempat PKL Aktif
             </div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 8 }}>PT. Teknologi Masa Depan</h2>
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 20 }}>
+              <MapPin size={14} /> Jl. Raya Garut - Tasik No. 123, Garut
+            </p>
             
-            {/* Abstract Background Shapes */}
-            <div className="absolute -top-20 -right-20 h-80 w-80 rounded-full bg-white/10 blur-3xl" />
-            <div className="absolute -bottom-10 left-1/4 h-40 w-40 rounded-full bg-blue-400/20 blur-2xl" />
-          </div>
-
-          {/* Activity List */}
-          <div className="overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-50 px-8 py-6">
-              <h3 className="text-xl font-bold text-slate-900">Aktivitas Terbaru</h3>
-              <button className="text-sm font-bold text-blue-600 hover:text-blue-700 transition flex items-center gap-1">
-                Lihat Semua <Plus size={14} />
+            {/* TOMBOL BERDERET */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button 
+                onClick={handleDetailKantor}
+                style={{ background: '#fff', color: '#1565C0', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                Lihat Detail Kantor
+              </button>
+              <button 
+                onClick={handleKontakMentor}
+                style={{ background: 'transparent', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '9px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                Kontak Mentor
               </button>
             </div>
-            <div className="divide-y divide-slate-50">
-              {recentActivities.map((activity, idx) => (
-                <div key={idx} className="group flex items-center justify-between gap-4 px-8 py-6 transition hover:bg-slate-50/80">
-                  <div className="flex items-center gap-5">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 transition group-hover:bg-blue-100 group-hover:text-blue-600">
-                      <Plus size={20} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-800 text-lg">{activity.title}</p>
-                      <p className="text-sm text-slate-400 font-medium">{activity.date} • {activity.time}</p>
-                    </div>
-                  </div>
-                  <span className={`rounded-xl px-4 py-2 text-xs font-black uppercase tracking-wider ${
-                    activity.status === 'Tepat Waktu' ? 'bg-emerald-100 text-emerald-700' :
-                    activity.status === 'Selesai' ? 'bg-blue-100 text-blue-700' :
-                    'bg-amber-100 text-amber-700'
-                  }`}>
-                    {activity.status}
-                  </span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
-        {/* Right Column (Sidebar Cards) */}
-        <div className="space-y-6">
-          
-          {/* Announcements */}
-          <div className="rounded-[2rem] border border-slate-100 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-6">
-              <Bell className="text-amber-500" size={20} />
-              <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Pengumuman</h3>
-            </div>
-            <div className="space-y-4">
-              {[1, 2].map((item) => (
-                <div key={item} className="rounded-2xl border border-amber-100 bg-amber-50/50 p-5 group cursor-pointer hover:bg-amber-50 transition">
-                  <p className="text-sm font-extrabold text-amber-900 mb-1 group-hover:text-amber-600 transition">Upload Laporan Bulanan</p>
-                  <p className="text-xs text-amber-700 leading-relaxed font-medium">Paling lambat tanggal 25 setiap bulannya dalam format PDF ke sistem.</p>
-                </div>
-              ))}
-            </div>
+        {/* PENGUMUMAN */}
+        <div style={{ background: 'var(--card)', borderRadius: 10, padding: '16px 18px', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14 }}>
+            <Bell size={16} color="#F59E0B" />
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#1565C0', textTransform: 'uppercase' }}>Pengumuman</span>
           </div>
-
-          {/* Virtual ID Card */}
-          <div className="group relative overflow-hidden rounded-[2.5rem] bg-slate-900 p-8 text-white shadow-2xl transition hover:scale-[1.02] duration-500">
-            <div className="relative z-10">
-              <div className="mb-8 flex items-start justify-between">
-                <div>
-                  <p className="text-[10px] uppercase font-black tracking-[0.3em] text-slate-500 mb-1">ID CARD VIRTUAL</p>
-                  <p className="text-lg font-black tracking-tight">SISWA PKL</p>
-                </div>
-                <GraduationCap className="text-blue-500 group-hover:rotate-12 transition-transform duration-500" size={32} />
-              </div>
-              
-              <div className="space-y-6">
-                <div className="h-10 w-full rounded-xl bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-700/50" />
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-[9px] uppercase tracking-[0.25em] text-slate-500 font-bold mb-1">Nama Lengkap</p>
-                    <p className="font-black text-lg tracking-tight">MUHAMMAD REZA</p>
-                    <p className="text-[10px] text-blue-400 font-bold mt-1">SMKN 1 GARUT</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] uppercase tracking-[0.25em] text-slate-500 font-bold mb-1">NISN</p>
-                    <p className="font-mono font-bold text-slate-300">005412399</p>
-                  </div>
-                </div>
-              </div>
+          {[1, 2].map((i) => (
+            <div key={i} style={{ background: '#FFFDE7', borderLeft: '3px solid #FBC02D', borderRadius: '0 7px 7px 0', padding: '9px 11px', marginBottom: 9 }}>
+              <p style={{ fontSize: 12.5, fontWeight: 700, color: '#F57F17', marginBottom: 2 }}>Upload Laporan Bulanan</p>
+              <p style={{ fontSize: 11, color: '#64748b' }}>Paling lambat tanggal 25 setiap bulan.</p>
             </div>
-            
-            {/* Background Decorative Elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 blur-[60px]" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-600/20 blur-[40px]" />
-          </div>
-
-          {/* Quick Support Link */}
-          <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm flex items-center justify-between group cursor-pointer hover:border-blue-200 transition">
-            <div className="flex items-center gap-4">
-              <div className="bg-slate-50 p-3 rounded-2xl group-hover:bg-blue-50 transition">
-                <Settings className="text-slate-400 group-hover:text-blue-600 group-hover:rotate-45 transition-all duration-500" size={20} />
-              </div>
-              <div>
-                <p className="font-bold text-slate-800">Butuh Bantuan?</p>
-                <p className="text-xs text-slate-400 font-medium">Hubungi Admin PKL</p>
-              </div>
-            </div>
-            <Plus className="text-slate-300 group-hover:text-blue-600 transition" />
-          </div>
-
+          ))}
         </div>
       </div>
-      
-      {/* Footer Branding */}
-      <footer className="pt-8 pb-4 text-center">
-        <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">
-          &copy; 2026 E-PKL | SMKN 1 GARUT
+
+      {/* BOTTOM GRID */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 310px', gap: 16 }}>
+        {/* AKTIVITAS TERBARU */}
+        <div style={{ background: 'var(--card)', borderRadius: 10, padding: '16px 18px', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#1565C0' }}>Aktivitas Terbaru</span>
+            <span style={{ fontSize: 12, color: '#1976D2', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+              Lihat Semua <Plus size={13} />
+            </span>
+          </div>
+          {recentActivities.map((a, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 0', borderBottom: i < recentActivities.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              <div style={{ width: 32, height: 32, background: '#EEF4FC', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Plus size={15} color="#1565C0" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 12.5, fontWeight: 600 }}>{a.title}</p>
+                <p style={{ fontSize: 10.5, color: 'var(--muted-foreground)' }}>{a.date} • {a.time}</p>
+              </div>
+              <span style={{ ...getStatusStyle(a.status), padding: '3px 10px', borderRadius: 20, fontSize: 10.5, fontWeight: 700 }}>
+                {a.status.toUpperCase()}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* ID CARD */}
+        <div style={{ background: 'linear-gradient(135deg, #0D1B2A 0%, #1565C0 60%, #1976D2 100%)', borderRadius: 14, padding: '20px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: -18, right: -18, width: 110, height: 110, background: 'rgba(255,255,255,0.05)', borderRadius: '50%' }} />
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <p style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '1.3px', color: 'rgba(255,255,255,0.45)' }}>ID CARD VIRTUAL</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <p style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>SISWA PKL</p>
+              <GraduationCap size={22} color="#60A5FA" />
+            </div>
+            <div style={{ width: '100%', height: 60, background: 'rgba(255,255,255,0.08)', borderRadius: 8, marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
+            </div>
+            <p style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>MUHAMMAD REZA</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 12 }}>
+              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)' }}>SMKN 1 GARUT</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>005412399</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* BUTUH BANTUAN SECTION */}
+      <div style={{ background: 'var(--card)', borderRadius: 10, padding: '14px 18px', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, cursor: 'pointer' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ background: '#EEF4FC', padding: 10, borderRadius: 8 }}>
+            <Settings size={18} color="#1565C0" />
+          </div>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 700 }}>Butuh Bantuan?</p>
+            <p style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Hubungi Admin PKL</p>
+          </div>
+        </div>
+        <Plus size={16} color="#1565C0" />
+      </div>
+
+      <footer style={{ textAlign: 'center', paddingTop: 24, paddingBottom: 8 }}>
+        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.4em' }}>
+          © 2026 E-PKL | SMKN 1 GARUT
         </p>
       </footer>
     </div>
   );
-};
+}
