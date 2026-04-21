@@ -31,6 +31,7 @@ import { DeleteCompanyDialog } from './components/delete-company-dialog'
 import { ImportCompanyDialog } from './components/import-company-dialog'
 
 export function CompaniesPage() {
+    
     const [page, setPage] = useState(0)
     const [search, setSearch] = useState('')
     const [addDialogOpen, setAddDialogOpen] = useState(false)
