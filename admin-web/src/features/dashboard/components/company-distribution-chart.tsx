@@ -2,8 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { TrendingUp } from "lucide-react"
-import { Bar, BarChart, XAxis, YAxis } from "recharts"
+import { TrendingUp, Building2 } from "lucide-react"
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts"
 
 import {
     Card,
@@ -25,7 +25,6 @@ export function CompanyDistributionChart() {
     const { data: distribution = [], isLoading } = useQuery({
         queryKey: ['companyDistribution'],
         queryFn: async () => {
-            // Get all students with placements
             const { data: students } = await supabase
                 .from('profiles')
                 .select('id, placements(company_id, companies(name))')
@@ -42,10 +41,9 @@ export function CompanyDistributionChart() {
                 }
             })
 
-            // Sort by count descending and take top 10 for better visualization
             const sorted = Object.entries(companyCounts)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 10) // Limit to top 10
+                .slice(0, 10)
                 .map(([name, count]) => ({
                     company: name,
                     students: count
@@ -58,31 +56,40 @@ export function CompanyDistributionChart() {
     const chartConfig = {
         students: {
             label: "Siswa",
-            color: "hsl(142.1 76.2% 36.3%)", // Green 600
+            color: "#2563eb", 
         },
     } satisfies ChartConfig
 
     if (isLoading) {
-        return <Skeleton className="h-[400px] w-full" />
+        return <Skeleton className="h-[400px] w-full rounded-3xl" />
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Distribusi Siswa Per Dudi</CardTitle>
-                <CardDescription>Top 10 Perusahaan dengan Siswa Terbanyak</CardDescription>
+        <Card className="border-none shadow-none bg-transparent">
+            <CardHeader className="px-0 pt-0">
+                <div className="flex items-center gap-2 mb-1">
+                    <Building2 className="w-4 h-4 text-blue-600" />
+                    <CardTitle className="text-lg font-bold text-slate-800">Distribusi Siswa Per Dudi</CardTitle>
+                </div>
+                <CardDescription>Top 10 Perusahaan dengan penempatan terbanyak</CardDescription>
             </CardHeader>
-            <CardContent>
-                <ChartContainer config={chartConfig}>
+            <CardContent className="px-0">
+                <ChartContainer config={chartConfig} className="min-h-[300px] w-full">
                     <BarChart
                         accessibilityLayer
                         data={distribution}
                         layout="vertical"
-                        margin={{
-                            left: 0, // Adjusted from -20 to 0 to give slightly more space for long names if needed, or strictly -20 if labels are short.
-                            // Recharts automatic layout usually handles YAxis width if not fixed.
-                        }}
+                        margin={{ left: 10, right: 20 }}
                     >
+                        {/* 1. Definisi Gradasi Warna */}
+                        <defs>
+                            <linearGradient id="colorBlue" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="5%" stopColor="#2563eb" stopOpacity={0.9}/>
+                                <stop offset="95%" stopColor="#60a5fa" stopOpacity={0.8}/>
+                            </linearGradient>
+                        </defs>
+
+                        <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="#f1f5f9" />
                         <XAxis type="number" dataKey="students" hide />
                         <YAxis
                             dataKey="company"
@@ -90,23 +97,31 @@ export function CompanyDistributionChart() {
                             tickLine={false}
                             tickMargin={10}
                             axisLine={false}
-                            width={150} // Give enough fixed width for company names
-                            tickFormatter={(value) => value.length > 20 ? `${value.slice(0, 20)}...` : value}
+                            width={130}
+                            className="text-[10px] font-bold text-slate-500 uppercase"
+                            tickFormatter={(value) => value.length > 15 ? `${value.slice(0, 15)}...` : value}
                         />
                         <ChartTooltip
-                            cursor={false}
+                            cursor={{ fill: '#f1f5f9', opacity: 0.4 }}
                             content={<ChartTooltipContent hideLabel />}
                         />
-                        <Bar dataKey="students" fill="var(--color-students)" radius={5} />
+                        
+                        {/* 2. Panggil ID Gradasi di fill */}
+                        <Bar 
+                            dataKey="students" 
+                            fill="url(#colorBlue)" 
+                            radius={[0, 6, 6, 0]} 
+                            barSize={22}
+                        />
                     </BarChart>
                 </ChartContainer>
             </CardContent>
-            <CardFooter className="flex-col items-start gap-2 text-sm">
-                <div className="flex gap-2 leading-none font-medium">
-                    Menampilkan top 10 DUDI terbanyak <TrendingUp className="h-4 w-4" />
+            <CardFooter className="flex-col items-start gap-2 text-sm px-0 pb-0">
+                <div className="flex gap-2 leading-none font-bold text-blue-600">
+                    Analisis Penempatan <TrendingUp className="h-4 w-4" />
                 </div>
-                <div className="text-muted-foreground leading-none">
-                    Data berdasarkan penempatan siswa aktif saat ini
+                <div className="text-[11px] text-slate-400 font-medium">
+                    Data sinkron otomatis dengan database Supabase
                 </div>
             </CardFooter>
         </Card>
