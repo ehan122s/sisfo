@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -12,6 +14,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../data/attendance_repository.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../journal/data/journal_repository.dart';
+import '../../../services/image_compression_service.dart';
 
 enum AttendanceMode { checkIn, checkOut }
 
@@ -33,20 +36,20 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   LatLng? _companyLocation;
   double _radiusMeter = 100;
-<<<<<<< HEAD
-  String _companyName = "Lokasi PKL";
-=======
   String _companyName = 'Lokasi PKL';
   int? _placementId;
 
   XFile? _selfieFile;
   Uint8List? _selfieBytes;
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
 
   @override
   void initState() {
     super.initState();
     _initData();
+  }
+
+  void _updateStatus() {
+    _updateAttendanceStatus();
   }
 
   Future<void> _initData() async {
@@ -57,17 +60,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         .read(attendanceRepositoryProvider)
         .getStudentPlacement(user.id);
 
-<<<<<<< HEAD
-      if (placement != null) {
-        final company = placement['companies'];
-        _companyName = company['name'];
-        _radiusMeter = (company['radius_meter'] as num).toDouble();
-        _companyLocation = LatLng(
-          (company['latitude'] as num).toDouble(),
-          (company['longitude'] as num).toDouble(),
-        );
-      }
-=======
     if (placement != null) {
       _placementId = placement['id'];
       final company = placement['companies'];
@@ -78,23 +70,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         (company['longitude'] as num).toDouble(),
       );
     }
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
 
     final position = await ref
         .read(attendanceRepositoryProvider)
         .getCurrentLocation();
 
-<<<<<<< HEAD
-      if (mounted) {
-        setState(() {
-          _currentPosition = position;
-          _isLoading = false;
-        });
-        _updateAttendanceStatus();
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-=======
     if (mounted) {
       setState(() {
         _currentPosition = position;
@@ -110,18 +90,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           );
         }
       });
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
     }
   }
 
   void _updateAttendanceStatus() {
     if (_currentPosition == null || _companyLocation == null) return;
 
-<<<<<<< HEAD
-    final distance = ref
-=======
     final dist = ref
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
         .read(attendanceRepositoryProvider)
         .calculateDistance(
           _currentPosition!.latitude,
@@ -131,18 +106,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         );
 
     setState(() {
-<<<<<<< HEAD
-      _distance = distance;
-      _isWithinRange = distance <= _radiusMeter;
-    });
-
-    _mapController.move(
-      LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-      16.0,
-    );
-  }
-
-=======
       _distance = dist;
       _isWithinRange = dist <= _radiusMeter;
     });
@@ -171,7 +134,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     });
   }
 
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
   Future<void> _handleAction() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(
@@ -180,14 +142,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       imageQuality: 50,
     );
 
-<<<<<<< HEAD
-    if (pickedFile == null) return;
-=======
+    if (pickedFile == null) {
+      _showSnack('Tidak ada file yang dipilih', isError: true);
+      return;
+    }
+
     if (_placementId == null) {
       _showSnack('Belum ada penempatan PKL. Hubungi admin.', isError: true);
       return;
     }
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
 
     setState(() => _isLoading = true);
 
@@ -195,7 +158,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       final user = ref.read(authRepositoryProvider).currentUser;
       if (user == null) throw Exception('User not logged in');
 
-<<<<<<< HEAD
       final File originalFile = File(pickedFile.path);
       final File imageFile = await ref
           .read(imageCompressionServiceProvider)
@@ -212,11 +174,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             .read(attendanceRepositoryProvider)
             .uploadSelfie(imageFile, user.id);
       }
-=======
-      final photoUrl = await ref
-          .read(attendanceRepositoryProvider)
-          .uploadSelfieBytes(_selfieBytes!, user.id);
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
 
       String successMessage = '';
 
@@ -225,10 +182,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             .read(attendanceRepositoryProvider)
             .checkIn(
               studentId: user.id,
-<<<<<<< HEAD
-=======
               placementId: _placementId!,
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
               lat: _currentPosition!.latitude,
               long: _currentPosition!.longitude,
               photoUrl: photoUrl,
@@ -238,10 +192,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             .read(attendanceRepositoryProvider)
             .checkOut(
               studentId: user.id,
-<<<<<<< HEAD
-=======
               placementId: _placementId!,
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
               lat: _currentPosition!.latitude,
               long: _currentPosition!.longitude,
               photoUrl: photoUrl,
@@ -250,39 +201,27 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       }
 
       if (mounted) {
-<<<<<<< HEAD
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(successMessage),
             backgroundColor: Colors.green,
           ),
         );
-=======
-        _showSnack(successMessage, isError: false);
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
         ref.invalidate(todaysAttendanceLogProvider);
         ref.invalidate(todaysJournalStatusProvider);
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-<<<<<<< HEAD
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
         );
-=======
-        _showSnack('Gagal: $e', isError: true);
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-<<<<<<< HEAD
-  @override
-  Widget build(BuildContext context) {
-=======
   void _showSnack(String msg, {bool isError = false, bool isWarning = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -299,7 +238,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     final isCheckIn = widget.mode == AttendanceMode.checkIn;
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
     final userLatLng = _currentPosition != null
         ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude)
         : const LatLng(0, 0);
@@ -314,11 +252,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
       ),
-<<<<<<< HEAD
-      body: _currentPosition == null
-=======
       body: _isLoading
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -404,11 +338,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-<<<<<<< HEAD
-                      _buildStatusCard(),
-                      const SizedBox(height: 24),
-                      _buildActionButton(),
-=======
                       _StatusCard(
                         isWithinRange: _isWithinRange,
                         hasPlacement: _placementId != null,
@@ -423,8 +352,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         isWithinRange: _isWithinRange,
                       ),
                       const SizedBox(height: 16),
-                      _buildActionButton(isCheckIn),
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
+                      _buildActionButton(),
                     ],
                   ),
                 ),
@@ -433,7 +361,6 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     );
   }
 
-<<<<<<< HEAD
   Widget _buildStatusCard() {
     return InkWell(
       onTap: () {
@@ -503,14 +430,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   Widget _buildActionButton() {
-=======
-  Widget _buildActionButton(bool isCheckIn) {
     final bool canAbsen = !_isLoading &&
         _isWithinRange &&
         _placementId != null &&
         _selfieBytes != null;
+    final isCheckIn = widget.mode == AttendanceMode.checkIn;
 
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
     return ElevatedButton.icon(
       onPressed: canAbsen ? _handleAction : null,
       icon: _isLoading
@@ -551,14 +476,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         ),
         elevation: 0,
         disabledBackgroundColor: Colors.grey[300],
-<<<<<<< HEAD
-=======
       ),
     );
   }
 }
 
-// ================== STATUS CARD ==================
+// =================== STATUS CARD WIDGET ===================
 class _StatusCard extends StatelessWidget {
   final bool isWithinRange;
   final bool hasPlacement;
@@ -654,7 +577,7 @@ class _StatusCard extends StatelessWidget {
   }
 }
 
-// ================== SELFIE SECTION ==================
+// =================== SELFIE SECTION WIDGET ===================
 class _SelfieSection extends StatelessWidget {
   final Uint8List? selfieBytes;
   final VoidCallback onTap;
@@ -699,7 +622,6 @@ class _SelfieSection extends StatelessWidget {
                   ),
                 ],
               ),
->>>>>>> 1a3e2df5769afb9947a2525e2b9817a28c980cbf
       ),
     );
   }
