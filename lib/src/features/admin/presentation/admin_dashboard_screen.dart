@@ -1,976 +1,348 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import '../../authentication/data/auth_repository.dart';
-import '../data/admin_repository.dart';
-import 'student_management_screen.dart';
-import 'dudi_management_screen.dart';
-import 'attendance_report_screen.dart';
-import 'student_journal_report_screen.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'siswa_screen.dart';
+import 'dudi_screen.dart';
+import 'setting_screen.dart';
+import 'journal_screen.dart'; // File baru yang kita buat di bawah
+import 'analytics_screen.dart';
 
-class AdminDashboardScreen extends ConsumerStatefulWidget {
+class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  ConsumerState<AdminDashboardScreen> createState() =>
-      _AdminDashboardScreenState();
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
-  int _selectedIndex = 0;
-
-  static const _primaryBlue = Color(0xFF1976D2);
-  static const _darkBlue = Color(0xFF0D47A1);
-
-  final List<_NavItem> _navItems = const [
-    _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
-    _NavItem(icon: Icons.people_rounded, label: 'Siswa'),
-    _NavItem(icon: Icons.business_rounded, label: 'DUDI'),
-    _NavItem(icon: Icons.access_time_rounded, label: 'Kehadiran'),
-    _NavItem(icon: Icons.assignment_rounded, label: 'Laporan'),
-  ];
-
-  final List<Widget> _screens = const [
-    _DashboardOverview(),
-    StudentManagementScreen(),
-    DudiManagementScreen(),
-    AttendanceReportScreen(),
-    StudentJournalReportScreen(),
-  ];
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  int _currentViewIndex = 0;
+  final SupabaseClient supabase = Supabase.instance.client;
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 768;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFE3F2FD),
-      appBar: _buildAppBar(isMobile),
-      drawer: isMobile ? _buildDrawer() : null,
-      body: isMobile ? _buildMobileBody() : _buildDesktopBody(),
-      bottomNavigationBar: isMobile ? _buildBottomNav() : null,
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 400),
+        child: _buildCurrentView(),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: _buildMainActionFAB(),
+      bottomNavigationBar: _buildModernBottomNav(),
     );
   }
 
-  PreferredSizeWidget _buildAppBar(bool isMobile) {
-    return AppBar(
-      backgroundColor: _darkBlue,
-      foregroundColor: Colors.white,
-      elevation: 0,
-      title: Row(
+  Widget _buildCurrentView() {
+    switch (_currentViewIndex) {
+      case 0: return _buildHomeOverview();
+      case 1: return const SiswaScreen();
+      case 2: return const JournalScreen(); // Sekarang sudah terhubung
+      case 3: return _placeholderView("Laporan & Analitik", Icons.bar_chart_rounded, Colors.purple);
+      case 4: return const DudiScreen(); // Sekarang sudah terhubung
+      case 5: return const SettingScreen(); // Sekarang sudah terhubung
+      default: return _buildHomeOverview();
+    }
+  }
+
+  Widget _buildHomeOverview() {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.school_rounded,
-              size: 18,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text(
-              'Admin Panel SMKN 1 Garut',
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        if (!isMobile)
+          _buildPremiumHeader(),
           Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: TextButton.icon(
-              onPressed: () => ref.read(authRepositoryProvider).signOut(),
-              icon: const Icon(
-                Icons.logout_rounded,
-                size: 16,
-                color: Colors.white,
-              ),
-              label: Text(
-                'Keluar',
-                style: GoogleFonts.poppins(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          )
-        else
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.white),
-            onPressed: () => ref.read(authRepositoryProvider).signOut(),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildDrawer() {
-    return Drawer(
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [_darkBlue, _primaryBlue],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.admin_panel_settings_rounded,
-                  color: Colors.white,
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Admin Panel',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Text(
-                'SMKN 1 Garut',
-                style: GoogleFonts.poppins(
-                  color: Colors.white.withOpacity(0.7),
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 32),
-              ...List.generate(_navItems.length, (i) {
-                final item = _navItems[i];
-                final isSelected = _selectedIndex == i;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 3,
-                  ),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      setState(() => _selectedIndex = i);
-                      Navigator.pop(context);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.white.withOpacity(0.2)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        border: isSelected
-                            ? Border.all(color: Colors.white.withOpacity(0.3))
-                            : null,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            item.icon,
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.6),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 14),
-                          Text(
-                            item.label,
-                            style: GoogleFonts.poppins(
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.white.withOpacity(0.6),
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: _primaryBlue.withOpacity(0.1),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(_navItems.length, (i) {
-              final item = _navItems[i];
-              final isSelected = _selectedIndex == i;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedIndex = i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? _primaryBlue.withOpacity(0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedScale(
-                        scale: isSelected ? 1.2 : 1.0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          item.icon,
-                          color: isSelected ? _primaryBlue : Colors.grey[400],
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        item.label,
-                        style: GoogleFonts.poppins(
-                          fontSize: 9,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          color: isSelected ? _primaryBlue : Colors.grey[400],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMobileBody() {
-    return IndexedStack(index: _selectedIndex, children: _screens);
-  }
-
-  Widget _buildDesktopBody() {
-    return Row(
-      children: [
-        Container(
-          width: 200,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [_darkBlue, _primaryBlue],
-            ),
-          ),
-          child: SafeArea(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.admin_panel_settings_rounded,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Admin',
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ...List.generate(_navItems.length, (i) {
-                  final item = _navItems[i];
-                  final isSelected = _selectedIndex == i;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 3,
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => setState(() => _selectedIndex = i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 11,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.white.withOpacity(0.2)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              item.icon,
-                              color: isSelected
-                                  ? Colors.white
-                                  : Colors.white.withOpacity(0.6),
-                              size: 18,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              item.label,
-                              style: GoogleFonts.poppins(
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.white.withOpacity(0.6),
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }),
+                const SizedBox(height: 30),
+                _buildSectionTitle("Ringkasan Eksekutif"),
+                const SizedBox(height: 16),
+                _buildStatsGrid(),
+                const SizedBox(height: 35),
+                _buildSectionTitle("Navigasi Cepat"),
+                const SizedBox(height: 16),
+                _buildFullMenuGrid(),
+                const SizedBox(height: 35),
+                _buildSectionTitle("Aktivitas Terbaru"),
+                const SizedBox(height: 16),
+                _buildRecentActivityList(),
+                const SizedBox(height: 120),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 70, 24, 40),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade900, Colors.blue.shade700],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        Expanded(
-          child: IndexedStack(index: _selectedIndex, children: _screens),
-        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(45)),
+        boxShadow: [
+          BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 25, offset: const Offset(0, 15))
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white24, width: 2),
+                    ),
+                    child: const CircleAvatar(
+                      radius: 28,
+                      backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=admin'),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Halo, Administrator', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('Senin, 21 April 2024', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
+              _buildNotificationBadge(),
+            ],
+          ),
+          const SizedBox(height: 30),
+          _buildQuickActionCards(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActionCards() {
+    return Row(
+      children: [
+        _quickCard("Siswa Aktif", "854", Icons.person_pin_rounded),
+        const SizedBox(width: 12),
+        _quickCard("Total Mitra", "42", Icons.apartment_rounded),
       ],
     );
   }
-}
 
-class _NavItem {
-  final IconData icon;
-  final String label;
-  const _NavItem({required this.icon, required this.label});
-}
-
-// ===================== DASHBOARD OVERVIEW =====================
-class _DashboardOverview extends StatelessWidget {
-  const _DashboardOverview();
-
-  static const _primaryBlue = Color(0xFF1976D2);
-  static const _darkBlue = Color(0xFF0D47A1);
-
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 768;
-
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFFE3F2FD), Color(0xFFF8FBFF)],
-        ),
-      ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? 16 : 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _quickCard(String title, String value, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
+        child: Row(
           children: [
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(isMobile ? 16 : 20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [_darkBlue, _primaryBlue],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: _primaryBlue.withOpacity(0.3),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Selamat Datang 👋',
-                    style: GoogleFonts.poppins(
-                      fontSize: isMobile ? 18 : 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Dashboard Admin SMKN 1 Garut',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.75),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            Text(
-              'Ringkasan Data',
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: _darkBlue,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Consumer(
-              builder: (context, ref, _) {
-                final count = ref.watch(totalStudentsProvider);
-                return _StatCard(
-                  title: 'Total Siswa Terdaftar',
-                  value: count.when(
-                    data: (d) => d.toString(),
-                    loading: () => '...',
-                    error: (e, _) => '-',
-                  ),
-                  icon: Icons.people_rounded,
-                  color: _primaryBlue,
-                );
-              },
-            ),
-
-            const SizedBox(height: 28),
-
-            Text(
-              'Status Kehadiran Hari Ini',
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: _darkBlue,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const _AttendanceStatusGrid(),
-
-            const SizedBox(height: 28),
-
-            isMobile
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSection('Top 5 DUDI', const _TopDudiList()),
-                      const SizedBox(height: 20),
-                      _buildSection(
-                        'Sebaran Lokasi',
-                        const _LocationDistributionList(),
-                      ),
-                    ],
-                  )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _buildSection(
-                          'Top 5 DUDI',
-                          const _TopDudiList(),
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: _buildSection(
-                          'Sebaran Lokasi',
-                          const _LocationDistributionList(),
-                        ),
-                      ),
-                    ],
-                  ),
-
-            const SizedBox(height: 28),
-
-            Text(
-              'Live Monitoring Peserta PKL',
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: _darkBlue,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const _LiveMapSection(),
-            const SizedBox(height: 24),
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(title, style: TextStyle(color: Colors.white60, fontSize: 10)),
+              ],
+            )
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSection(String title, Widget child) {
+  Widget _buildStatsGrid() {
+    return Row(
+      children: [
+        _statCard("Absensi", "98%", Icons.fact_check_rounded, Colors.blue),
+        const SizedBox(width: 16),
+        _statCard("Izin", "12", Icons.mail_outline_rounded, Colors.orange),
+      ],
+    );
+  }
+
+  Widget _statCard(String label, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(height: 16),
+            Text(value, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+            Text(label, style: const TextStyle(color: Colors.blueGrey, fontSize: 12, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullMenuGrid() {
+    final List<Map<String, dynamic>> menus = [
+      {'label': 'Siswa', 'icon': Icons.groups_rounded, 'color': Colors.blue, 'idx': 1},
+      {'label': 'Jurnal', 'icon': Icons.edit_note_rounded, 'color': Colors.teal, 'idx': 2},
+      {'label': 'Analitik', 'icon': Icons.bar_chart_rounded, 'color': Colors.purple, 'idx': 3},
+      {'label': 'Mitra DUDI', 'icon': Icons.business_rounded, 'color': Colors.indigo, 'idx': 4},
+      {'label': 'Absensi', 'icon': Icons.location_on_rounded, 'color': Colors.red, 'idx': 0},
+      {'label': 'Sertifikat', 'icon': Icons.workspace_premium_rounded, 'color': Colors.amber, 'idx': 0},
+      {'label': 'Dokumen', 'icon': Icons.folder_copy_rounded, 'color': Colors.cyan, 'idx': 0},
+      {'label': 'Setting', 'icon': Icons.settings_rounded, 'color': Colors.grey, 'idx': 5},
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        mainAxisSpacing: 20,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.85,
+      ),
+      itemCount: menus.length,
+      itemBuilder: (context, index) => InkWell(
+        onTap: () => setState(() => _currentViewIndex = menus[index]['idx']),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+              ),
+              child: Icon(menus[index]['icon'], color: menus[index]['color']),
+            ),
+            const SizedBox(height: 10),
+            Text(menus[index]['label'], style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF334155)), textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecentActivityList() {
+    return Column(children: List.generate(3, (index) => _activityItem(index)));
+  }
+
+  Widget _activityItem(int i) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1976D2).withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF0D47A1),
-            ),
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _AttendanceStatusGrid extends ConsumerWidget {
-  const _AttendanceStatusGrid();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final statsAsync = ref.watch(todayAttendanceStatsProvider);
-
-    return statsAsync.when(
-      data: (stats) => Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        children: [
-          _StatusItem(
-            label: 'Hadir',
-            count: stats['Hadir'] ?? 0,
-            color: Colors.green,
-            icon: Icons.check_circle_rounded,
-          ),
-          _StatusItem(
-            label: 'Terlambat',
-            count: stats['Terlambat'] ?? 0,
-            color: Colors.orange,
-            icon: Icons.access_time_filled_rounded,
-          ),
-          _StatusItem(
-            label: 'Belum Hadir',
-            count: stats['Belum Hadir'] ?? 0,
-            color: Colors.red,
-            icon: Icons.cancel_rounded,
-          ),
-          _StatusItem(
-            label: 'Izin',
-            count: stats['Izin'] ?? 0,
-            color: Colors.blue,
-            icon: Icons.assignment_ind_rounded,
-          ),
-          _StatusItem(
-            label: 'Sakit',
-            count: stats['Sakit'] ?? 0,
-            color: Colors.purple,
-            icon: Icons.local_hospital_rounded,
-          ),
-        ],
-      ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Text('Error: $e'),
-    );
-  }
-}
-
-// ── Live Map (FlutterMap, no Google Maps) ─────────────────────────────────────
-class _LiveMapSection extends ConsumerWidget {
-  const _LiveMapSection();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isMobile = MediaQuery.of(context).size.width < 768;
-    final locationsAsync = ref.watch(todayAttendanceLocationsProvider);
-
-    return Container(
-      height: isMobile ? 280 : 450,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: locationsAsync.when(
-        data: (locations) {
-          if (locations.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.map_outlined, size: 48, color: Colors.grey[300]),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Belum ada data lokasi hari ini',
-                    style: GoogleFonts.poppins(color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final markers = locations.map((loc) {
-            final lat = (loc['lat'] as num?)?.toDouble() ?? 0.0;
-            final lng = (loc['lng'] as num?)?.toDouble() ?? 0.0;
-            final isGreen = loc['color'] == 'green';
-            return Marker(
-              point: LatLng(lat, lng),
-              child: Tooltip(
-                message: '${loc['name']} - ${loc['status']}',
-                child: Icon(
-                  Icons.location_on,
-                  color: isGreen ? Colors.green : Colors.red,
-                  size: 32,
-                ),
-              ),
-            );
-          }).toList();
-
-          final firstLat = (locations.first['lat'] as num).toDouble();
-          final firstLng = (locations.first['lng'] as num).toDouble();
-
-          return FlutterMap(
-            options: MapOptions(
-              initialCenter: LatLng(firstLat, firstLng),
-              initialZoom: 12,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.smkn1garut.sip',
-              ),
-              MarkerLayer(markers: markers),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Gagal memuat peta: $e')),
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String title, value;
-  final Color color;
-  final IconData icon;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.07), blurRadius: 12)],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
+          CircleAvatar(backgroundColor: Colors.blue.shade50, child: const Icon(Icons.bolt_rounded, color: Colors.blue, size: 18)),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
-              ),
-              Text(
-                value,
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-            ],
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Update Proyek Siswa", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                Text("Budi telah mengirimkan progres UI Design", style: TextStyle(color: Colors.grey, fontSize: 11)),
+              ],
+            ),
           ),
+          Text("2m ago", style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
         ],
       ),
     );
   }
-}
 
-class _StatusItem extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-  final IconData icon;
+  Widget _buildSectionTitle(String title) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+        Text("Lihat Semua", style: TextStyle(color: Colors.blue.shade700, fontSize: 12, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
 
-  const _StatusItem({
-    required this.label,
-    required this.count,
-    required this.color,
-    required this.icon,
-  });
+  Widget _buildNotificationBadge() {
+    return Stack(
+      children: [
+        Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.notifications_none_rounded, color: Colors.white)),
+        Positioned(right: 8, top: 8, child: Container(width: 10, height: 10, decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle, border: Border.all(color: Colors.blue.shade800, width: 2)))),
+      ],
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isMobile = size.width < 768;
-    final cardWidth = isMobile ? (size.width - 52) / 2 : 140.0;
-
+  Widget _buildModernBottomNav() {
     return Container(
-      width: cardWidth,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.07),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(35)), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20)]),
+      child: SafeArea(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _navIcon(0, Icons.grid_view_rounded),
+            _navIcon(1, Icons.people_alt_rounded),
+            const SizedBox(width: 50),
+            _navIcon(2, Icons.history_edu_rounded),
+            _navIcon(5, Icons.settings_rounded),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _navIcon(int index, IconData icon) {
+    bool isSel = _currentViewIndex == index;
+    return InkWell(
+      onTap: () => setState(() => _currentViewIndex = index),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            count.toString(),
-            style: GoogleFonts.poppins(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: Colors.grey[600],
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          Icon(icon, color: isSel ? Colors.blue.shade800 : Colors.blueGrey.shade200, size: 26),
+          const SizedBox(height: 4),
+          if (isSel) Container(width: 5, height: 5, decoration: BoxDecoration(color: Colors.blue.shade800, shape: BoxShape.circle))
         ],
       ),
     );
   }
-}
 
-class _TopDudiList extends ConsumerWidget {
-  const _TopDudiList();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final dudiAsync = ref.watch(studentDistributionProvider);
-    return dudiAsync.when(
-      data: (dudis) => Column(
-        children: dudis
-            .map(
-              (d) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1976D2).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.business_rounded,
-                        color: Color(0xFF1976D2),
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        d['name'],
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1976D2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${d['count']}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
+  Widget _buildMainActionFAB() {
+    return Container(
+      decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))]),
+      child: FloatingActionButton(
+        onPressed: () {},
+        backgroundColor: Colors.blue.shade800,
+        elevation: 0,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
       ),
-      loading: () => const LinearProgressIndicator(),
-      error: (e, _) => Text('Error: $e'),
     );
   }
-}
 
-class _LocationDistributionList extends ConsumerWidget {
-  const _LocationDistributionList();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final locationAsync = ref.watch(studentLocationDistributionProvider);
-    return locationAsync.when(
-      data: (locations) => Column(
-        children: locations
-            .map(
-              (l) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.teal.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.location_on_rounded,
-                        color: Colors.teal,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        l['name'],
-                        style: GoogleFonts.poppins(fontSize: 12),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.teal,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${l['count']}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
+  Widget _placeholderView(String title, IconData icon, Color color) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 100, color: color.withOpacity(0.1)),
+          Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          ElevatedButton(onPressed: () => setState(() => _currentViewIndex = 0), style: ElevatedButton.styleFrom(backgroundColor: color, shape: const StadiumBorder()), child: const Text("Kembali ke Beranda", style: TextStyle(color: Colors.white))),
+        ],
       ),
-      loading: () => const LinearProgressIndicator(),
-      error: (e, _) => Text('Error: $e'),
     );
   }
 }
