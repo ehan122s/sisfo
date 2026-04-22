@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +9,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 
-// Import project kamu
+// Import project kamu (Sesuaikan path ini jika masih ada merah di import)
 import '../data/attendance_repository.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../journal/data/journal_repository.dart';
@@ -53,52 +53,56 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   Future<void> _initData() async {
-    final user = ref.read(authRepositoryProvider).currentUser;
-    if (user == null) return;
+    setState(() => _isLoading = true);
+    try {
+      final user = ref.read(authRepositoryProvider).currentUser;
+      if (user == null) return;
 
-    final placement = await ref
-        .read(attendanceRepositoryProvider)
-        .getStudentPlacement(user.id);
+      final placement = await ref
+          .read(attendanceRepositoryProvider)
+          .getStudentPlacement(user.id);
 
-    if (placement != null) {
-      _placementId = placement['id'];
-      final company = placement['companies'];
-      _companyName = company['name'];
-      _radiusMeter = (company['radius_meter'] as num).toDouble();
-      _companyLocation = LatLng(
-        (company['latitude'] as num).toDouble(),
-        (company['longitude'] as num).toDouble(),
-      );
-    }
+      if (placement != null) {
+        _placementId = placement['id'];
+        final company = placement['companies'];
+        _companyName = company['name'] ?? 'Lokasi PKL';
+        _radiusMeter = (company['radius_meter'] as num).toDouble();
+        _companyLocation = LatLng(
+          (company['latitude'] as num).toDouble(),
+          (company['longitude'] as num).toDouble(),
+        );
+      }
 
-    final position = await ref
-        .read(attendanceRepositoryProvider)
-        .getCurrentLocation();
+      final position = await ref
+          .read(attendanceRepositoryProvider)
+          .getCurrentLocation();
 
-    if (mounted) {
-      setState(() {
-        _currentPosition = position;
-        _isLoading = false;
-      });
-      _updateStatus();
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+          _isLoading = false;
+        });
+        _updateAttendanceStatus();
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        if (_currentPosition != null) {
           _mapController.move(
             LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
             16.0,
           );
         }
-      });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showSnack('Gagal memuat data: $e', isError: true);
+      }
     }
   }
 
   void _updateAttendanceStatus() {
     if (_currentPosition == null || _companyLocation == null) return;
 
-    final dist = ref
-        .read(attendanceRepositoryProvider)
-        .calculateDistance(
+    final dist = ref.read(attendanceRepositoryProvider).calculateDistance(
           _currentPosition!.latitude,
           _currentPosition!.longitude,
           _companyLocation!.latitude,
@@ -117,11 +121,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       return;
     }
 
-    final source = kIsWeb ? ImageSource.gallery : ImageSource.camera;
-
     final picked = await ImagePicker().pickImage(
-      source: source,
+      source: ImageSource.camera,
       preferredCameraDevice: CameraDevice.front,
+      imageQuality: 50,
     );
 
     if (picked == null) return;
@@ -135,22 +138,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   Future<void> _handleAction() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      imageQuality: 50,
-    );
-
-    if (pickedFile == null) {
-      _showSnack('Tidak ada file yang dipilih', isError: true);
-      return;
-    }
-
-    if (_placementId == null) {
-      _showSnack('Belum ada penempatan PKL. Hubungi admin.', isError: true);
-      return;
-    }
+    if (_placementId == null || _selfieFile == null) return;
 
     setState(() => _isLoading = true);
 
@@ -158,79 +146,50 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       final user = ref.read(authRepositoryProvider).currentUser;
       if (user == null) throw Exception('User not logged in');
 
-      final File originalFile = File(pickedFile.path);
-      final File imageFile = await ref
-          .read(imageCompressionServiceProvider)
-          .compressImage(originalFile);
-
-      String photoUrl;
-      final List<ConnectivityResult> connectivityResult = await Connectivity()
-          .checkConnectivity();
-
-      if (connectivityResult.contains(ConnectivityResult.none)) {
-        photoUrl = imageFile.path;
-      } else {
-        photoUrl = await ref
-            .read(attendanceRepositoryProvider)
-            .uploadSelfie(imageFile, user.id);
-      }
-
+      // Simulasi upload/proses (Sesuaikan dengan logic repository kamu)
       String successMessage = '';
+      final isCheckIn = widget.mode == AttendanceMode.checkIn;
 
-      if (widget.mode == AttendanceMode.checkIn) {
-        successMessage = await ref
-            .read(attendanceRepositoryProvider)
-            .checkIn(
+      if (isCheckIn) {
+        await ref.read(attendanceRepositoryProvider).checkIn(
               studentId: user.id,
               placementId: _placementId!,
               lat: _currentPosition!.latitude,
               long: _currentPosition!.longitude,
-              photoUrl: photoUrl,
+              photoUrl: _selfieFile!.path, // Sesuaikan jika butuh upload dulu
             );
+        successMessage = 'Absen Masuk Berhasil!';
       } else {
-        await ref
-            .read(attendanceRepositoryProvider)
-            .checkOut(
+        await ref.read(attendanceRepositoryProvider).checkOut(
               studentId: user.id,
               placementId: _placementId!,
               lat: _currentPosition!.latitude,
               long: _currentPosition!.longitude,
-              photoUrl: photoUrl,
+              photoUrl: _selfieFile!.path,
             );
         successMessage = 'Absen Pulang Berhasil!';
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(successMessage),
-            backgroundColor: Colors.green,
-          ),
-        );
+        _showSnack(successMessage, isError: false);
+        // Refresh data setelah sukses
         ref.invalidate(todaysAttendanceLogProvider);
-        ref.invalidate(todaysJournalStatusProvider);
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
-        );
+        _showSnack('Gagal: $e', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _showSnack(String msg, {bool isError = false, bool isWarning = false}) {
+  void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: isError
-            ? Colors.red
-            : isWarning
-                ? Colors.orange
-                : Colors.green,
+        backgroundColor: isError ? Colors.red : Colors.green,
       ),
     );
   }
@@ -252,20 +211,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
       ),
-      body: _isLoading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: Colors.blue.shade700),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Memuat data lokasi...',
-                    style: GoogleFonts.poppins(color: Colors.grey),
-                  ),
-                ],
-              ),
-            )
+      body: _isLoading && _currentPosition == null
+          ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
                 Expanded(
@@ -277,9 +224,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     ),
                     children: [
                       TileLayer(
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.smkn1garut.sip',
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       ),
                       if (_companyLocation != null)
                         CircleLayer(
@@ -288,7 +233,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                               point: _companyLocation!,
                               radius: _radiusMeter,
                               useRadiusInMeter: true,
-                              color: Colors.blue.withValues(alpha: 0.2),
+                              color: Colors.blue.withOpacity(0.2),
                               borderColor: Colors.blue.shade700,
                               borderStrokeWidth: 2,
                             ),
@@ -299,19 +244,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                           if (_companyLocation != null)
                             Marker(
                               point: _companyLocation!,
-                              child: const Icon(
-                                Icons.location_on,
-                                color: Colors.blue,
-                                size: 40,
-                              ),
+                              child: const Icon(Icons.location_on, color: Colors.blue, size: 40),
                             ),
                           Marker(
                             point: userLatLng,
-                            child: const Icon(
-                              Icons.person_pin_circle,
-                              color: Colors.red,
-                              size: 40,
-                            ),
+                            child: const Icon(Icons.person_pin_circle, color: Colors.red, size: 40),
                           ),
                         ],
                       ),
@@ -320,19 +257,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: const BorderRadius.only(
+                    borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(32),
                       topRight: Radius.circular(32),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, -5),
-                      ),
-                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -352,7 +282,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                         isWithinRange: _isWithinRange,
                       ),
                       const SizedBox(height: 16),
-                      _buildActionButton(),
+                      _buildActionButton(isCheckIn),
                     ],
                   ),
                 ),
@@ -361,75 +291,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     );
   }
 
-  Widget _buildStatusCard() {
-    return InkWell(
-      onTap: () {
-        setState(() => _isLoading = true);
-        _initData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Memperbarui lokasi dan data...")),
-        );
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _isWithinRange
-              ? Colors.green.withValues(alpha: 0.1)
-              : Colors.red.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _isWithinRange
-                ? Colors.green.withValues(alpha: 0.3)
-                : Colors.red.withValues(alpha: 0.3),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              _isWithinRange
-                  ? Icons.check_circle_rounded
-                  : Icons.location_off_rounded,
-              color: _isWithinRange ? Colors.green : Colors.red,
-              size: 28,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _companyLocation == null
-                        ? "Belum ada Penempatan (Klik untuk cek)"
-                        : (_isWithinRange
-                              ? "Lokasi Terverifikasi"
-                              : "Diluar Jangkauan"),
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: _isWithinRange
-                          ? Colors.green[800]
-                          : Colors.red[800],
-                    ),
-                  ),
-                  if (_companyLocation != null)
-                    Text(
-                      "$_companyName (${_distance.toStringAsFixed(0)}m)",
-                      style: GoogleFonts.poppins(
-                        color: Colors.blue.shade900,
-                        fontSize: 13,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton() {
+  Widget _buildActionButton(bool isCheckIn) {
     final bool canAbsen = !_isLoading &&
         _isWithinRange &&
         _placementId != null &&
@@ -439,14 +301,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return ElevatedButton.icon(
       onPressed: canAbsen ? _handleAction : null,
       icon: _isLoading
-          ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            )
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
           : Icon(isCheckIn ? Icons.login : Icons.logout),
       label: Text(
         _isLoading
@@ -457,31 +312,19 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                     ? 'Diluar Jangkauan'
                     : _selfieBytes == null
                         ? 'Ambil Selfie Dulu'
-                        : isCheckIn
-                            ? 'Absen Masuk'
-                            : 'Absen Pulang',
-        style: GoogleFonts.poppins(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
+                        : isCheckIn ? 'Absen Masuk' : 'Absen Pulang',
+        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: isCheckIn
-            ? const Color(0xFF4CAF50)
-            : const Color(0xFFEF5350),
+        backgroundColor: isCheckIn ? Colors.green : Colors.red,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 18),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        elevation: 0,
-        disabledBackgroundColor: Colors.grey[300],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
 }
 
-// =================== STATUS CARD WIDGET ===================
 class _StatusCard extends StatelessWidget {
   final bool isWithinRange;
   final bool hasPlacement;
@@ -499,77 +342,29 @@ class _StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg = !hasPlacement
-        ? Colors.orange.withValues(alpha: 0.1)
-        : isWithinRange
-            ? Colors.green.withValues(alpha: 0.1)
-            : Colors.red.withValues(alpha: 0.1);
-
-    final Color border = !hasPlacement
-        ? Colors.orange.withValues(alpha: 0.3)
-        : isWithinRange
-            ? Colors.green.withValues(alpha: 0.3)
-            : Colors.red.withValues(alpha: 0.3);
-
-    final Color iconColor = !hasPlacement
-        ? Colors.orange
-        : isWithinRange
-            ? Colors.green
-            : Colors.red;
-
-    final IconData icon = !hasPlacement
-        ? Icons.warning_amber_rounded
-        : isWithinRange
-            ? Icons.check_circle_rounded
-            : Icons.location_off_rounded;
-
-    final String title = !hasPlacement
-        ? 'Belum ada penempatan'
-        : isWithinRange
-            ? 'Lokasi Terverifikasi'
-            : 'Diluar Jangkauan';
-
-    final String sub = !hasPlacement
-        ? 'Hubungi admin untuk penempatan'
-        : '$companyName · ${distance.toStringAsFixed(0)}m';
-
     return InkWell(
       onTap: onRefresh,
-      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: bg,
+          color: isWithinRange ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: border),
+          border: Border.all(color: isWithinRange ? Colors.green : Colors.red),
         ),
         child: Row(
           children: [
-            Icon(icon, color: iconColor, size: 28),
-            const SizedBox(width: 16),
+            Icon(isWithinRange ? Icons.check_circle : Icons.location_off, color: isWithinRange ? Colors.green : Colors.red),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: iconColor,
-                    ),
-                  ),
-                  Text(
-                    sub,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: Colors.grey[700],
-                    ),
-                  ),
+                  Text(isWithinRange ? 'Lokasi Terverifikasi' : 'Di Luar Jangkauan', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('$companyName (${distance.toStringAsFixed(0)}m)'),
                 ],
               ),
             ),
-            Icon(Icons.refresh, color: Colors.grey[400], size: 20),
+            const Icon(Icons.refresh, size: 16),
           ],
         ),
       ),
@@ -577,17 +372,12 @@ class _StatusCard extends StatelessWidget {
   }
 }
 
-// =================== SELFIE SECTION WIDGET ===================
 class _SelfieSection extends StatelessWidget {
   final Uint8List? selfieBytes;
   final VoidCallback onTap;
   final bool isWithinRange;
 
-  const _SelfieSection({
-    required this.selfieBytes,
-    required this.onTap,
-    required this.isWithinRange,
-  });
+  const _SelfieSection({this.selfieBytes, required this.onTap, required this.isWithinRange});
 
   @override
   Widget build(BuildContext context) {
@@ -603,25 +393,9 @@ class _SelfieSection extends StatelessWidget {
         child: selfieBytes != null
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.memory(selfieBytes!, fit: BoxFit.cover),
+                child: Image.memory(selfieBytes!, fit: BoxFit.cover, width: double.infinity),
               )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.camera_alt_rounded,
-                      color: Colors.grey[400], size: 32),
-                  const SizedBox(height: 8),
-                  Text(
-                    isWithinRange
-                        ? 'Tap untuk ambil selfie'
-                        : 'Masuk radius dulu',
-                    style: GoogleFonts.poppins(
-                      color: Colors.grey[500],
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
+            : const Center(child: Icon(Icons.camera_alt, size: 32, color: Colors.grey)),
       ),
     );
   }
