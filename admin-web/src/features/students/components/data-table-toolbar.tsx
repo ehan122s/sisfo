@@ -31,7 +31,8 @@ export function DataTableToolbar<TData>({
 
     const { data: classList = [] } = useQuery({
         queryKey: ['class-list'],
-        queryFn: getClassList
+        queryFn: getClassList,
+        staleTime: 0,
     })
 
     const classOptions = classList.map((cls) => ({

@@ -1,3 +1,4 @@
+```dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,68 +12,58 @@ class SettingScreen extends StatefulWidget {
 class _SettingScreenState extends State<SettingScreen> {
   bool _notifEnabled = true;
   bool _darkMode = false;
+  bool _biometricEnabled = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8FAFC),
-      child: Column(
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _buildProfileSection(),
-                const SizedBox(height: 30),
-                _sectionTitle("Preferensi Aplikasi"),
-                _settingTile(Icons.notifications_active_outlined, "Notifikasi Real-time", "Dapatkan update jurnal siswa", trailing: Switch(value: _notifEnabled, onChanged: (v) => setState(() => _notifEnabled = v))),
-                _settingTile(Icons.dark_mode_outlined, "Mode Gelap", "Tampilan hemat baterai", trailing: Switch(value: _darkMode, onChanged: (v) => setState(() => _darkMode = v))),
-                
-                const SizedBox(height: 30),
-                _sectionTitle("Sistem & Keamanan"),
-                _settingTile(Icons.lock_outline_rounded, "Ganti Password", "Amankan akun Anda", color: Colors.blue),
-                _settingTile(Icons.cloud_sync_rounded, "Sinkronisasi Data", "Update database Supabase", color: Colors.teal),
-                _settingTile(Icons.info_outline_rounded, "Tentang PKL Hub v1.0", "Informasi aplikasi & pengembang"),
+    final user = Supabase.instance.client.auth.currentUser;
 
-                const SizedBox(height: 40),
-                _buildLogoutButton(),
-              ],
-            ),
-          ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text("Pengaturan", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          _buildProfileSection(user),
+          const SizedBox(height: 30),
+          _sectionTitle("Preferensi Aplikasi"),
+          _settingTile(Icons.notifications_active_outlined, "Notifikasi Real-time", "Dapatkan update jurnal siswa", trailing: Switch(value: _notifEnabled, onChanged: (v) => setState(() => _notifEnabled = v))),
+          _settingTile(Icons.dark_mode_outlined, "Mode Gelap", "Tampilan hemat baterai", trailing: Switch(value: _darkMode, onChanged: (v) => setState(() => _darkMode = v))),
+          _settingTile(Icons.fingerprint_rounded, "Biometrik", "Amankan dengan FaceID/TouchID", trailing: Switch(value: _biometricEnabled, onChanged: (v) => setState(() => _biometricEnabled = v))),
+          
+          const SizedBox(height: 30),
+          _sectionTitle("Sistem & Keamanan"),
+          _settingTile(Icons.lock_outline_rounded, "Ganti Password", "Amankan akun Anda", color: Colors.blue),
+          _settingTile(Icons.cloud_sync_rounded, "Sinkronisasi Data", "Update database Supabase", color: Colors.teal),
+          _settingTile(Icons.help_center_outlined, "Dokumentasi", "Panduan pengembang", color: Colors.purple),
+          _settingTile(Icons.info_outline_rounded, "Tentang PKL Hub v1.0", "Informasi aplikasi & pengembang"),
+
+          const SizedBox(height: 40),
+          _buildLogoutButton(),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildProfileSection(User? user) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 70, 24, 20),
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))),
-      child: const Row(
-        children: [
-          Icon(Icons.settings_suggest_rounded, color: Colors.blueGrey, size: 28),
-          SizedBox(width: 15),
-          Text("Pengaturan", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(25), border: Border.all(color: Colors.black.withOpacity(0.05))),
       child: Row(
         children: [
-          const CircleAvatar(radius: 30, backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=admin')),
-          const SizedBox(width: 20),
-          const Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text("Admin Utama", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-              Text("admin@sekolah.id", style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ]),
+          Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(color: Colors.blue.shade400, shape: BoxShape.circle),
+            child: const CircleAvatar(radius: 28, backgroundColor: Colors.white, backgroundImage: NetworkImage('https://i.pravatar.cc/150?u=admin')),
           ),
+          const SizedBox(width: 20),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Admin Utama", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)), Text(user?.email ?? "admin@sekolah.id", style: const TextStyle(color: Colors.grey, fontSize: 12))])),
+          const Icon(Icons.verified_rounded, color: Colors.blue, size: 20),
+          const SizedBox(width: 12),
           IconButton(onPressed: () {}, icon: const Icon(Icons.edit_note_rounded, color: Colors.blue)),
         ],
       ),
@@ -80,7 +71,7 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
   Widget _sectionTitle(String title) {
-    return Padding(padding: const EdgeInsets.only(left: 10, bottom: 15), child: Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.blueGrey)));
+    return Padding(padding: const EdgeInsets.only(left: 10, bottom: 15), child: Text(title.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFF94A3B8), letterSpacing: 1.5)));
   }
 
   Widget _settingTile(IconData icon, String title, String subtitle, {Widget? trailing, Color color = Colors.blueGrey}) {
@@ -105,3 +96,4 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 }
+```

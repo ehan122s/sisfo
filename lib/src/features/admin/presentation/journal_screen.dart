@@ -1,3 +1,4 @@
+```dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -13,11 +14,23 @@ class _JournalScreenState extends State<JournalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8FAFC),
-      child: Column(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text("Monitoring Jurnal", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.edit_note_rounded, color: Colors.teal, size: 24),
+          ),
+        ],
+      ),
+      body: Column(
         children: [
-          _buildHeader(),
           _buildFilterTabs(),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
@@ -40,32 +53,11 @@ class _JournalScreenState extends State<JournalScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 70, 24, 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.edit_note_rounded, color: Colors.teal, size: 24),
-          ),
-          const SizedBox(width: 15),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Monitoring Jurnal", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-              Text("Review laporan harian siswa", style: TextStyle(fontSize: 12, color: Colors.grey)),
-            ],
-          ),
-        ],
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {},
+        backgroundColor: const Color(0xFF0F172A),
+        icon: const Icon(Icons.filter_list_rounded, color: Colors.white),
+        label: const Text("Filter", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -97,10 +89,7 @@ class _JournalScreenState extends State<JournalScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isSelected ? Colors.teal : Colors.black12),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: isSelected ? Colors.white : Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 12),
-      ),
+      child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.blueGrey, fontWeight: FontWeight.bold, fontSize: 12)),
     );
   }
 
@@ -145,18 +134,12 @@ class _JournalScreenState extends State<JournalScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.access_time_rounded, size: 14, color: Colors.grey),
-                  const SizedBox(width: 5),
-                  Text("2 Jam yang lalu", style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
-                ],
-              ),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(foregroundColor: Colors.teal, padding: EdgeInsets.zero, minimumSize: const Size(50, 30)),
-                child: const Text("Beri Nilai", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              ),
+              Row(children: [const Icon(Icons.access_time_rounded, size: 14, color: Colors.grey), const SizedBox(width: 5), Text("2 Jam yang lalu", style: TextStyle(color: Colors.grey.shade400, fontSize: 11))]),
+              Row(children: [
+                TextButton(onPressed: () {}, style: TextButton.styleFrom(foregroundColor: Colors.blueGrey, padding: EdgeInsets.zero, minimumSize: const Size(50, 30)), child: const Text("Preview", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                const SizedBox(width: 8),
+                TextButton(onPressed: () {}, style: TextButton.styleFrom(foregroundColor: Colors.teal, padding: EdgeInsets.zero, minimumSize: const Size(50, 30)), child: const Text("Beri Nilai", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+              ]),
             ],
           ),
         ],
@@ -168,17 +151,12 @@ class _JournalScreenState extends State<JournalScreen> {
     bool isPending = status == "Pending";
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: isPending ? Colors.orange.shade50 : Colors.green.shade50,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: TextStyle(color: isPending ? Colors.orange : Colors.green, fontSize: 9, fontWeight: FontWeight.w900),
-      ),
+      decoration: BoxDecoration(color: isPending ? Colors.orange.shade50 : Colors.green.shade50, borderRadius: BorderRadius.circular(10)),
+      child: Text(status.toUpperCase(), style: TextStyle(color: isPending ? Colors.orange : Colors.green, fontSize: 9, fontWeight: FontWeight.w900)),
     );
   }
 
-  Widget _buildEmptyState() => const Center(child: Text("Belum ada jurnal masuk."));
-  Widget _buildErrorState() => const Center(child: Text("Gagal memuat data jurnal."));
+  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.edit_note_rounded, size: 64, color: Colors.grey.shade300), const SizedBox(height: 16), Text("Belum ada jurnal masuk.", style: TextStyle(color: Colors.grey.shade500, fontSize: 16))]));
+  Widget _buildErrorState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.error_outline_rounded, size: 64, color: Colors.red.shade300), const SizedBox(height: 16), Text("Gagal memuat data jurnal.", style: TextStyle(color: Colors.red.shade400, fontSize: 16))]));
 }
+```

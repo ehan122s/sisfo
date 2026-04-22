@@ -27,12 +27,29 @@ final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
 final userProfileProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((
   ref,
 ) async {
-  final authState = ref.watch(authStateProvider);
+  // Tunggu auth state dari stream dulu
+  final authState = await ref
+      .watch(authRepositoryProvider)
+      .authStateChanges
+      .first;
 
-  // If not logged in, return null
-  if (authState.asData?.value.session == null) {
+  print('=== AUTH SESSION: ${authState.session}');
+
+  if (authState.session == null) {
+    print('=== SESSION NULL');
     return null;
   }
 
-  return ref.read(profileRepositoryProvider).getCurrentUserProfile();
+  final userId = authState.session!.user.id;
+  print('=== USER ID: $userId');
+
+  final response = await supabase
+      .from('profiles')
+      .select()
+      .eq('id', userId)
+      .maybeSingle();
+
+  print('=== PROFILE RESPONSE: $response');
+
+  return response;
 });
