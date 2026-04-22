@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen>
       context.go('/');
     }
   }
-
+  
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
