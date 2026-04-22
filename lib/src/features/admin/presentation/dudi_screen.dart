@@ -13,136 +13,34 @@ class _DudiScreenState extends State<DudiScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9),
+      appBar: AppBar(title: const Text("Mitra Industri"), backgroundColor: Colors.white, foregroundColor: Colors.black, elevation: 0),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: supabase.from('companies').stream(primaryKey: ['id']),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          final data = snapshot.data!;
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: data.length,
+            itemBuilder: (context, index) => _buildCard(data[index]),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCard(Map<String, dynamic> data) {
     return Container(
-      color: const Color(0xFFF8FAFC),
-      child: Column(
-        children: [
-          _buildHeader(),
-          _buildQuickStats(),
-          Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: supabase.from('dudi_partners').stream(primaryKey: ['id']).order('company_name'),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                final partners = snapshot.data!;
-                
-                return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                  itemCount: partners.length,
-                  itemBuilder: (context, index) => _buildPartnerCard(partners[index]),
-                );
-              },
-            ),
-          ),
-        ],
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+      child: ListTile(
+        leading: const Icon(Icons.business, color: Colors.blue),
+        title: Text(data['company_name'] ?? "Perusahaan"),
+        subtitle: Text(data['sector'] ?? "Sektor Industri"),
       ),
     );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 70, 24, 20),
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Mitra Industri", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
-              Text("Manajemen Hubungan DUDI", style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
-          ),
-          _actionButton(Icons.add_business_rounded),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickStats() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          _miniSummary("Total", "42", Colors.indigo),
-          const SizedBox(width: 12),
-          _miniSummary("Aktif", "38", Colors.green),
-          const SizedBox(width: 12),
-          _miniSummary("Penuh", "4", Colors.red),
-        ],
-      ),
-    );
-  }
-
-  Widget _miniSummary(String label, String value, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-        child: Column(
-          children: [
-            Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 18)),
-            Text(label, style: TextStyle(color: color.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPartnerCard(Map<String, dynamic> data) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white, 
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                height: 50, width: 50,
-                decoration: BoxDecoration(color: Colors.indigo.shade50, borderRadius: BorderRadius.circular(15)),
-                child: const Icon(Icons.business_rounded, color: Colors.indigo),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(data['company_name'] ?? 'PT. Maju Mundur', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text(data['sector'] ?? 'Teknologi Informasi', style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.verified_rounded, color: Colors.blue, size: 20),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _infoRow(Icons.people_outline, "${data['quota'] ?? 0} Kuota"),
-              _infoRow(Icons.location_on_outlined, data['city'] ?? "Jakarta"),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)),
-                child: const Text("Lihat MoU", style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
-              )
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _infoRow(IconData icon, String text) {
-    return Row(children: [Icon(icon, size: 14, color: Colors.grey), const SizedBox(width: 5), Text(text, style: const TextStyle(fontSize: 11, color: Colors.blueGrey, fontWeight: FontWeight.w600))]);
-  }
-
-  Widget _actionButton(IconData icon) {
-    return Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.indigo.shade800, borderRadius: BorderRadius.circular(15)), child: Icon(icon, color: Colors.white, size: 20));
   }
 }
