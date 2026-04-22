@@ -96,7 +96,8 @@ export function AttendancePage() {
         queryFn: async () => {
             const uniqueClasses = await getClassList()
             return ['Semua', ...uniqueClasses]
-        }
+        },
+        staleTime: 0,
     })
 
     // Fetch Students with Pagination (for Input mode - no status filter)
