@@ -8,7 +8,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// Import project kamu
 import '../data/attendance_repository.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../journal/data/journal_repository.dart';
