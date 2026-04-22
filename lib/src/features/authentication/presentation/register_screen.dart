@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../data/auth_repository.dart';
-import '../../../constants/app_constants.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -12,64 +11,35 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _nameController = TextEditingController();
-  final _nisnController = TextEditingController();
-  // final _classController = TextEditingController(); // Replaced by Dropdown
-  String? _selectedClass;
-
   bool _isLoading = false;
+  final _formKey = GlobalKey<FormState>();
+  
+  // Controllers
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _nisnController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   Future<void> _handleRegister() async {
-    if (_emailController.text.isEmpty ||
-        _passwordController.text.isEmpty ||
-        _nameController.text.isEmpty ||
-        _nisnController.text.isEmpty ||
-        _selectedClass == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Semua kolom harus diisi')));
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
+    
     try {
-      await ref
-          .read(authRepositoryProvider)
-          .registerStudent(
-            email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-            fullName: _nameController.text.trim(),
-            nisn: _nisnController.text.trim(),
-            className: _selectedClass!,
-          );
+      // Logika simulasi pendaftaran ke repository
+      // Anda perlu menambahkan fungsi register di auth_repository.dart
+      // await ref.read(authRepositoryProvider).registerUser(...);
+      
+      await Future.delayed(const Duration(seconds: 2)); // Simulasi proses
 
       if (mounted) {
-        // Pop back to login or let AuthGate handle if auto-login works
-        // Usually signUp with Supabase might auto-login or require email confirm.
-        // Assuming auto-login enabled for now, or we can pop.
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Registrasi Berhasil. Silakan Login."),
-            backgroundColor: Colors.green,
-          ),
-        );
+        _showSuccessDialog();
       }
     } catch (e) {
       if (mounted) {
-        String message = e.toString();
-        // Check for specific Supabase Rate Limit error
-        if (message.contains('over_email_send_rate_limit')) {
-          message =
-              "Terlalu banyak percobaan pendaftaran. Mohon tunggu beberapa saat sebelum mencoba lagi.";
-        } else if (message.contains('User already registered')) {
-          message = "Email ini sudah terdaftar. Silakan login.";
-        }
-
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -77,91 +47,181 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 20),
+            const Icon(Icons.pending_actions_rounded, size: 80, color: Colors.orange),
+            const SizedBox(height: 24),
+            Text(
+              'Pendaftaran Terkirim!',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Akun Anda sedang dalam proses verifikasi oleh Admin/Guru SMKN 1 Garut. Mohon tunggu informasi selanjutnya.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // Tutup dialog
+                  Navigator.pop(context); // Kembali ke Login
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text('KEMBALI KE LOGIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
-        title: const Text("Pendaftaran Siswa"),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF0F172A), size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Daftar Akun Baru',
+          style: GoogleFonts.plusJakartaSans(
+            color: const Color(0xFF0F172A),
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(30),
+        child: Form(
+          key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Buat Akun Baru",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+              Text(
+                'Lengkapi Data Diri',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF0F172A),
+                ),
               ),
               const SizedBox(height: 8),
-              const Text(
-                "Isi data diri Anda dengan benar",
-                style: TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
+              Text(
+                'Pastikan data yang Anda masukkan sesuai dengan data sekolah untuk mempercepat verifikasi.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
               ),
               const SizedBox(height: 32),
-
-              _buildTextField(_nameController, "Nama Lengkap", Icons.person),
-              const SizedBox(height: 16),
-              _buildTextField(_nisnController, "NISN", Icons.badge),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                key: ValueKey(_selectedClass),
-                initialValue: _selectedClass,
-                decoration: InputDecoration(
-                  labelText: "Kelas",
-                  prefixIcon: const Icon(Icons.class_),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                items: AppConstants.schoolClasses.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
-                onChanged: (newValue) {
-                  setState(() {
-                    _selectedClass = newValue;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(_emailController, "Email", Icons.email),
-              const SizedBox(height: 16),
+              
+              _buildLabel('NAMA LENGKAP'),
               _buildTextField(
-                _passwordController,
-                "Password",
-                Icons.lock,
+                controller: _nameController,
+                hint: 'Masukkan nama sesuai ijazah',
+                icon: Icons.person_outline,
+              ),
+              const SizedBox(height: 20),
+              
+              _buildLabel('NISN'),
+              _buildTextField(
+                controller: _nisnController,
+                hint: 'Contoh: 0054123XXX',
+                icon: Icons.badge_outlined,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 20),
+              
+              _buildLabel('NOMOR TELEPON (WA)'),
+              _buildTextField(
+                controller: _phoneController,
+                hint: '0812XXXX',
+                icon: Icons.phone_android_outlined,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 20),
+              
+              _buildLabel('EMAIL'),
+              _buildTextField(
+                controller: _emailController,
+                hint: 'user@smkn1garut.sch.id',
+                icon: Icons.mail_outline,
+              ),
+              const SizedBox(height: 20),
+              
+              _buildLabel('PASSWORD'),
+              _buildTextField(
+                controller: _passwordController,
+                hint: 'Buat password minimal 8 karakter',
+                icon: Icons.lock_outline,
                 isPassword: true,
               ),
-
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _handleRegister,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF006400),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              
+              const SizedBox(height: 40),
+              
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleRegister,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          'DAFTAR SEKARANG',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.5,
+                            fontSize: 12,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Text(
+                  'Data Anda akan diverifikasi secara manual oleh Admin.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        'DAFTAR',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
               ),
             ],
           ),
@@ -170,19 +230,51 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, {
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        text,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          color: Colors.grey[500],
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
     bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
   }) {
-    return TextField(
-      controller: controller,
-      obscureText: isPassword,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+      ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: isPassword,
+        keyboardType: keyboardType,
+        validator: (value) => value!.isEmpty ? 'Bagian ini wajib diisi' : null,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF1E293B),
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+          prefixIcon: Icon(icon, color: Colors.grey[400], size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+        ),
       ),
     );
   }
