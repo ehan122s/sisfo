@@ -6,52 +6,96 @@ class AnalyticScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text("Analitik & Laporan", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: const Text("Intelligence Reports", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: false,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
-          _buildAnalyticCard("Keaktifan Jurnal", "88%", Icons.auto_graph, Colors.teal),
+          _buildMetricsOverview(),
+          const SizedBox(height: 32),
+          const Text("Performance Distribution", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
           const SizedBox(height: 16),
-          _buildAnalyticCard("Kepatuhan Absensi", "92%", Icons.verified_user, Colors.blue),
-          const SizedBox(height: 16),
-          _buildAnalyticCard("Mitra Industri", "42 Perusahaan", Icons.business_rounded, Colors.purple),
-          const SizedBox(height: 24),
-          const Text("Statistik Mingguan", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          Container(
-            height: 200,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-            child: const Center(child: Text("Grafik Visual Placeholder")),
-          )
+          _buildChartPlaceholder(),
+          const SizedBox(height: 32),
+          _buildInsightCard(),
         ],
       ),
     );
   }
 
-  Widget _buildAnalyticCard(String title, String value, IconData icon, Color col) {
+  Widget _buildMetricsOverview() {
+    return Row(
+      children: [
+        _metricItem("Growth", "+12.5%", Icons.arrow_upward_rounded, Colors.green),
+        const SizedBox(width: 16),
+        _metricItem("Retention", "94.2%", Icons.face_rounded, Colors.blue),
+      ],
+    );
+  }
+
+  Widget _metricItem(String label, String val, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.grey.shade100),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 16),
+            Text(val, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -1)),
+            Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChartPlaceholder() {
     return Container(
-      padding: const EdgeInsets.all(24), // Perbaikan: Menghapus teks impor yang nyelip
+      height: 240,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bar_chart_rounded, color: Colors.blue.shade400, size: 40),
+            const SizedBox(height: 8),
+            const Text("Rendering Live Engine...", style: TextStyle(color: Colors.white70, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInsightCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(28),
       ),
       child: Row(
         children: [
-          CircleAvatar(backgroundColor: col.withOpacity(0.1), child: Icon(icon, color: col)),
-          const SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-              Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
+          Icon(Icons.lightbulb_outline_rounded, color: Colors.blue.shade700),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Text(
+              "System detected a 15% increase in student activity this week. Peak time is 09:00 AM.",
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E40AF)),
+            ),
           )
         ],
       ),
