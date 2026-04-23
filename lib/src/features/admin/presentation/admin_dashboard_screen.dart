@@ -25,6 +25,7 @@
       _HomeOverview(onNavigate: _changePage),
       const SiswaScreen(),
       const JournalScreen(),
+      const DudiManagementScreen(),
       const SettingScreen(),
     ];
 
@@ -66,7 +67,8 @@
               _navItem(0, Icons.grid_view_rounded, "Overview"),
               _navItem(1, Icons.group_rounded, "Students"),
               _navItem(2, Icons.auto_awesome_motion_rounded, "Journal"),
-              _navItem(3, Icons.face_retouching_natural_rounded, "Profile"),
+              _navItem(3, Icons.business_rounded, "DUDI"),
+              _navItem(4, Icons.face_retouching_natural_rounded, "Profile"),
             ],
           ),
         ),
@@ -177,7 +179,7 @@
       final tools = [
         {'label': 'Siswa', 'icon': Icons.people_alt_rounded, 'color': Colors.blue, 'idx': 1},
         {'label': 'Jurnal', 'icon': Icons.description_rounded, 'color': Colors.indigo, 'idx': 2},
-        {'label': 'DUDI', 'icon': Icons.business_rounded, 'color': Colors.amber.shade700, 'idx': 4}, // Assume special route
+        {'label': 'DUDI', 'icon': Icons.business_rounded, 'color': Colors.amber.shade700, 'idx': 3},
         {'label': 'Export', 'icon': Icons.ios_share_rounded, 'color': Colors.teal, 'idx': 0},
       ];
 
