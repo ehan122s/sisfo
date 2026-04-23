@@ -13,7 +13,9 @@ final journalRepositoryProvider = Provider((ref) {
 });
 
 // --- PROVIDER JOURNAL STATUS ---
-final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((ref) async {
+final todaysJournalStatusProvider = FutureProvider.autoDispose<bool>((
+  ref,
+) async {
   final user = ref.watch(authRepositoryProvider).currentUser;
   if (user == null) return false;
 
@@ -29,7 +31,7 @@ class JournalRepository {
   Future<String> uploadEvidenceFile(File file) async {
     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
     final path = "journals/$fileName.jpg";
-    
+
     await supabase.storage.from("journal").upload(path, file);
     return supabase.storage.from("journal").getPublicUrl(path);
   }
@@ -47,11 +49,15 @@ class JournalRepository {
     required String description,
     required String imageUrl,
   }) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) throw Exception('User tidak ditemukan');
+
     await supabase.from("daily_journals").insert({
-      "title": title,
-      "description": description,
-      "image_url": imageUrl,
-      "created_at": DateTime.now().toIso8601String(),
+      "student_id": user.id,
+      "activities": title,
+      "challenges": description,
+      "evidence_url": imageUrl,
+      "date": DateTime.now().toIso8601String().split('T')[0],
     });
   }
 
