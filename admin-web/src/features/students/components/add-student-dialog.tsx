@@ -187,7 +187,7 @@ export function AddStudentDialog({ open, onOpenChange }: AddStudentDialogProps) 
                             <TabsContent value="account" className="space-y-4">
                                 <div className="space-y-2">
                                     <Label>Nama Lengkap *</Label>
-                                    <Input name="nama" value={formData.nama} onChange={handleChange} placeholder="Contoh: AHMAD ZAKI" />
+                                    <Input name="nama" value={formData.nama} onChange={handleChange} placeholder="Contoh: Renzo Lioren" />
                                     {errors.nama && <p className="text-sm text-red-600">{errors.nama}</p>}
                                 </div>
                                 <div className="space-y-2">
