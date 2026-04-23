@@ -27,86 +27,70 @@ import {
 } from '@/components/ui/select'
 import { Loader2, CheckCircle } from 'lucide-react'
 import type { Company } from '@/types'
-import { AuditLogService } from '@/features/audit-logs/services/audit-log-service'
-import { validatePassword } from '@/lib/validators'
 
 interface AddStudentDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
+const emptyForm = {
+    nama: '',
+    nisn: '',
+    kelas: '',
+    password: '',
+    company_id: '',
+    phone_number: '',
+    parent_phone_number: '',
+    nipd: '',
+    gender: 'L',
+    birth_place: '',
+    birth_date: '',
+    nik: '',
+    religion: '',
+    address: '',
+    father_name: '',
+    mother_name: '',
+}
+
 export function AddStudentDialog({ open, onOpenChange }: AddStudentDialogProps) {
-    const [formData, setFormData] = useState({
-        nama: '',
-        nisn: '',
-        kelas: '',
-        password: '',
-        company_id: '',
-        phone_number: '',
-        parent_phone_number: '',
-        nipd: '',
-        gender: 'L',
-        birth_place: '',
-        birth_date: '',
-        nik: '',
-        religion: '',
-        address: '',
-        father_name: '',
-        mother_name: '',
-    })
+    const [formData, setFormData] = useState(emptyForm)
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [isSuccess, setIsSuccess] = useState(false)
     const queryClient = useQueryClient()
 
     const resetForm = () => {
-        setFormData({
-            nama: '',
-            nisn: '',
-            kelas: '',
-            password: '',
-            company_id: '',
-            phone_number: '',
-            parent_phone_number: '',
-            nipd: '',
-            gender: 'L',
-            birth_place: '',
-            birth_date: '',
-            nik: '',
-            religion: '',
-            address: '',
-            father_name: '',
-            mother_name: '',
-        })
+        setFormData(emptyForm)
         setErrors({})
         setIsSuccess(false)
     }
 
-    // Fetch companies for dropdown
+    // Fetch companies
     const { data: companies = [] } = useQuery({
         queryKey: ['companies'],
         queryFn: async () => {
-            const { data } = await supabase
-                .from('companies')
-                .select('*')
-                .order('name')
+            const { data } = await supabase.from('companies').select('*').order('name')
             return (data ?? []) as Company[]
         },
     })
 
-    // Add student mutation
+    // Fetch class list
+    const { data: classList = [] } = useQuery({
+        queryKey: ['class-list'],
+        queryFn: async () => {
+            const { data } = await supabase.rpc('get_distinct_classes')
+            return (data || []).map((d: any) => d.class_name).filter(Boolean) as string[]
+        },
+    })
+
     const addStudentMutation = useMutation({
         mutationFn: async () => {
-            // Validate
+            // Validasi
             const newErrors: Record<string, string> = {}
             if (!formData.nama.trim()) newErrors.nama = 'Nama wajib diisi'
             if (!formData.nisn.trim()) newErrors.nisn = 'NISN wajib diisi'
             if (!formData.kelas.trim()) newErrors.kelas = 'Kelas wajib diisi'
-
-            if (formData.password.trim()) {
-                const passwordValidation = validatePassword(formData.password.trim())
-                if (!passwordValidation.isValid) {
-                    newErrors.password = passwordValidation.message || 'Password tidak memenuhi syarat'
-                }
+            if (formData.password && formData.password.length < 6) {
+                newErrors.password = 'Password minimal 6 karakter'
             }
 
             if (Object.keys(newErrors).length > 0) {
@@ -114,75 +98,44 @@ export function AddStudentDialog({ open, onOpenChange }: AddStudentDialogProps) 
                 throw new Error('Validasi gagal')
             }
 
-            // Get session
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-            if (sessionError || !session) {
-                throw new Error('Anda belum login')
-            }
-
-            // Call Edge Function with single student
-            const response = await supabase.functions.invoke('import-students', {
-                body: {
-                    students: [
-                        {
-                            nama: formData.nama.trim(),
-                            nisn: formData.nisn.trim(),
-                            kelas: formData.kelas.trim(),
-                            password: formData.password.trim() || undefined,
-                            company_id: formData.company_id ? parseInt(formData.company_id, 10) : undefined,
-                            phone_number: formData.phone_number.trim() || undefined,
-                            parent_phone_number: formData.parent_phone_number.trim() || undefined,
-                            nipd: formData.nipd.trim() || undefined,
-                            gender: formData.gender as "L" | "P",
-                            birth_place: formData.birth_place.trim() || undefined,
-                            birth_date: formData.birth_date || undefined,
-                            nik: formData.nik.trim() || undefined,
-                            religion: formData.religion.trim() || undefined,
-                            address: formData.address.trim() || undefined,
-                            father_name: formData.father_name.trim() || undefined,
-                            mother_name: formData.mother_name.trim() || undefined,
-                        },
-                    ],
-                },
-                headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                },
+            const { data, error } = await supabase.rpc('create_student', {
+                p_nama: formData.nama.trim(),
+                p_nisn: formData.nisn.trim(),
+                p_kelas: formData.kelas.trim(),
+                p_password: formData.password.trim() || null,
+                p_company_id: formData.company_id ? parseInt(formData.company_id) : null,
+                p_phone: formData.phone_number.trim() || null,
+                p_parent_phone: formData.parent_phone_number.trim() || null,
+                p_nipd: formData.nipd.trim() || null,
+                p_gender: formData.gender || null,
+                p_birth_place: formData.birth_place.trim() || null,
+                p_birth_date: formData.birth_date || null,
+                p_nik: formData.nik.trim() || null,
+                p_religion: formData.religion.trim() || null,
+                p_address: formData.address.trim() || null,
+                p_father_name: formData.father_name.trim() || null,
+                p_mother_name: formData.mother_name.trim() || null,
             })
 
-            if (response.error) {
-                throw new Error(response.error.message || 'Gagal menambahkan siswa')
-            }
+            if (error) throw new Error(error.message)
+            if (data?.success === false) throw new Error(data?.error || 'Gagal menambahkan siswa')
 
-            // Check if student creation was successful
-            const result = response.data?.results?.[0]
-            if (!result?.success) {
-                throw new Error(result?.error || 'Gagal menambahkan siswa')
-            }
-
-            // Log action
-            await AuditLogService.logAction(
-                'CREATE_STUDENT',
-                'profiles',
-                result.id || 'unknown',
-                { nisn: formData.nisn, name: formData.nama }
-            )
-
-            return response.data
+            return data
         },
 
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['students'] })
             setIsSuccess(true)
-
             setTimeout(() => {
                 resetForm()
                 onOpenChange(false)
-                toast.success('Siswa berhasil ditambahkan')
+                toast.success(`Siswa ${formData.nama} berhasil ditambahkan!`)
             }, 1500)
         },
         onError: (error) => {
-            console.error('Add student error:', error)
-            toast.error(error instanceof Error ? error.message : 'Gagal menambahkan siswa')
+            if (error.message !== 'Validasi gagal') {
+                toast.error(error instanceof Error ? error.message : 'Gagal menambahkan siswa')
+            }
         },
     })
 
@@ -192,51 +145,37 @@ export function AddStudentDialog({ open, onOpenChange }: AddStudentDialogProps) 
         addStudentMutation.mutate()
     }
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        let processedValue = value;
-
-        if (name === 'phone_number' || name === 'parent_phone_number' || name === 'nisn') {
-            processedValue = value.replace(/\D/g, '').slice(0, 15); // Apply digit-only and max length
-            if (name === 'nisn') {
-                processedValue = value.replace(/\D/g, '').slice(0, 10); // NISN specific max length
-            }
-        }
-
-        setFormData(prev => ({ ...prev, [name]: processedValue }));
-
-        // Clear error for this field
-        if (errors[name]) {
-            setErrors(prev => {
-                const newErrors = { ...prev }
-                delete newErrors[name]
-                return newErrors
-            })
-        }
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target
+        let val = value
+        if (name === 'nisn') val = value.replace(/\D/g, '').slice(0, 10)
+        if (name === 'phone_number' || name === 'parent_phone_number') val = value.replace(/\D/g, '').slice(0, 15)
+        setFormData(prev => ({ ...prev, [name]: val }))
+        if (errors[name]) setErrors(prev => { const n = { ...prev }; delete n[name]; return n })
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>Tambah Siswa</DialogTitle>
                     <DialogDescription>
-                        Tambahkan siswa baru secara manual. Email akan dibuat otomatis: NISN@siswa.com. Password default: NISN + Sip.
+                        Tambahkan siswa baru. Status awal: Pending (belum bisa login sampai diaktifkan).
                     </DialogDescription>
                 </DialogHeader>
 
                 {isSuccess ? (
-                    <div className="flex flex-col items-center justify-center py-8 animate-in fade-in zoom-in duration-300">
+                    <div className="flex flex-col items-center justify-center py-8">
                         <div className="rounded-full bg-green-100 p-3 mb-4">
                             <CheckCircle className="h-12 w-12 text-green-600" />
                         </div>
                         <h3 className="text-xl font-semibold text-green-700">Berhasil!</h3>
                         <p className="text-muted-foreground text-center mt-2">
-                            Siswa {formData.nama} berhasil ditambahkan.
+                            Siswa <strong>{formData.nama}</strong> berhasil ditambahkan.
                         </p>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit}>
                         <Tabs defaultValue="account" className="w-full">
                             <TabsList className="grid w-full grid-cols-3 mb-4">
                                 <TabsTrigger value="account">Akun & Sekolah</TabsTrigger>
@@ -244,115 +183,69 @@ export function AddStudentDialog({ open, onOpenChange }: AddStudentDialogProps) 
                                 <TabsTrigger value="parents">Orang Tua</TabsTrigger>
                             </TabsList>
 
+                            {/* TAB 1 */}
                             <TabsContent value="account" className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="nama">Nama Lengkap *</Label>
-                                    <Input
-                                        id="nama"
-                                        name="nama"
-                                        value={formData.nama}
-                                        onChange={handleChange}
-                                        placeholder="Contoh: AHMAD ZAKI"
-                                    />
+                                    <Label>Nama Lengkap *</Label>
+                                    <Input name="nama" value={formData.nama} onChange={handleChange} placeholder="Contoh: AHMAD ZAKI" />
                                     {errors.nama && <p className="text-sm text-red-600">{errors.nama}</p>}
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="nisn">NISN *</Label>
-                                    <Input
-                                        id="nisn"
-                                        name="nisn"
-                                        value={formData.nisn}
-                                        onChange={handleChange}
-                                        placeholder="Contoh: 0012345678"
-                                        maxLength={10}
-                                    />
+                                    <Label>NISN *</Label>
+                                    <Input name="nisn" value={formData.nisn} onChange={handleChange} placeholder="10 digit" maxLength={10} />
                                     {errors.nisn && <p className="text-sm text-red-600">{errors.nisn}</p>}
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="nipd">NIPD</Label>
-                                    <Input
-                                        id="nipd"
-                                        name="nipd"
-                                        value={formData.nipd}
-                                        onChange={handleChange}
-                                        placeholder="NIPD"
-                                    />
+                                    <Label>NIPD</Label>
+                                    <Input name="nipd" value={formData.nipd} onChange={handleChange} placeholder="NIPD" />
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="kelas">Kelas *</Label>
-                                    <Input
-                                        id="kelas"
-                                        name="kelas"
-                                        value={formData.kelas}
-                                        onChange={handleChange}
-                                        placeholder="Contoh: XI TEI 1"
-                                    />
+                                    <Label>Kelas *</Label>
+                                    <Select value={formData.kelas} onValueChange={(v) => setFormData(p => ({ ...p, kelas: v }))}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Pilih kelas..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {classList.map((c) => (
+                                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                     {errors.kelas && <p className="text-sm text-red-600">{errors.kelas}</p>}
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="company">DUDI (opsional)</Label>
-                                    <Select
-                                        value={formData.company_id || 'none'}
-                                        onValueChange={(value) => setFormData(prev => ({ ...prev, company_id: value === 'none' ? '' : value }))}
-                                    >
+                                    <Label>DUDI (opsional)</Label>
+                                    <Select value={formData.company_id || 'none'} onValueChange={(v) => setFormData(p => ({ ...p, company_id: v === 'none' ? '' : v }))}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Pilih DUDI..." />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Tanpa DUDI</SelectItem>
-                                            {companies.map((company) => (
-                                                <SelectItem key={company.id} value={company.id.toString()}>
-                                                    {company.name}
-                                                </SelectItem>
+                                            {companies.map((c) => (
+                                                <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="password">Password (opsional)</Label>
-                                    <Input
-                                        id="password"
-                                        name="password"
-                                        type="text"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        placeholder="Default: NISN"
-                                    />
+                                    <Label>Password (opsional)</Label>
+                                    <Input name="password" value={formData.password} onChange={handleChange} placeholder="Kosongkan = NISN + Sip" />
                                     {errors.password && <p className="text-sm text-red-600">{errors.password}</p>}
-                                    <p className="text-xs text-muted-foreground">
-                                        Default: NISN + Sip (Contoh: 0012345678Sip). Min 8 karakter.
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">Default: NISNSip (contoh: 0012345678Sip)</p>
                                 </div>
                             </TabsContent>
 
+                            {/* TAB 2 */}
                             <TabsContent value="personal" className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="nik">NIK</Label>
-                                    <Input
-                                        id="nik"
-                                        name="nik"
-                                        value={formData.nik}
-                                        onChange={handleChange}
-                                        placeholder="NIK (16 digit)"
-                                        maxLength={16}
-                                    />
+                                    <Label>NIK</Label>
+                                    <Input name="nik" value={formData.nik} onChange={handleChange} placeholder="16 digit" maxLength={16} />
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="gender">Jenis Kelamin</Label>
-                                        <Select
-                                            value={formData.gender}
-                                            onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
+                                        <Label>Jenis Kelamin</Label>
+                                        <Select value={formData.gender} onValueChange={(v) => setFormData(p => ({ ...p, gender: v }))}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="L">Laki-laki</SelectItem>
                                                 <SelectItem value="P">Perempuan</SelectItem>
@@ -360,124 +253,59 @@ export function AddStudentDialog({ open, onOpenChange }: AddStudentDialogProps) 
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="religion">Agama</Label>
-                                        <Input
-                                            id="religion"
-                                            name="religion"
-                                            value={formData.religion}
-                                            onChange={handleChange}
-                                            placeholder="Agama"
-                                        />
+                                        <Label>Agama</Label>
+                                        <Input name="religion" value={formData.religion} onChange={handleChange} placeholder="Agama" />
                                     </div>
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="birth_place">Tempat Lahir</Label>
-                                        <Input
-                                            id="birth_place"
-                                            name="birth_place"
-                                            value={formData.birth_place}
-                                            onChange={handleChange}
-                                            placeholder="Kota Lahir"
-                                        />
+                                        <Label>Tempat Lahir</Label>
+                                        <Input name="birth_place" value={formData.birth_place} onChange={handleChange} placeholder="Kota" />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="birth_date">Tanggal Lahir</Label>
-                                        <Input
-                                            id="birth_date"
-                                            name="birth_date"
-                                            type="date"
-                                            value={formData.birth_date}
-                                            onChange={handleChange}
-                                        />
+                                        <Label>Tanggal Lahir</Label>
+                                        <Input name="birth_date" type="date" value={formData.birth_date} onChange={handleChange} />
                                     </div>
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="address">Alamat</Label>
-                                    <Input
-                                        id="address"
-                                        name="address"
-                                        value={formData.address}
-                                        onChange={handleChange}
-                                        placeholder="Alamat Lengkap"
-                                    />
+                                    <Label>Alamat</Label>
+                                    <Input name="address" value={formData.address} onChange={handleChange} placeholder="Alamat lengkap" />
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="phone_number">No. HP Siswa</Label>
-                                    <Input
-                                        id="phone_number"
-                                        name="phone_number"
-                                        value={formData.phone_number}
-                                        onChange={handleChange}
-                                        placeholder="Contoh: 08123456789"
-                                        maxLength={15}
-                                    />
+                                    <Label>No. HP Siswa</Label>
+                                    <Input name="phone_number" value={formData.phone_number} onChange={handleChange} placeholder="08xxxxxxxxx" maxLength={15} />
                                 </div>
                             </TabsContent>
 
+                            {/* TAB 3 */}
                             <TabsContent value="parents" className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="father_name">Nama Ayah</Label>
-                                    <Input
-                                        id="father_name"
-                                        name="father_name"
-                                        value={formData.father_name}
-                                        onChange={handleChange}
-                                        placeholder="Nama Ayah"
-                                    />
+                                    <Label>Nama Ayah</Label>
+                                    <Input name="father_name" value={formData.father_name} onChange={handleChange} placeholder="Nama Ayah" />
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="mother_name">Nama Ibu</Label>
-                                    <Input
-                                        id="mother_name"
-                                        name="mother_name"
-                                        value={formData.mother_name}
-                                        onChange={handleChange}
-                                        placeholder="Nama Ibu"
-                                    />
+                                    <Label>Nama Ibu</Label>
+                                    <Input name="mother_name" value={formData.mother_name} onChange={handleChange} placeholder="Nama Ibu" />
                                 </div>
-
                                 <div className="space-y-2">
-                                    <Label htmlFor="parent_phone_number">No. HP Orang Tua</Label>
-                                    <Input
-                                        id="parent_phone_number"
-                                        name="parent_phone_number"
-                                        value={formData.parent_phone_number}
-                                        onChange={handleChange}
-                                        placeholder="Contoh: 08123456789"
-                                        maxLength={15}
-                                    />
+                                    <Label>No. HP Orang Tua</Label>
+                                    <Input name="parent_phone_number" value={formData.parent_phone_number} onChange={handleChange} placeholder="08xxxxxxxxx" maxLength={15} />
                                 </div>
                             </TabsContent>
                         </Tabs>
 
-                        {addStudentMutation.isError && (
-                            <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                                <p className="text-sm text-red-600">
-                                    {addStudentMutation.error instanceof Error
-                                        ? addStudentMutation.error.message
-                                        : 'Terjadi kesalahan saat menambahkan siswa'}
-                                </p>
+                        {addStudentMutation.isError && addStudentMutation.error?.message !== 'Validasi gagal' && (
+                            <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-3">
+                                <p className="text-sm text-red-600">{addStudentMutation.error?.message}</p>
                             </div>
                         )}
 
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
-                                disabled={addStudentMutation.isPending}
-                            >
+                        <div className="flex justify-end gap-2 mt-6">
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={addStudentMutation.isPending}>
                                 Batal
                             </Button>
                             <Button type="submit" disabled={addStudentMutation.isPending}>
-                                {addStudentMutation.isPending && (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                )}
+                                {addStudentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Tambah Siswa
                             </Button>
                         </div>
