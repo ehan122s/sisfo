@@ -19,131 +19,69 @@ interface StudentData {
     mother_name?: string;
 }
 
-interface ImportResult {
-    success: boolean;
-    nisn: string;
-    nama: string;
-    error?: string;
-}
-
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req: Request) => {
-    // Handle CORS preflight
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
     }
 
     try {
-        // Get auth header
-        const authHeader = req.headers.get("Authorization");
-        if (!authHeader) {
-            return new Response(
-                JSON.stringify({ error: "Missing Authorization header" }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-        }
-
-        // Create admin client with service role
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-            auth: { autoRefreshToken: false, persistSession: false },
+            auth: { 
+                autoRefreshToken: false, 
+                persistSession: false,
+                detectSessionInUrl: false,
+            },
+            db: {
+                schema: 'public',
+            },
+            global: {
+                headers: {
+                    Authorization: `Bearer ${supabaseServiceKey}`,
+                },
+            },
         });
 
-        // Extract JWT and get user info using admin client
-        const jwt = authHeader.replace("Bearer ", "");
-        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(jwt);
-
-        if (userError || !user) {
-            console.error("Auth Error:", userError); // Debug log
-            console.log("Has Service Key:", !!supabaseServiceKey); // Debug log
-
-            return new Response(
-                JSON.stringify({ error: "Invalid or expired token", details: userError }),
-                { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-        }
-
-        // Check admin role using service role client
-        const { data: profile, error: profileError } = await supabaseAdmin
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single();
-
-        if (profileError || profile?.role !== "admin") {
-            return new Response(
-                JSON.stringify({ error: "Admin access required" }),
-                { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-        }
-
-        // --- Rate Limiting Check ---
-        // Importing dynamically or relatively.
-        // Assuming _shared is at ../_shared/rate-limit.ts relative to import-students/index.ts
-        const { checkRateLimit } = await import("../_shared/rate-limit.ts");
-
-        // Limit: 20 requests per 1 minute per user
-        const limitCheck = await checkRateLimit(supabaseAdmin, `import_students:${user.id}`, 20, 60);
-
-        if (limitCheck.blocked) {
-            return new Response(
-                JSON.stringify({
-                    error: "Rate limit exceeded. Please try again later.",
-                    resetTime: limitCheck.resetTime
-                }),
-                { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-        }
-        // ---------------------------
-
-        // Parse request body
         const body = await req.json();
+        const { students } = body;
 
-        // --- Validation ---
-        const { importRequestSchema } = await import("../_shared/schemas.ts");
-        const validation = importRequestSchema.safeParse(body);
-
-        if (!validation.success) {
+        if (!students || !Array.isArray(students) || students.length === 0) {
             return new Response(
-                JSON.stringify({
-                    error: "Validation failed",
-                    issues: validation.error.format()
-                }),
+                JSON.stringify({ error: "Data siswa tidak boleh kosong" }),
                 { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
         }
 
-        const { students } = validation.data;
-        // ------------------
+        const results = [];
 
-        const results: ImportResult[] = [];
-        const defaultPassword = "siswapkl2026";
-
-        for (const student of students) {
+        for (const student of students as StudentData[]) {
             const { nama, nisn, kelas, password, company_id } = student;
+
+            if (!nama || !nisn || !kelas) {
+                results.push({ success: false, nisn: nisn || '', nama: nama || '', error: "Nama, NISN, dan Kelas wajib diisi" });
+                continue;
+            }
+
             const email = `${nisn}@siswa.com`;
-            // Password must meet complexity: min 8, Upper, Lower, Number in total with NISN
-            const strongDefaultPassword = `${nisn}Sip`;
+            const defaultPassword = `${nisn}Sip`;
 
             try {
-                // 1. Create auth user with Admin API
+                // 1. Buat auth user
                 const { data: authData, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
                     email,
-                    password: password || strongDefaultPassword,  // Use strong default
+                    password: password || defaultPassword,
                     email_confirm: true,
                     user_metadata: {
                         full_name: nama,
                         nisn,
                         class_name: kelas,
-                        phone_number: student.phone_number,
-                        nipd: student.nipd,
-                        gender: student.gender,
                     },
                 });
 
@@ -154,7 +92,7 @@ Deno.serve(async (req: Request) => {
 
                 const userId = authData.user.id;
 
-                // 2. Upsert profile (trigger might create it, so we update)
+                // 2. Upsert profile
                 const { error: profileError } = await supabaseAdmin
                     .from("profiles")
                     .upsert({
@@ -182,28 +120,16 @@ Deno.serve(async (req: Request) => {
                     continue;
                 }
 
-                // 3. Insert placement if company_id provided
+                // 3. Insert placement jika ada company_id
                 if (company_id) {
-                    const { error: placementError } = await supabaseAdmin
-                        .from("placements")
-                        .insert({
-                            student_id: userId,
-                            company_id,
-                        });
-
-                    if (placementError) {
-                        // Placement error is non-fatal, user is still created
-                        results.push({
-                            success: true,
-                            nisn,
-                            nama,
-                            error: `Warning: Placement failed - ${placementError.message}`
-                        });
-                        continue;
-                    }
+                    await supabaseAdmin.from("placements").insert({
+                        student_id: userId,
+                        company_id,
+                    });
                 }
 
-                results.push({ success: true, nisn, nama });
+                results.push({ success: true, nisn, nama, id: userId });
+
             } catch (err) {
                 results.push({
                     success: false,
@@ -214,8 +140,8 @@ Deno.serve(async (req: Request) => {
             }
         }
 
-        const successCount = results.filter(r => r.success).length;
-        const failureCount = results.filter(r => !r.success).length;
+        const successCount = results.filter((r: any) => r.success).length;
+        const failureCount = results.filter((r: any) => !r.success).length;
 
         return new Response(
             JSON.stringify({
@@ -226,11 +152,8 @@ Deno.serve(async (req: Request) => {
             }),
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
-    } catch (error) {
-        // Importing dynamically to avoid top-level await issues if any
-        const { logger } = await import("../_shared/logger.ts");
-        logger.error("Edge Function error:", error);
 
+    } catch (error) {
         return new Response(
             JSON.stringify({ error: error instanceof Error ? error.message : "Internal server error" }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

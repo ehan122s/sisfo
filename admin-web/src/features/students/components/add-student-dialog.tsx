@@ -98,29 +98,40 @@ export function AddStudentDialog({ open, onOpenChange }: AddStudentDialogProps) 
                 throw new Error('Validasi gagal')
             }
 
-            const { data, error } = await supabase.rpc('create_student', {
-                p_nama: formData.nama.trim(),
-                p_nisn: formData.nisn.trim(),
-                p_kelas: formData.kelas.trim(),
-                p_password: formData.password.trim() || null,
-                p_company_id: formData.company_id ? parseInt(formData.company_id) : null,
-                p_phone: formData.phone_number.trim() || null,
-                p_parent_phone: formData.parent_phone_number.trim() || null,
-                p_nipd: formData.nipd.trim() || null,
-                p_gender: formData.gender || null,
-                p_birth_place: formData.birth_place.trim() || null,
-                p_birth_date: formData.birth_date || null,
-                p_nik: formData.nik.trim() || null,
-                p_religion: formData.religion.trim() || null,
-                p_address: formData.address.trim() || null,
-                p_father_name: formData.father_name.trim() || null,
-                p_mother_name: formData.mother_name.trim() || null,
+            // Siapkan payload — field kosong tidak dikirim
+            const payload: Record<string, unknown> = {
+                nama: formData.nama.trim(),
+                nisn: formData.nisn.trim(),
+                kelas: formData.kelas.trim(),
+            }
+            if (formData.password) payload.password = formData.password.trim()
+            if (formData.company_id) payload.company_id = parseInt(formData.company_id)
+            if (formData.phone_number) payload.phone_number = formData.phone_number.trim()
+            if (formData.parent_phone_number) payload.parent_phone_number = formData.parent_phone_number.trim()
+            if (formData.nipd) payload.nipd = formData.nipd.trim()
+            if (formData.gender) payload.gender = formData.gender
+            if (formData.birth_place) payload.birth_place = formData.birth_place.trim()
+            if (formData.birth_date) payload.birth_date = formData.birth_date
+            if (formData.nik) payload.nik = formData.nik.trim()
+            if (formData.religion) payload.religion = formData.religion.trim()
+            if (formData.address) payload.address = formData.address.trim()
+            if (formData.father_name) payload.father_name = formData.father_name.trim()
+            if (formData.mother_name) payload.mother_name = formData.mother_name.trim()
+
+            // Pakai supabase.functions.invoke — token otomatis dikirim
+            const { data: result, error } = await supabase.functions.invoke('import-students', {
+                body: { students: [payload] },
             })
 
-            if (error) throw new Error(error.message)
-            if (data?.success === false) throw new Error(data?.error || 'Gagal menambahkan siswa')
+            if (error) throw new Error(error.message || 'Gagal menambahkan siswa')
 
-            return data
+            // Edge Function mengembalikan array results — cek hasil siswa pertama
+            const studentResult = result?.results?.[0]
+            if (studentResult && !studentResult.success) {
+                throw new Error(studentResult.error || 'Gagal menambahkan siswa')
+            }
+
+            return result
         },
 
         onSuccess: () => {
