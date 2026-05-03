@@ -44,14 +44,14 @@ dependencies:
   go_router: ^17.0.1
   lucide_icons: ^0.257.0
   connectivity_plus: ^7.0.0
-  shared_preferences: ^2.5.4
+  shared_preferences: ^2.5.5
   shimmer: ^3.0.0
   device_info_plus: ^12.3.0
   cached_network_image: ^3.4.1
   flutter_image_compress: ^2.4.0
   path: ^1.9.1
   path_provider: ^2.1.5
-  local_auth: ^3.0.0
+  local_auth: ^3.0.1
   flutter_secure_storage: ^10.0.0
   excel: ^4.0.6
   open_file: ^3.5.11
