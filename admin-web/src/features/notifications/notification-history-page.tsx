@@ -42,30 +42,43 @@ const statusColors = {
 }
 
 export function NotificationHistoryPage() {
-    const [filters, setFilters] = useState({
+    // State internal untuk menampung input sebelum di-"Terapkan"
+    const [tempFilters, setTempFilters] = useState({
         dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         dateTo: new Date().toISOString().split('T')[0],
         studentId: '',
         notificationType: '',
         status: '',
     })
+
+    // State utama yang akan memicu hook useNotificationLogs
+    const [appliedFilters, setAppliedFilters] = useState(tempFilters)
     const [selectedLog, setSelectedLog] = useState<NotificationLog | null>(null)
 
-    const { data: logs, isLoading } = useNotificationLogs(filters)
+    // Menggunakan appliedFilters agar data hanya ditarik saat tombol diklik
+    const { data: logs, isLoading, refetch } = useNotificationLogs(appliedFilters)
     const { data: stats } = useNotificationStats()
 
     const handleFilterChange = (key: string, value: string) => {
-        setFilters(prev => ({ ...prev, [key]: value }))
+        setTempFilters(prev => ({ ...prev, [key]: value }))
+    }
+
+    const applyFilters = () => {
+        setAppliedFilters(tempFilters)
+        // Jika hook mendukung refetch manual
+        if (refetch) refetch()
     }
 
     const clearFilters = () => {
-        setFilters({
+        const defaultFilters = {
             dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             dateTo: new Date().toISOString().split('T')[0],
             studentId: '',
             notificationType: '',
             status: '',
-        })
+        }
+        setTempFilters(defaultFilters)
+        setAppliedFilters(defaultFilters)
     }
 
     return (
@@ -115,9 +128,8 @@ export function NotificationHistoryPage() {
                 </div>
             )}
 
-            {/* Filter Section dengan Glow Sisi */}
+            {/* Filter Section */}
             <Card className="relative group border border-slate-200 dark:border-white/5 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
-                {/* Neon Border Effect */}
                 <div className="absolute inset-0 border-2 border-transparent group-hover:border-blue-500/30 transition-all duration-500 rounded-xl pointer-events-none"></div>
                 <div className="absolute -left-1 top-0 h-full w-1.5 bg-blue-600 opacity-0 group-hover:opacity-100 transition-all duration-500 shadow-[0_0_15px_rgba(37,99,235,0.8)]"></div>
 
@@ -144,14 +156,14 @@ export function NotificationHistoryPage() {
                                     id={f.id}
                                     type={f.type}
                                     className="bg-white dark:bg-slate-800/50 border-slate-200 dark:border-white/10 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                                    value={filters[f.id as keyof typeof filters]}
+                                    value={tempFilters[f.id as keyof typeof tempFilters]}
                                     onChange={(e) => handleFilterChange(f.id, e.target.value)}
                                 />
                             </div>
                         ))}
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Kategori</Label>
-                            <Select value={filters.notificationType || 'all'} onValueChange={(v) => handleFilterChange('notificationType', v === 'all' ? '' : v)}>
+                            <Select value={tempFilters.notificationType || 'all'} onValueChange={(v) => handleFilterChange('notificationType', v === 'all' ? '' : v)}>
                                 <SelectTrigger className="bg-white dark:bg-slate-800/50 border-slate-200 dark:border-white/10">
                                     <SelectValue placeholder="Pilih Tipe" />
                                 </SelectTrigger>
@@ -166,7 +178,7 @@ export function NotificationHistoryPage() {
                         </div>
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Status</Label>
-                            <Select value={filters.status || 'all'} onValueChange={(v) => handleFilterChange('status', v === 'all' ? '' : v)}>
+                            <Select value={tempFilters.status || 'all'} onValueChange={(v) => handleFilterChange('status', v === 'all' ? '' : v)}>
                                 <SelectTrigger className="bg-white dark:bg-slate-800/50 border-slate-200 dark:border-white/10">
                                     <SelectValue placeholder="Pilih Status" />
                                 </SelectTrigger>
@@ -179,7 +191,10 @@ export function NotificationHistoryPage() {
                             </Select>
                         </div>
                         <div className="flex items-end">
-                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-lg shadow-blue-500/40 hover:shadow-blue-500/60 transition-all uppercase tracking-widest active:scale-95">
+                            <Button 
+                                onClick={applyFilters}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-lg shadow-blue-500/40 hover:shadow-blue-500/60 transition-all uppercase tracking-widest active:scale-95"
+                            >
                                 <IconFilter className="h-4 w-4 mr-2" /> TERAPKAN
                             </Button>
                         </div>
@@ -187,12 +202,10 @@ export function NotificationHistoryPage() {
                 </CardContent>
             </Card>
 
-            {/* Log Activity Section dengan Glow Sisi */}
+            {/* Log Activity Section */}
             <Card className="relative group border border-slate-200 dark:border-white/5 shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
-                {/* Efek Sisi Menyala (Glow Sidebar) */}
                 <div className="absolute inset-y-0 -left-1 w-1.5 bg-blue-500 opacity-0 group-hover:opacity-100 transition-all duration-700 blur-[2px] shadow-[0_0_20px_rgba(37,99,235,1)]"></div>
-                <div className="absolute inset-0 border-r-2 border-transparent group-hover:border-blue-500/10 transition-all duration-700 pointer-events-none"></div>
-
+                
                 <CardHeader className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-100 dark:border-white/10">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
@@ -228,7 +241,7 @@ export function NotificationHistoryPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {logs.map((log) => {
-                                        const Icon = notificationTypeIcons[log.notification_type]
+                                        const Icon = notificationTypeIcons[log.notification_type as keyof typeof notificationTypeIcons] || IconBellRinging
                                         return (
                                             <TableRow key={log.id} className="hover:bg-blue-500/[0.02] dark:hover:bg-blue-500/[0.05] border-b border-slate-100 dark:border-white/5 transition-all group/row">
                                                 <TableCell className="font-mono text-[11px] font-bold text-slate-400 p-4 uppercase">
@@ -241,13 +254,13 @@ export function NotificationHistoryPage() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="p-4">
-                                                    <Badge variant="outline" className={`${notificationTypeColors[log.notification_type]} font-black text-[10px] border-2 shadow-sm`}>
+                                                    <Badge variant="outline" className={`${notificationTypeColors[log.notification_type as keyof typeof notificationTypeColors]} font-black text-[10px] border-2 shadow-sm`}>
                                                         <Icon className="h-3 w-3 mr-1.5" />
-                                                        {notificationTypeLabels[log.notification_type]}
+                                                        {notificationTypeLabels[log.notification_type as keyof typeof notificationTypeLabels]}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="p-4">
-                                                    <Badge className={`${statusColors[log.status]} font-black text-[10px] px-3 py-1 ring-2 ring-white dark:ring-slate-900`}>
+                                                    <Badge className={`${statusColors[log.status as keyof typeof statusColors]} font-black text-[10px] px-3 py-1 ring-2 ring-white dark:ring-slate-900`}>
                                                         {log.status === 'sent' ? 'SUCCESS' : log.status === 'failed' ? 'ERROR' : 'WAITING'}
                                                     </Badge>
                                                 </TableCell>
