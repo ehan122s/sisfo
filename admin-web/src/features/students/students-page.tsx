@@ -254,7 +254,7 @@ export function StudentsPage() {
                 ) : (
                     <DataTable
                         columns={columns}
-                        data={filteredStudents} // Menggunakan data yang sudah difilter secara manual
+                        data={filteredStudents} 
                         toolbar={DataTableToolbar}
                     >
                         {(table) => {
@@ -329,5 +329,5 @@ export function StudentsPage() {
             </Dialog>
         </div>
     )
-    
+
 }
