@@ -1,99 +1,65 @@
+// lib/features/authentication/data/auth_repository.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../services/supabase_config.dart';
-import '../../../core/exceptions/app_exceptions.dart';
+import '../../../core/supabase_client.dart';
 
 class AuthRepository {
-  final GoTrueClient _auth = supabase.auth;
+  final SupabaseClient _client;
 
-  Stream<AuthState> get authStateChanges => _auth.onAuthStateChange;
+  AuthRepository(this._client);
 
-  User? get currentUser => _auth.currentUser;
+  /// User yang sedang login (null jika belum login)
+  User? get currentUser => _client.auth.currentUser;
 
-  Future<void> loginWithEmail(String email, String password) async {
-    try {
-      await _auth.signInWithPassword(email: email, password: password);
-    } on AuthException catch (e) {
-      // Catch Supabase specific AuthException (if the library exposes one with same name, handle conflict)
-      // Actually Supabase throws `AuthException` from `supabase_flutter`.
-      // We should check import.
-      throw AppAuthException(e.message, e.statusCode);
-    } catch (e) {
-      throw AppAuthException('Login Gagal: ${e.toString()}');
-    }
-  }
+  /// Stream perubahan state autentikasi
+  Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
-  Future<void> registerStudent({
+  /// Login dengan email & password
+  Future<AuthResponse> signIn({
     required String email,
     required String password,
-    required String fullName,
-    required String nisn,
-    required String className,
   }) async {
-    try {
-      // 1. Sign Up Auth User
-      final AuthResponse res = await _auth.signUp(
-        email: email,
-        password: password,
-        data: {'full_name': fullName},
-      );
-
-      final user = res.user;
-      if (user == null) throw ServerException("Gagal membuat user");
-
-      // 2. Insert to Profiles
-      await supabase.from('profiles').upsert({
-        'id': user.id,
-        'full_name': fullName,
-        'nisn': nisn,
-        'class_name': className,
-        'status': 'pending',
-      });
-    } on AuthException catch (e) {
-      throw AppAuthException(e.message, e.statusCode);
-    } catch (e) {
-      throw ServerException('Registrasi Gagal: ${e.toString()}');
-    }
+    return await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
   }
 
+  /// Alias untuk kompatibilitas dengan login_screen.dart
+  Future<AuthResponse> loginWithEmail(String email, String password) async {
+    return signIn(email: email, password: password);
+  }
+
+  /// Daftar akun baru
+  Future<AuthResponse> signUp({
+    required String email,
+    required String password,
+    Map<String, dynamic>? data,
+  }) async {
+    return await _client.auth.signUp(
+      email: email,
+      password: password,
+      data: data,
+    );
+  }
+
+  /// Logout
   Future<void> signOut() async {
-    await _auth.signOut();
+    await _client.auth.signOut();
   }
 
-  Future<String> getUserRole() async {
-    final user = currentUser;
-    if (user == null) return 'student';
-
-    try {
-      final response = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-
-      return response['role'] as String? ?? 'student';
-    } catch (e) {
-      return 'student';
-    }
+  /// Reset password via email
+  Future<void> resetPassword(String email) async {
+    await _client.auth.resetPasswordForEmail(email);
   }
 }
 
+/// Provider global AuthRepository
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepository();
+  return AuthRepository(supabase);
 });
 
+/// Provider untuk memantau state auth (dipakai di GoRouter redirect)
 final authStateProvider = StreamProvider<AuthState>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
-});
-
-final userRoleProvider = FutureProvider.autoDispose<String>((ref) async {
-  final authState = ref.watch(authStateProvider);
-  return authState.when(
-    data: (state) async {
-      if (state.session == null) return 'student';
-      return ref.watch(authRepositoryProvider).getUserRole();
-    },
-    loading: () => 'student',
-    error: (_, __) => 'student',
-  );
 });

@@ -21,6 +21,9 @@ class _SettingScreenState extends State<SettingScreen> {
   bool _darkModeEnabled = false;
   bool _loadingProfile = true;
   bool _savingChanges = false;
+  bool _isBiometricSupported = false; // ✅ Track biometric support
+  String _biometricType = ''; // ✅ Type of biometric available
+  
   Map<String, dynamic>? _profile;
   
   // Controllers untuk edit profil
@@ -38,7 +41,7 @@ class _SettingScreenState extends State<SettingScreen> {
     _nisnController = TextEditingController();
     _loadSettings();
     _fetchProfile();
-    _checkBiometricSupport();
+    _checkBiometricSupport(); // ✅ Check on init
   }
 
   @override
@@ -88,51 +91,640 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
   // ════════════════════════════════════════════════════════════════
-  // BIOMETRIC AUTHENTICATION - ✅ FIXED (Basic Version)
+  // ✅ BIOMETRIC AUTHENTICATION - FULL VERSION WITH DEVICE CHECK
   // ════════════════════════════════════════════════════════════════
 
+  /// Cek apakah device mendukung biometrik dan dapatkan jenisnya
   Future<void> _checkBiometricSupport() async {
     try {
-      final isSupported = await _localAuth.isDeviceSupported();
-      if (!isSupported && mounted) {
-        setState(() => _biometricEnabled = false);
-      }
-    } catch (e) {
-      debugPrint('Biometric check error: $e');
-    }
-  }
-
-  Future<void> _toggleBiometric(bool enabled) async {
-    if (!enabled) {
-      setState(() => _biometricEnabled = false);
-      await _saveSetting('biometric_enabled', false);
-      return;
-    }
-
-    try {
-      final isAvailable = await _localAuth.canCheckBiometrics;
-      final isSupported = await _localAuth.isDeviceSupported();
+      debugPrint('🔍 Checking biometric support...');
       
-      if (!isAvailable || !isSupported) {
-        _showSnackBar('Perangkat ini tidak mendukung biometrik', isError: true);
+      // 1. Cek apakah hardware mendukung biometrik
+      final isDeviceSupported = await _localAuth.isDeviceSupported();
+      debugPrint('📱 Device supported: $isDeviceSupported');
+      
+      if (!isDeviceSupported) {
+        debugPrint('❌ Device does NOT support biometric');
+        if (mounted) {
+          setState(() {
+            _isBiometricSupported = false;
+            _biometricType = '';
+            _biometricEnabled = false;
+          });
+          await _saveSetting('biometric_enabled', false);
+        }
         return;
       }
 
-      // ✅ FIXED: Hanya gunakan localizedReason (basic version)
+      // 2. Cek apakah biometrik tersedia (sudah di-setup oleh user)
+      final canCheckBiometrics = await _localAuth.canCheckBiometrics;
+      debugPrint('🔐 Can check biometrics: $canCheckBiometrics');
+      
+      if (!canCheckBiometrics) {
+        debugPrint('⚠️ Biometrics not enrolled/setup yet');
+        if (mounted) {
+          setState(() {
+            _isBiometricSupported = true; // Device support, but not enrolled
+            _biometricType = 'not_enrolled';
+            _biometricEnabled = false;
+          });
+          await _saveSetting('biometric_enabled', false);
+        }
+        return;
+      }
+
+      // 3. Dapatkan list jenis biometrik yang tersedia
+      final availableBiometrics = await _localAuth.getAvailableBiometrics();
+      debugPrint('🧬 Available biometrics: $availableBiometrics');
+      
+      String biometricTypeName = '';
+      
+      if (availableBiometrics.contains(BiometricType.face)) {
+        biometricTypeName = 'Face ID / Face Unlock';
+      } else if (availableBiometrics.contains(BiometricType.fingerprint)) {
+        biometricTypeName = 'Fingerprint / Sidik Jari';
+      } else if (availableBiometrics.contains(BiometricType.iris)) {
+        biometricTypeName = 'Iris Scanner';
+      } else if (availableBiometrics.isNotEmpty) {
+        biometricTypeName = 'Biometrik';
+      }
+
+      debugPrint('✅ Biometric type detected: $biometricTypeName');
+
+      if (mounted) {
+        setState(() {
+          _isBiometricSupported = true;
+          _biometricType = biometricTypeName;
+          // Jika sebelumnya enabled tapi sekarang tidak available, disable
+          if (_biometricEnabled && biometricTypeName.isEmpty) {
+            _biometricEnabled = false;
+            _saveSetting('biometric_enabled', false);
+          }
+        });
+      }
+      
+    } catch (e) {
+      debugPrint('❌ Error checking biometric support: $e');
+      if (mounted) {
+        setState(() {
+          _isBiometricSupported = false;
+          _biometricType = '';
+          _biometricEnabled = false;
+        });
+      }
+    }
+  }
+
+  /// Toggle biometric on/off
+  Future<void> _toggleBiometric(bool enabled) async {
+    // Jika menonaktifkan
+    if (!enabled) {
+      setState(() => _biometricEnabled = false);
+      await _saveSetting('biometric_enabled', false);
+      _showSnackBar('🔒 Login biometrik dinonaktifkan');
+      return;
+    }
+
+    // ─── CEK KEMBALI SUPPORT SEBELUM AKTIFKAN ───
+    
+    // Refresh check terlebih dahulu
+    await _checkBiometricSupport();
+
+    if (!_isBiometricSupported) {
+      _showNotSupportedDialog();
+      return;
+    }
+
+    if (_biometricType == 'not_enrolled') {
+      _showNotEnrolledDialog();
+      return;
+    }
+
+    // Tampilkan dialog konfirmasi
+    final confirmAuth = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.fingerprint, color: Colors.blue.shade700, size: 28),
+            const SizedBox(width: 12),
+            const Text('Aktifkan Biometrik', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Untuk mengaktifkan login biometrik, silakan verifikasi identitas Anda.',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Metode: $_biometricType',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blue.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Batal', style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            // ✅ FIXED: verified_rounded (bukan verify_rounded)
+            icon: const Icon(Icons.verified_rounded, size: 18),
+            label: const Text('Verifikasi Sekarang'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmAuth != true) return;
+
+    // Tampilkan scanning dialog
+    _showScanningDialog();
+
+    try {
+      // Jalankan autentikasi
       final authenticated = await _localAuth.authenticate(
-        localizedReason: 'Verifikasi untuk mengaktifkan login biometrik',
+        localizedReason: 'Verifikasi untuk mengaktifkan login biometrik di e-PKL',
+        options: const AuthenticationOptions(
+          stickyAuth: true,
+          biometricOnly: false, // Allow fallback ke PIN/Pattern jika perlu
+          useErrorDialogs: true,
+          sensitiveTransaction: false,
+        ),
       );
+
+      // Tutup scanning dialog
+      if (mounted) Navigator.pop(context);
 
       if (authenticated && mounted) {
         setState(() => _biometricEnabled = true);
         await _saveSetting('biometric_enabled', true);
+        
         _showSnackBar('✅ Login biometrik berhasil diaktifkan!');
+        
+        // Success dialog
+        _showSuccessDialog();
       }
+      
     } on PlatformException catch (e) {
-      debugPrint('Biometric error: ${e.message}');
-      setState(() => _biometricEnabled = false);
-      _showSnackBar('Gagal mengaktifkan biometrik: ${e.message}', isError: true);
+      // Tutup scanning dialog
+      if (mounted) {
+        try { Navigator.pop(context); } catch (_) {}
+        
+        setState(() => _biometricEnabled = false);
+        _handleBiometricError(e);
+      }
+    } catch (e) {
+      if (mounted) {
+        try { Navigator.pop(context); } catch (_) {}
+        setState(() => _biometricEnabled = false);
+        _showSnackBar('❌ Gagal: ${e.toString()}', isError: true);
+      }
     }
+  }
+
+  /// Handle biometric errors dengan pesan yang jelas
+  void _handleBiometricError(PlatformException e) {
+    String title = 'Gagal Autentikasi';
+    String message;
+    IconData icon = Icons.error_outline;
+
+    switch (e.code) {
+      case 'NotAvailable':
+        title = 'Tidak Tersedia';
+        message = 'Biometrik tidak tersedia di perangkat ini saat ini.';
+        icon = Icons.device_unknown;
+        break;
+      case 'NotEnrolled':
+        title = 'Belum Terdaftar';
+        message = 'Anda belum mendaftarkan sidik jari/wajah.\n\n'
+            'Silakan buka Pengaturan → Keamanan/Password & Biometrik → '
+            'Tambahkan Finger/Face ID.';
+        icon = Icons.person_add_disabled;
+        break;
+      case 'LockedOut':
+        title = 'Terlalu Banyak Percobaan';
+        message = 'Terlalu banyak percobaan gagal.\n\nSilakan coba lagi dalam 30 detik, '
+            'atau gunakan PIN/Password perangkat Anda.';
+        icon = Icons.lock_clock;
+        break;
+      case 'PermanentlyLockedOut':
+        title = 'Biometrik Terkunci';
+        message = 'Biometrik terkunci karena terlalu banyak percobaan.\n\n'
+            'Gunakan PIN/Password perangkat Anda untuk membuka kunci, '
+            'lalu coba lagi.';
+        icon = Icons.lock;
+        break;
+      case 'PasscodeNotSet':
+        title = 'PIN Belum Diatur';
+        message = 'Anda harus mengatur lock screen (PIN/Pattern/Password) '
+            'terlebih dahulu sebelum menggunakan biometrik.\n\n'
+            'Buka Pengaturan → Keamanan → Lock Screen.';
+        icon = Icons.password;
+        break;
+      case 'Canceled':
+      case 'UserCancel':
+        return; // User cancel, tidak perlu show error
+      default:
+        message = e.message ?? 'Terjadi kesalahan saat autentikasi biometrik.';
+    }
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(icon, color: Colors.orange.shade700, size: 26),
+            const SizedBox(width: 12),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(message, style: const TextStyle(fontSize: 14)),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Mengerti'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Dialog ketika device tidak support biometrik
+  void _showNotSupportedDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.devices_other, color: Colors.grey.shade600, size: 26),
+            const SizedBox(width: 12),
+            const Text('Tidak Didukung', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Maaf, perangkat Anda tidak mendukung autentikasi biometrik.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                '💡 Tips:\n'
+                '• Pastikan HP memiliki sensor fingerprint atau camera depan untuk Face Unlock\n'
+                '• Beberapa HP lawas mungkin tidak support fitur ini\n'
+                '• Gunakan login biasa (email/password) sebagai alternatif',
+                style: TextStyle(fontSize: 12, height: 1.5),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Dialog ketika biometrik belum didaftarkan/di-setup
+  void _showNotEnrolledDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            // ✅ FIXED: fingerprint_outlined (bukan fingerprint_off)
+            Icon(Icons.fingerprint_outlined, color: Colors.orange.shade700, size: 26),
+            const SizedBox(width: 12),
+            const Text('Belum Setup Biometrik', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Perangkat Anda mendukung biometrik, tetapi belum ada sidik jari atau wajah yang terdaftar.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            _buildSetupGuide(),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Nanti Saja', style: TextStyle(color: Colors.grey.shade600)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _openDeviceSettings();
+            },
+            icon: const Icon(Icons.settings, size: 18),
+            label: const Text('Buka Pengaturan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Widget panduan setup biometrik berdasarkan platform
+  Widget _buildSetupGuide() {
+    final isAndroid = Theme.of(context).platform == TargetPlatform.android;
+    
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline, color: Colors.orange.shade700, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Cara Setup ${isAndroid ? '(Android)' : '(iOS)'}:',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: Colors.orange.shade900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ..._getSetupSteps(isAndroid).map((step) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('• ', style: TextStyle(color: Colors.orange.shade700, fontWeight: FontWeight.bold)),
+                Expanded(child: Text(step, style: const TextStyle(fontSize: 12, height: 1.4))),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  List<String> _getSetupSteps(bool isAndroid) {
+    if (isAndroid) {
+      return [
+        'Buka Pengaturan (Settings)',
+        'Pilih "Keamanan" atau "Password & Keamanan"',
+        'Pilih "Fingerprint" atau "Sidik Jari"',
+        'Ikuti instruksi untuk mendaftarkan sidik jari',
+        'Untuk Face Unlock: Pilih "Face Recognition"',
+      ];
+    } else {
+      return [
+        'Buka Settings (Pengaturan)',
+        'Scroll ke bawah, pilih "Face ID & Passcode"',
+        'Masukkan passcode iPhone Anda',
+        'Aktifkan "Face ID" atau pilih "Add a Fingerprint"',
+        'Ikuti instruksi untuk menyelesaikan setup',
+      ];
+    }
+  }
+
+  /// Buka pengaturan device (untuk setup biometrik)
+  Future<void> _openDeviceSettings() async {
+    try {
+      _showSnackBar('📱 Silakan buka Pengaturan HP secara manual...');
+    } catch (e) {
+      debugPrint('Cannot open settings: $e');
+    }
+  }
+
+  /// Dialog saat sedang scanning
+  void _showScanningDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => WillPopScope(
+        onWillPop: () async => false,
+        child: Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.8, end: 1.2),
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeInOut,
+                  builder: (context, value, child) {
+                    return Transform.scale(
+                      scale: value,
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.blue.shade400, Colors.blue.shade700],
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.withOpacity(0.3),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.fingerprint_rounded,
+                          size: 45,
+                          color: Colors.white,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Memindai Biometrik...',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _biometricType.isNotEmpty 
+                      ? 'Silakan gunakan $_biometricType' 
+                      : 'Tempelkan jari pada sensor atau gunakan FaceID',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: Colors.blue.shade400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Dialog sukses setelah aktivasi
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: null,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade400, Colors.green.shade600],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.green.withOpacity(0.3),
+                    blurRadius: 15,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                size: 35,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Berhasil! 🎉',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Login biometrik telah aktif menggunakan $_biometricType.\n\n'
+              'Sekarang Anda bisa login lebih cepat dan aman!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade600,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Mengerti',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -635,7 +1227,7 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
   // ════════════════════════════════════════════════════════════════
-  // BUILD UI
+  // BUILD UI - ✅ UPDATED BIOMETRIC TILE
   // ════════════════════════════════════════════════════════════════
 
   @override
@@ -703,13 +1295,8 @@ class _SettingScreenState extends State<SettingScreen> {
                     },
                   ),
                   
-                  _buildSwitchTile(
-                    Icons.fingerprint_rounded,
-                    "Login Biometrik",
-                    "Masuk menggunakan FaceID / TouchID",
-                    _biometricEnabled,
-                    _toggleBiometric,
-                  ),
+                  // ✅ IMPROVED: Biometric tile with support info
+                  _buildBiometricSwitchTile(),
                   
                   _buildSwitchTile(
                     Icons.dark_mode_rounded,
@@ -784,6 +1371,85 @@ class _SettingScreenState extends State<SettingScreen> {
   // ════════════════════════════════════════════════════════════════
   // WIDGET COMPONENTS
   // ════════════════════════════════════════════════════════════════
+
+  /// ✅ NEW: Special widget for biometric switch with status info
+  Widget _buildBiometricSwitchTile() {
+    // Determine status and subtitle based on support
+    String subtitle;
+    bool isEnabled = _biometricEnabled;
+    Color statusColor = Colors.grey;
+    IconData statusIcon = Icons.help_outline;
+    
+    if (!_isBiometricSupported) {
+      subtitle = '❌ Perangkat tidak mendukung biometrik';
+      statusColor = Colors.red.shade300;
+      statusIcon = Icons.block;
+      isEnabled = false; // Force disabled
+    } else if (_biometricType == 'not_enrolled') {
+      subtitle = '⚠️ Belum setup biometrik di HP Anda';
+      statusColor = Colors.orange.shade400;
+      statusIcon = Icons.warning_amber_rounded;
+      isEnabled = false; // Force disabled until enrolled
+    } else if (_biometricType.isNotEmpty) {
+      subtitle = '$_biometricType • ${isEnabled ? 'Aktif' : 'Nonaktif'}';
+      statusColor = isEnabled ? Colors.green : Colors.blue;
+      statusIcon = isEnabled ? Icons.check_circle : Icons.fingerprint;
+    } else {
+      subtitle = 'Memeriksa dukungan...';
+      statusColor = Colors.grey;
+      statusIcon = Icons.hourglass_empty;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: !_isBiometricSupported 
+              ? Colors.red.shade200 
+              : _biometricType == 'not_enrolled' 
+                  ? Colors.orange.shade200 
+                  : Colors.grey.shade100,
+        ),
+      ),
+      child: SwitchListTile(
+        secondary: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(statusIcon, size: 20, color: statusColor),
+        ),
+        title: Text(
+          "Login Biometrik",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 11, 
+            color: !_isBiometricSupported 
+                ? Colors.red.shade400 
+                : _biometricType == 'not_enrolled' 
+                    ? Colors.orange.shade500 
+                    : Colors.grey,
+          ),
+        ),
+        value: isEnabled,
+        onChanged: !_isBiometricSupported || _biometricType == 'not_enrolled'
+            ? null // Disable switch if not supported or not enrolled
+            : (v) => _toggleBiometric(v),
+        activeColor: Colors.blue,
+        inactiveThumbColor: Colors.grey.shade300,
+        inactiveTrackColor: Colors.grey.shade200,
+        contentPadding: EdgeInsets.zero,
+      ),
+    );
+  }
 
   Widget _buildUserProfile(User? user) {
     final String fullName = _profile?['full_name'] ?? user?.email ?? 'Pengguna';
