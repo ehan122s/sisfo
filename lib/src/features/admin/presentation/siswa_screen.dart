@@ -802,186 +802,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
                     label: isEditing ? 'Simpan Perubahan' : 'Tambah Siswa', 
                     color: isEditing ? Colors.orange : Colors.blue, 
                     icon: isEditing ? Icons.save : Icons.add_circle_outline, 
-                    onTap: () {
-                      if (nameController.text.isEmpty || 
-                          nisnController.text.isEmpty || 
-                          classController.text.isEmpty) { 
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(
-                            content: const Text('⚠️ Harap isi field wajib (*)'),
-                            backgroundColor: Colors.red.shade700,
-                            behavior: SnackBarBehavior.floating,
-                            margin: const EdgeInsets.all(16),
-                          ),
-                        );
-                        return; 
-                      }
-                      
-                      Navigator.pop(ctx, true);
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    // FIXED: Dispose only after modal is fully closed
-    nameController.dispose();
-    nisnController.dispose();
-    classController.dispose();
-    phoneController.dispose();
-
-    // Process result after modal closes
-    if (result == true && mounted) {
-      final payload = {
-        'full_name': nameController.text.trim(), // This won't work, we need to capture values before
-        'nisn': nisnController.text.trim(),
-        'class_name': classController.text.trim(),
-        'phone_number': phoneController.text.trim().isEmpty ? null : phoneController.text.trim(), 
-        'status': selectedStatus, 
-        'is_verified': isVerified, 
-        'role': 'student',
-      };
-      
-      // ... this approach won't work since controllers are disposed
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // FIXED: Better approach - handle everything inside modal
-  // ══════════════════════════════════════════════════════════════════════════
-
-  Future<void> _showStudentFormFixed({Map<String, dynamic>? studentData}) async {
-    if (!mounted) return;
-
-    final isEditing = studentData != null;
-    
-    // Capture initial values
-    String currentName = studentData?['full_name'] ?? '';
-    String currentNisn = studentData?['nisn'] ?? '';
-    String currentClass = studentData?['class_name'] ?? '';
-    String currentPhone = studentData?['phone_number'] ?? '';
-    String selectedStatus = studentData?['status'] ?? 'active';
-    bool isVerified = studentData?['is_verified'] == true;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final nameController = TextEditingController(text: currentName);
-        final nisnController = TextEditingController(text: currentNisn);
-        final classController = TextEditingController(text: currentClass);
-        final phoneController = TextEditingController(text: currentPhone);
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Container(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(ctx).size.height * 0.85,
-              ),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _sheetHeader(
-                    context: ctx,
-                    title: isEditing ? '✏️ Edit Siswa' : '➕ Tambah Siswa Baru',
-                  ),
-                  
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                      child: Column(
-                        children: [
-                          _txtField(
-                            ctrl: nameController, 
-                            label: 'Nama Lengkap *', 
-                            hint: 'Masukkan nama lengkap', 
-                            icon: Icons.person_outline,
-                          ), 
-                          const SizedBox(height: 14),
-                          
-                          _txtField(
-                            ctrl: nisnController, 
-                            label: 'NISN *', 
-                            hint: 'Nomor Induk Siswa Nasional', 
-                            icon: Icons.badge_outlined, 
-                            kbType: TextInputType.number,
-                          ), 
-                          const SizedBox(height: 14),
-                          
-                          _txtField(
-                            ctrl: classController, 
-                            label: 'Kelas *', 
-                            hint: 'Contoh: XII RPL 1', 
-                            icon: Icons.school_outlined,
-                          ), 
-                          const SizedBox(height: 14),
-                          
-                          _txtField(
-                            ctrl: phoneController, 
-                            label: 'No. Telepon', 
-                            hint: '08123456789', 
-                            icon: Icons.phone_outlined, 
-                            kbType: TextInputType.phone,
-                          ), 
-                          const SizedBox(height: 16),
-                          
-                          DropdownButtonFormField<String>(
-                            value: selectedStatus, 
-                            decoration: InputDecoration(
-                              labelText: 'Status', 
-                              prefixIcon: const Icon(Icons.toggle_on_outlined), 
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), 
-                              filled: true, 
-                              fillColor: Colors.grey.shade50,
-                              isDense: true,
-                            ), 
-                            items: const [
-                              DropdownMenuItem(value: 'active', child: Text('Aktif')),
-                              DropdownMenuItem(value: 'inactive', child: Text('Nonaktif')),
-                              DropdownMenuItem(value: 'graduated', child: Text('Lulus')),
-                            ], 
-                            onChanged: (v) { 
-                              setModalState(() { selectedStatus = v!; });
-                            }, 
-                          ),
-                          
-                          const SizedBox(height: 12),
-                          
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: SwitchListTile(
-                              title: const Text('Terverifikasi', style: TextStyle(fontSize: 14)), 
-                              subtitle: const Text('Data sudah diverifikasi', style: TextStyle(fontSize: 12)), 
-                              value: isVerified, 
-                              activeColor: Colors.green, 
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                              onChanged: (v) { 
-                                setModalState(() { isVerified = v; }); 
-                              }, 
-                              secondary: const Icon(Icons.verified_user_outlined, size: 20), 
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  _submitBtn(
-                    label: isEditing ? 'Simpan Perubahan' : 'Tambah Siswa', 
-                    color: isEditing ? Colors.orange : Colors.blue, 
-                    icon: isEditing ? Icons.save : Icons.add_circle_outline, 
                     onTap: () async {
                       if (nameController.text.isEmpty || 
                           nisnController.text.isEmpty || 
@@ -997,8 +817,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
                         return; 
                       }
                       
-                      Navigator.pop(ctx);
-                      
                       final payload = {
                         'full_name': nameController.text.trim(),
                         'nisn': nisnController.text.trim(),
@@ -1010,6 +828,8 @@ class _SiswaScreenState extends State<SiswaScreen> {
                         'is_verified': isVerified, 
                         'role': 'student',
                       };
+                      
+                      Navigator.pop(ctx);
                       
                       if (isEditing) { 
                         await _updateStudent(id: studentData!['id'], data: payload); 
