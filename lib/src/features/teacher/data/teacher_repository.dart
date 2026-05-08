@@ -223,6 +223,57 @@ class TeacherRepository {
   }
 
   // ───────────────────────────────────────────────
+  // DETAIL SISWA (untuk teacher_student_detail_screen)
+  // ───────────────────────────────────────────────
+
+  /// Ambil data absensi siswa per bulan tertentu
+  Future<List<Map<String, dynamic>>> getStudentAttendanceByMonth(
+      String studentId, int month, int year) async {
+    final startDate = DateTime(year, month, 1);
+    final endDate = DateTime(year, month + 1, 0);
+    final startStr =
+        '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-01';
+    final endStr =
+        '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}';
+
+    final result = await supabase
+        .from('attendance_logs')
+        .select('''
+          id, date, status, check_in_time, check_out_time, notes
+        ''')
+        .eq('student_id', studentId)
+        .gte('date', startStr)
+        .lte('date', endStr)
+        .order('date', ascending: true);
+
+    return List<Map<String, dynamic>>.from(result);
+  }
+
+  /// Ambil data jurnal siswa per bulan tertentu
+  Future<List<Map<String, dynamic>>> getStudentJournalsByMonth(
+      String studentId, int month, int year) async {
+    final startDate = DateTime(year, month, 1);
+    final endDate = DateTime(year, month + 1, 0);
+    final startStr =
+        '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-01';
+    final endStr =
+        '${endDate.year}-${endDate.month.toString().padLeft(2, '0')}-${endDate.day.toString().padLeft(2, '0')}';
+
+    final result = await supabase
+        .from('daily_journals')
+        .select('''
+          id, date, description, activities, evidence_url, image_url,
+          is_approved, created_at, updated_at
+        ''')
+        .eq('student_id', studentId)
+        .gte('date', startStr)
+        .lte('date', endStr)
+        .order('date', ascending: false);
+
+    return List<Map<String, dynamic>>.from(result);
+  }
+
+  // ───────────────────────────────────────────────
   // EXPORT ABSENSI
   // ───────────────────────────────────────────────
 
