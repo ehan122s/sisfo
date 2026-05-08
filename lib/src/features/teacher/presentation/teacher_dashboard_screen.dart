@@ -18,7 +18,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
     final statsAsync = ref.watch(dashboardStatsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Lighter grey for cleaner look
+      backgroundColor: const Color(0xFFF8F9FA),
       body: Stack(
         children: [
           // Background decoration bubbles
@@ -29,7 +29,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
               width: 300,
               height: 300,
               decoration: BoxDecoration(
-                color: const Color(0xFF006400).withValues(alpha: 0.05),
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.05),
                 shape: BoxShape.circle,
               ),
             ),
@@ -41,7 +41,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
               width: 200,
               height: 200,
               decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.05),
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.03),
                 shape: BoxShape.circle,
               ),
             ),
@@ -56,7 +56,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Top Bar with Profile & Actions
+                  // 1. Top Bar
                   _buildTopBar(context, ref, profileAsync),
 
                   const SizedBox(height: 32),
@@ -104,28 +104,28 @@ class TeacherDashboardScreen extends ConsumerWidget {
   ) {
     return Row(
       children: [
-        // Profile Info
         Expanded(
           child: profileAsync.when(
             data: (profile) => Row(
               children: [
+                // ── Avatar biru ──
                 Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF006400),
+                      color: const Color(0xFF3B82F6), // Biru
                       width: 2,
                     ),
                   ),
                   child: CircleAvatar(
                     radius: 24,
-                    backgroundColor: const Color(0xFFE8F5E9),
+                    backgroundColor: const Color(0xFFEFF6FF), // Biru muda
                     child: Text(
                       profile?['full_name']?.substring(0, 1).toUpperCase() ??
-                          "G",
+                          'G',
                       style: GoogleFonts.poppins(
-                        color: const Color(0xFF006400),
+                        color: const Color(0xFF3B82F6), // Biru
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                       ),
@@ -167,7 +167,6 @@ class TeacherDashboardScreen extends ConsumerWidget {
         // Actions
         Row(
           children: [
-            // Notification Button with Badge
             Stack(
               children: [
                 _buildActionButton(
@@ -185,9 +184,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
                       );
                       final count =
                           asyncValue.value?.where((n) => !n.isRead).length ?? 0;
-
                       if (count == 0) return const SizedBox.shrink();
-
                       return Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
@@ -291,7 +288,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
               label: 'Total Siswa',
               count: stats['total_students'].toString(),
               icon: Icons.people_alt_outlined,
-              color: const Color(0xFF3B82F6), // Blue
+              color: const Color(0xFF3B82F6),
             ),
           ),
           const SizedBox(width: 12),
@@ -300,7 +297,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
               label: 'Hadir Hari Ini',
               count: stats['present_today'].toString(),
               icon: Icons.check_circle_outline_rounded,
-              color: const Color(0xFF10B981), // Green
+              color: const Color(0xFF10B981),
             ),
           ),
           const SizedBox(width: 12),
@@ -309,7 +306,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
               label: 'Perlu Review',
               count: stats['pending_journals'].toString(),
               icon: Icons.pending_actions_outlined,
-              color: const Color(0xFFF59E0B), // Amber
+              color: const Color(0xFFF59E0B),
             ),
           ),
         ],
@@ -332,7 +329,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
       crossAxisCount: 2,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
-      childAspectRatio: 1.1, // Slightly wider for better text fit
+      childAspectRatio: 1.1,
       children: [
         _DashboardMenuCard(
           icon: Icons.location_on_outlined,
@@ -355,12 +352,11 @@ class TeacherDashboardScreen extends ConsumerWidget {
           color: const Color(0xFFF59E0B),
           onTap: () => context.go('/teacher/dashboard/students'),
         ),
-        // New 4th Card
         _DashboardMenuCard(
           icon: Icons.history_edu_outlined,
           label: 'Riwayat Aktivitas',
           description: 'Log notifikasi & kejadian',
-          color: const Color(0xFF8B5CF6), // Purple
+          color: const Color(0xFF8B5CF6),
           onTap: () => context.go('/teacher/dashboard/notifications'),
         ),
       ],
@@ -526,7 +522,6 @@ class _DashboardMenuCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           child: Stack(
             children: [
-              // Decorative background circle
               Positioned(
                 bottom: -20,
                 right: -20,
@@ -539,7 +534,6 @@ class _DashboardMenuCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(

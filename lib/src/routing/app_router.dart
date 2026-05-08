@@ -20,6 +20,7 @@ import '../features/teacher/presentation/teacher_dashboard_screen.dart';
 import '../features/teacher/presentation/teacher_attendance_monitor_screen.dart';
 import '../features/teacher/presentation/teacher_journal_approval_screen.dart';
 import '../features/teacher/presentation/teacher_student_list_screen.dart';
+import '../features/teacher/presentation/teacher_student_detail_screen.dart';
 import '../features/teacher/presentation/notifications/notification_screen.dart';
 import '../features/authentication/presentation/splash_screen.dart';
 
@@ -74,13 +75,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/splash',
         pageBuilder: (c, s) => _buildPageWithTransition(
-          context: c, state: s, child: const SplashScreen(),
+          context: c,
+          state: s,
+          child: const SplashScreen(),
         ),
       ),
       GoRoute(
         path: '/login',
         pageBuilder: (c, s) => _buildPageWithTransition(
-          context: c, state: s, child: const LoginScreen(),
+          context: c,
+          state: s,
+          child: const LoginScreen(),
         ),
       ),
       GoRoute(
@@ -96,25 +101,32 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/',
         pageBuilder: (c, s) => _buildPageWithTransition(
-          context: c, state: s, child: const _RoleBaseRedirector(),
+          context: c,
+          state: s,
+          child: const _RoleBaseRedirector(),
         ),
       ),
       GoRoute(
         path: '/admin',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (c, s) => _buildPageWithTransition(
-          context: c, state: s, child: const AdminDashboardScreen(),
+          context: c,
+          state: s,
+          child: const AdminDashboardScreen(),
         ),
       ),
 
-      // ── Teacher Routes ──────────────────────────────────────────────────
+      // ── Teacher Routes ────────────────────────────────────────────────────
       GoRoute(
         path: '/teacher',
         parentNavigatorKey: _rootNavigatorKey,
         pageBuilder: (c, s) => _buildPageWithTransition(
-          context: c, state: s, child: const TeacherDashboardScreen(),
+          context: c,
+          state: s,
+          child: const TeacherDashboardScreen(),
         ),
         routes: [
+          // Monitoring Absensi
           GoRoute(
             path: 'dashboard/attendance',
             parentNavigatorKey: _rootNavigatorKey,
@@ -124,6 +136,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               child: const TeacherAttendanceMonitorScreen(),
             ),
           ),
+          // Laporan Jurnal
           GoRoute(
             path: 'dashboard/journals',
             parentNavigatorKey: _rootNavigatorKey,
@@ -133,6 +146,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               child: const TeacherJournalApprovalScreen(),
             ),
           ),
+          // Daftar Siswa
           GoRoute(
             path: 'dashboard/students',
             parentNavigatorKey: _rootNavigatorKey,
@@ -141,7 +155,27 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               state: s,
               child: const TeacherStudentListScreen(),
             ),
+            routes: [
+              // Detail Siswa
+              GoRoute(
+                path: ':studentId',
+                parentNavigatorKey: _rootNavigatorKey,
+                pageBuilder: (c, s) {
+                  final studentId = s.pathParameters['studentId']!;
+                  final studentData = s.extra as Map<String, dynamic>? ?? {};
+                  return _buildPageWithTransition(
+                    context: c,
+                    state: s,
+                    child: TeacherStudentDetailScreen(
+                      studentId: studentId,
+                      studentData: studentData,
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
+          // Notifikasi / Riwayat Aktivitas
           GoRoute(
             path: 'dashboard/notifications',
             parentNavigatorKey: _rootNavigatorKey,
@@ -154,18 +188,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // ── Student Shell ───────────────────────────────────────────────────
+      // ── Student Shell ─────────────────────────────────────────────────────
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             MainScreen(navigationShell: navigationShell),
         branches: [
+          // Home
           StatefulShellBranch(
             navigatorKey: _shellNavigatorKey,
             routes: [
               GoRoute(
                 path: '/home',
                 pageBuilder: (c, s) => _buildPageWithTransition(
-                  context: c, state: s, child: const HomeScreen(),
+                  context: c,
+                  state: s,
+                  child: const HomeScreen(),
                 ),
                 routes: [
                   GoRoute(
@@ -183,29 +220,37 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // History
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/history',
                 pageBuilder: (c, s) => _buildPageWithTransition(
-                  context: c, state: s, child: const AttendanceHistoryScreen(),
+                  context: c,
+                  state: s,
+                  child: const AttendanceHistoryScreen(),
                 ),
               ),
             ],
           ),
+          // Journal
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/journal',
                 pageBuilder: (c, s) => _buildPageWithTransition(
-                  context: c, state: s, child: const DailyJournalScreen(),
+                  context: c,
+                  state: s,
+                  child: const DailyJournalScreen(),
                 ),
                 routes: [
                   GoRoute(
                     path: 'create',
                     parentNavigatorKey: _rootNavigatorKey,
                     pageBuilder: (c, s) => _buildPageWithTransition(
-                      context: c, state: s, child: const JournalFormScreen(),
+                      context: c,
+                      state: s,
+                      child: const JournalFormScreen(),
                     ),
                   ),
                   GoRoute(
@@ -223,12 +268,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          // Profile
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/profile',
                 pageBuilder: (c, s) => _buildPageWithTransition(
-                  context: c, state: s, child: const ProfileScreen(),
+                  context: c,
+                  state: s,
+                  child: const ProfileScreen(),
                 ),
               ),
             ],
