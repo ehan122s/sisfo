@@ -19,6 +19,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.smkn1garut.sip"
+    compileSdkVersion 34
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

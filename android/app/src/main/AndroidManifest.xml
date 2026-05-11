@@ -17,6 +17,11 @@
 <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
 
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    
+    <!-- Permission untuk biometrik -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    
    <application
         android:label="SIP SMEA"
         android:name="${applicationName}"

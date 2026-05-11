@@ -17,6 +17,11 @@ import '../features/journal/presentation/daily_journal_screen.dart';
 import '../features/journal/presentation/journal_form_screen.dart';
 import '../features/journal/presentation/journal_detail_screen.dart';
 import '../features/teacher/presentation/teacher_dashboard_screen.dart';
+import '../features/teacher/presentation/teacher_attendance_monitor_screen.dart';
+import '../features/teacher/presentation/teacher_journal_approval_screen.dart';
+import '../features/teacher/presentation/teacher_student_list_screen.dart';
+import '../features/teacher/presentation/teacher_student_detail_screen.dart';
+import '../features/teacher/presentation/notifications/notification_screen.dart';
 import '../features/authentication/presentation/splash_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -110,6 +115,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           child: const AdminDashboardScreen(),
         ),
       ),
+
+      // ── Teacher Routes ────────────────────────────────────────────────────
       GoRoute(
         path: '/teacher',
         parentNavigatorKey: _rootNavigatorKey,
@@ -118,6 +125,67 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           state: s,
           child: const TeacherDashboardScreen(),
         ),
+        routes: [
+          // Monitoring Absensi
+          GoRoute(
+            path: 'dashboard/attendance',
+            parentNavigatorKey: _rootNavigatorKey,
+            pageBuilder: (c, s) => _buildPageWithTransition(
+              context: c,
+              state: s,
+              child: const TeacherAttendanceMonitorScreen(),
+            ),
+          ),
+          // Laporan Jurnal
+          GoRoute(
+            path: 'dashboard/journals',
+            parentNavigatorKey: _rootNavigatorKey,
+            pageBuilder: (c, s) => _buildPageWithTransition(
+              context: c,
+              state: s,
+              child: const TeacherJournalApprovalScreen(),
+            ),
+          ),
+          // Daftar Siswa
+          GoRoute(
+            path: 'dashboard/students',
+            parentNavigatorKey: _rootNavigatorKey,
+            pageBuilder: (c, s) => _buildPageWithTransition(
+              context: c,
+              state: s,
+              child: const TeacherStudentListScreen(),
+            ),
+            routes: [
+              // Detail Siswa
+              GoRoute(
+                path: ':studentId',
+                parentNavigatorKey: _rootNavigatorKey,
+                pageBuilder: (c, s) {
+                  final studentId = s.pathParameters['studentId']!;
+                  final studentData = s.extra as Map<String, dynamic>? ?? {};
+                  return _buildPageWithTransition(
+                    context: c,
+                    state: s,
+                    child: TeacherStudentDetailScreen(
+                      studentId: studentId,
+                      studentData: studentData,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          // Notifikasi / Riwayat Aktivitas
+          GoRoute(
+            path: 'dashboard/notifications',
+            parentNavigatorKey: _rootNavigatorKey,
+            pageBuilder: (c, s) => _buildPageWithTransition(
+              context: c,
+              state: s,
+              child: const NotificationScreen(),
+            ),
+          ),
+        ],
       ),
 
       // ── Student Shell ─────────────────────────────────────────────────────

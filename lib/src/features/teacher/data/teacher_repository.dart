@@ -10,11 +10,6 @@ class TeacherRepository {
   Future<List<Map<String, dynamic>>> getManagedStudents(
     String teacherId,
   ) async {
-    // We want profiles of students whose placement.company is assigned to this teacher
-    // Path: profiles -> placements -> companies -> supervisor_assignments
-
-    // OPTIMIZED: Use SQL View managed_students_view
-    // This view joins profiles, placements, companies, and supervisor_assignments.
     final response = await _supabase
         .from('managed_students_view')
         .select()
@@ -24,23 +19,19 @@ class TeacherRepository {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  // 2. Get Pending Journals (for Approval)
+  // 2. Get Pending Journals — FIX: filter by student_id, pakai kolom actual
   Future<List<Map<String, dynamic>>> getPendingJournals(
     String teacherId,
   ) async {
-    // Similar deep filter logic
+    final students = await getManagedStudents(teacherId);
+    if (students.isEmpty) return [];
+
+    final studentIds = students.map((s) => s['student_id']).toList();
+
     final response = await _supabase
         .from('daily_journals')
-        .select('''
-          *,
-          profiles!inner(full_name, avatar_url),
-          placements!inner(
-            companies!inner(
-              supervisor_assignments!inner(teacher_id)
-            )
-          )
-        ''')
-        .eq('placements.companies.supervisor_assignments.teacher_id', teacherId)
+        .select('*, profiles!inner(full_name, avatar_url)')
+        .inFilter('student_id', studentIds)
         .eq('is_approved', false)
         .order('created_at', ascending: true);
 
@@ -55,10 +46,7 @@ class TeacherRepository {
   }) async {
     await _supabase
         .from('daily_journals')
-        .update({
-          'is_approved': isApproved,
-          // 'notes': notes // If we had a notes column
-        })
+        .update({'is_approved': isApproved})
         .eq('id', journalId);
   }
 
@@ -69,11 +57,9 @@ class TeacherRepository {
     final students = await getManagedStudents(teacherId);
     if (students.isEmpty) return [];
 
-    // FIX: View uses 'student_id', not 'id'
     final studentIds = students.map((s) => s['student_id']).toList();
     final today = DateTime.now().toIso8601String().split('T')[0];
 
-    // Fetch logs for these students for today/recent
     final logsResponse = await _supabase
         .from('attendance_logs')
         .select()
@@ -83,13 +69,10 @@ class TeacherRepository {
 
     final logs = List<Map<String, dynamic>>.from(logsResponse);
 
-    // Merge
     return students.map((student) {
-      // Find log for this student
-      // FIX: Use 'student_id'
       final log = logs.firstWhere(
         (l) => l['student_id'] == student['student_id'],
-        orElse: () => <String, dynamic>{}, // Empty map if not found
+        orElse: () => <String, dynamic>{},
       );
 
       String status = 'Belum Hadir';
@@ -107,15 +90,12 @@ class TeacherRepository {
 
   // 5. Get Dashboard Stats
   Future<Map<String, int>> getTeacherStats(String teacherId) async {
-    // 1. Total Students
     final students = await getManagedStudents(teacherId);
     final totalStudents = students.length;
 
-    // 2. Pending Journals
     final journals = await getPendingJournals(teacherId);
     final pendingJournals = journals.length;
 
-    // 3. Present Today
     final attendanceList = await getManagedStudentsAttendance(teacherId);
     final presentCount = attendanceList
         .where((s) => s['attendance_status'] == 'Hadir')
@@ -142,13 +122,8 @@ class TeacherRepository {
     final m = month ?? now.month;
     final y = year ?? now.year;
 
-    // Start and End of month
     final startOfMonth = DateTime(y, m, 1).toIso8601String();
-    final endOfMonth = DateTime(
-      y,
-      m + 1,
-      0,
-    ).toIso8601String(); // Last day of month
+    final endOfMonth = DateTime(y, m + 1, 0).toIso8601String();
 
     final logsResponse = await _supabase
         .from('attendance_logs')
@@ -160,20 +135,14 @@ class TeacherRepository {
 
     final logs = List<Map<String, dynamic>>.from(logsResponse);
 
-    // Flatten data for Excel: One row per log, enriched with student info
     List<Map<String, dynamic>> flattenedData = [];
-
     for (var log in logs) {
       final student = students.firstWhere(
         (s) => s['student_id'] == log['student_id'],
         orElse: () => <String, dynamic>{},
       );
-
       if (student.isNotEmpty) {
-        flattenedData.add({
-          ...student,
-          ...log, // log overrides student keys if collision, but keys are distinct enough
-        });
+        flattenedData.add({...student, ...log});
       }
     }
 

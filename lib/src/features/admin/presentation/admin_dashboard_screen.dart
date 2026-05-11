@@ -145,7 +145,7 @@
         flexibleSpace: FlexibleSpaceBar(
           titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           title: const Text(
-            "Nexus Admin",
+            "Admin",
             style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w900, letterSpacing: -0.5),
           ),
         ),

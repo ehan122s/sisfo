@@ -51,5 +51,7 @@
     <string>Aplikasi membutuhkan kamera untuk foto selfie absensi dan kegiatan.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Aplikasi membutuhkan akses galeri untuk upload bukti kegiatan.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>e-PKL menggunakan FaceID untuk login yang lebih aman dan cepat.</string>
 </dict>
 </plist>
