@@ -261,11 +261,11 @@ export function StudentReportPage() {
                             <h2 className="text-sm font-bold uppercase leading-tight">Dinas Pendidikan</h2>
                             <h1 className="text-2xl font-black uppercase leading-none tracking-tighter my-1">SMKN 1 Garut</h1>
                             <p className="text-[9px] italic font-sans font-medium">
-                                Jl. Alamat Sekolah No. 123, Kota, Provinsi 00000 <br />
-                                Telp: (0xxx) xxxxxx | Website: www.smkanda.sch.id | Email: info@smkanda.sch.id
+                                Jl. Cimanuk No. 309A, Sukagalih, Kec. Tarogong Kidul, Jawa Barat 44151 <br />
+                                Telp: (0262)233316 | Website : www.smknegeri1garut.sch.id | Email: smkn1garut@ymail.com
                             </p>
                         </div>
-                        <img src="/logo-sekolah.png" alt="Logo Sekolah" className="w-20 h-20 object-contain" />
+                        <img src="/logo-smkn1-garut.png" alt="Logo Sekolah" className="w-20 h-20 object-contain" />
                         <div className="absolute bottom-[-6px] left-0 w-full h-[1px] bg-black"></div>
                     </div>
 
