@@ -15,8 +15,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
   List<Map<String, dynamic>> _students = [];
   bool _isLoading = true;
   String? _errorMessage;
-
-  // Cache companies DUDI
   List<Map<String, dynamic>> _companies = [];
 
   @override
@@ -240,7 +238,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
 
   // BODY
   Widget _buildBody() {
-    // Loading
     if (_isLoading && _students.isEmpty) {
       return const Center(
         child: Column(
@@ -254,7 +251,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
       );
     }
 
-    // Error state
     if (_errorMessage != null && _students.isEmpty) {
       return Center(
         child: Padding(
@@ -292,7 +288,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
       );
     }
 
-    // Empty state
     if (_students.isEmpty) {
       return Center(
         child: Column(
@@ -318,7 +313,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
       );
     }
 
-    // Filtered list
     final filteredStudents = _filterStudents(_students);
 
     if (filteredStudents.isEmpty) {
@@ -346,10 +340,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // STUDENT CARD - FIXED OVERFLOW
-  // ══════════════════════════════════════════════════════════════════
-
   Widget _studentCard(Map<String, dynamic> data) {
     final id = data['id'].toString();
     final fullName = data['full_name'] ?? 'Unknown';
@@ -374,7 +364,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar row
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -384,9 +373,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Colors.blue, Color(0xFF1D4ED8)],
-                        ),
+                        gradient: const LinearGradient(colors: [Colors.blue, Color(0xFF1D4ED8)]),
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.25), blurRadius: 8)],
                       ),
@@ -396,37 +383,21 @@ class _SiswaScreenState extends State<SiswaScreen> {
                               child: Image.network(
                                 avatarUrl,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) {
-                                  return Center(
-                                    child: Text(
-                                      fullName.isNotEmpty 
-                                          ? fullName[0].toUpperCase() 
-                                          : 'S',
-                                      style: const TextStyle(
-                                        color: Colors.white, 
-                                        fontWeight: FontWeight.w900, 
-                                        fontSize: 20,
-                                      ),
-                                    ),
-                                  );
-                                },
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Text(
+                                    fullName.isNotEmpty ? fullName[0].toUpperCase() : 'S',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
+                                  ),
+                                ),
                               ),
                             )
                           : Center(
                               child: Text(
-                                fullName.isNotEmpty 
-                                    ? fullName[0].toUpperCase() 
-                                    : 'S',
-                                style: const TextStyle(
-                                  color: Colors.white, 
-                                  fontWeight: FontWeight.w900, 
-                                  fontSize: 20,
-                                ),
+                                fullName.isNotEmpty ? fullName[0].toUpperCase() : 'S',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20),
                               ),
                             ),
                     ),
-                    
-                    // Verified badge
                     if (isVerified)
                       Positioned(
                         right: -2,
@@ -444,24 +415,17 @@ class _SiswaScreenState extends State<SiswaScreen> {
                       ),
                   ],
                 ),
-                
                 const SizedBox(width: 12),
-                
-                // Info column - FIXED: removed misplaced arrow
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Name + Status Badge
                       Row(
                         children: [
                           Expanded(
                             child: Text(
                               fullName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800, 
-                                fontSize: 15,
-                              ),
+                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                             ),
@@ -470,10 +434,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                           _buildStatusBadge(isActive: isActive),
                         ],
                       ),
-                      
                       const SizedBox(height: 3),
-                      
-                      // Class + NISN in one row
                       Row(
                         children: [
                           Icon(Icons.school_outlined, size: 13, color: Colors.grey.shade500),
@@ -481,10 +442,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                           Expanded(
                             child: Text(
                               className,
-                              style: TextStyle(
-                                color: Colors.grey.shade600, 
-                                fontSize: 12,
-                              ),
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -493,17 +451,11 @@ class _SiswaScreenState extends State<SiswaScreen> {
                           const SizedBox(width: 4),
                           Text(
                             nisn,
-                            style: TextStyle(
-                              color: Colors.grey.shade500, 
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w500),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                      
-                      // Company badge
                       if (companyName != null) ...[
                         const SizedBox(height: 6),
                         Container(
@@ -520,11 +472,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                               Flexible(
                                 child: Text(
                                   companyName,
-                                  style: TextStyle(
-                                    fontSize: 11, 
-                                    fontWeight: FontWeight.w600, 
-                                    color: Colors.purple.shade700,
-                                  ),
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.purple.shade700),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -537,10 +485,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                 ),
               ],
             ),
-            
             const SizedBox(height: 12),
-            
-            // Action buttons - FIXED: 2x2 grid instead of single row
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade50,
@@ -548,7 +493,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
               ),
               child: Row(
                 children: [
-                  // Edit button
                   Expanded(
                     child: _actionBtnSmall(
                       label: 'Edit',
@@ -557,10 +501,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                       onTap: () => _showStudentForm(studentData: data),
                     ),
                   ),
-                  
                   Container(width: 1, height: 36, color: Colors.grey.shade200),
-                  
-                  // Penempatan button
                   Expanded(
                     child: _actionBtnSmall(
                       label: 'PKL',
@@ -569,10 +510,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                       onTap: () => _showPlacementForm(studentData: data),
                     ),
                   ),
-                  
                   Container(width: 1, height: 36, color: Colors.grey.shade200),
-                  
-                  // Toggle Status
                   Expanded(
                     child: _actionBtnSmall(
                       label: isActive ? 'Off' : 'On',
@@ -581,10 +519,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                       onTap: () => _toggleStatus(id, !isActive),
                     ),
                   ),
-                  
                   Container(width: 1, height: 36, color: Colors.grey.shade200),
-                  
-                  // Delete button
                   Expanded(
                     child: _actionBtnSmall(
                       label: 'Hapus',
@@ -602,7 +537,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
     );
   }
 
-  // FIXED: Compact action button
   Widget _actionBtnSmall({
     required String label,
     required IconData icon,
@@ -623,12 +557,8 @@ class _SiswaScreenState extends State<SiswaScreen> {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                label, 
-                style: TextStyle(
-                  fontSize: 11, 
-                  fontWeight: FontWeight.w600, 
-                  color: color,
-                ),
+                label,
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -638,14 +568,11 @@ class _SiswaScreenState extends State<SiswaScreen> {
     );
   }
 
-  // STATUS BADGE WIDGET
   Widget _buildStatusBadge({required bool isActive}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: isActive 
-            ? const Color(0xFFDCFCE7) 
-            : const Color(0xFFFEE2E2),
+        color: isActive ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -653,15 +580,15 @@ class _SiswaScreenState extends State<SiswaScreen> {
         children: [
           Icon(
             isActive ? Icons.check_circle : Icons.cancel,
-            size: 10, 
+            size: 10,
             color: isActive ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
           ),
           const SizedBox(width: 2),
           Text(
             isActive ? 'Aktif' : 'Off',
             style: TextStyle(
-              fontSize: 10, 
-              fontWeight: FontWeight.w700, 
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
               color: isActive ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
             ),
           ),
@@ -670,28 +597,31 @@ class _SiswaScreenState extends State<SiswaScreen> {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════════
-  // FORM SISWA - FIXED: No dispose after modal, proper context handling
-  // ════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════════════
+  // FORM SISWA
+  // ══════════════════════════════════════════════════════════════════════════
 
   Future<void> _showStudentForm({Map<String, dynamic>? studentData}) async {
     if (!mounted) return;
 
     final isEditing = studentData != null;
     
-    final nameController = TextEditingController(text: studentData?['full_name'] ?? '');
-    final nisnController = TextEditingController(text: studentData?['nisn'] ?? '');
-    final classController = TextEditingController(text: studentData?['class_name'] ?? '');
-    final phoneController = TextEditingController(text: studentData?['phone_number'] ?? '');
-    
+    String currentName = studentData?['full_name'] ?? '';
+    String currentNisn = studentData?['nisn'] ?? '';
+    String currentClass = studentData?['class_name'] ?? '';
+    String currentPhone = studentData?['phone_number'] ?? '';
     String selectedStatus = studentData?['status'] ?? 'active';
-    bool isVerified = studentData?['is_verified'] == true;
 
-    final result = await showModalBottomSheet<bool>(
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
+        final nameController = TextEditingController(text: currentName);
+        final nisnController = TextEditingController(text: currentNisn);
+        final classController = TextEditingController(text: currentClass);
+        final phoneController = TextEditingController(text: currentPhone);
+
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Container(
@@ -705,107 +635,60 @@ class _SiswaScreenState extends State<SiswaScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
                   _sheetHeader(
                     context: ctx,
                     title: isEditing ? '✏️ Edit Siswa' : '➕ Tambah Siswa Baru',
                   ),
                   
-                  // Form Fields
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                       child: Column(
                         children: [
-                          _txtField(
-                            ctrl: nameController, 
-                            label: 'Nama Lengkap *', 
-                            hint: 'Masukkan nama lengkap', 
-                            icon: Icons.person_outline,
-                          ), 
+                          _txtField(ctrl: nameController, label: 'Nama Lengkap *', hint: 'Masukkan nama lengkap', icon: Icons.person_outline),
                           const SizedBox(height: 14),
                           
-                          _txtField(
-                            ctrl: nisnController, 
-                            label: 'NISN *', 
-                            hint: 'Nomor Induk Siswa Nasional', 
-                            icon: Icons.badge_outlined, 
-                            kbType: TextInputType.number,
-                          ), 
+                          _txtField(ctrl: nisnController, label: 'NISN *', hint: 'Nomor Induk Siswa Nasional', icon: Icons.badge_outlined, kbType: TextInputType.number),
                           const SizedBox(height: 14),
                           
-                          _txtField(
-                            ctrl: classController, 
-                            label: 'Kelas *', 
-                            hint: 'Contoh: XII RPL 1', 
-                            icon: Icons.school_outlined,
-                          ), 
+                          _txtField(ctrl: classController, label: 'Kelas *', hint: 'Contoh: XII RPL 1', icon: Icons.school_outlined),
                           const SizedBox(height: 14),
                           
-                          _txtField(
-                            ctrl: phoneController, 
-                            label: 'No. Telepon', 
-                            hint: '08123456789', 
-                            icon: Icons.phone_outlined, 
-                            kbType: TextInputType.phone,
-                          ), 
+                          _txtField(ctrl: phoneController, label: 'No. Telepon', hint: '08123456789', icon: Icons.phone_outlined, kbType: TextInputType.phone),
                           const SizedBox(height: 16),
                           
-                          // Status Dropdown
                           DropdownButtonFormField<String>(
-                            value: selectedStatus, 
+                            value: selectedStatus,
                             decoration: InputDecoration(
-                              labelText: 'Status', 
-                              prefixIcon: const Icon(Icons.toggle_on_outlined), 
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), 
-                              filled: true, 
+                              labelText: 'Status',
+                              prefixIcon: const Icon(Icons.toggle_on_outlined),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              filled: true,
                               fillColor: Colors.grey.shade50,
                               isDense: true,
-                            ), 
+                            ),
                             items: const [
                               DropdownMenuItem(value: 'active', child: Text('Aktif')),
                               DropdownMenuItem(value: 'inactive', child: Text('Nonaktif')),
                               DropdownMenuItem(value: 'graduated', child: Text('Lulus')),
-                            ], 
-                            onChanged: (v) { 
+                            ],
+                            onChanged: (v) {
                               setModalState(() { selectedStatus = v!; });
-                            }, 
-                          ),
-                          
-                          const SizedBox(height: 12),
-                          
-                          // Switch Terverifikasi
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: SwitchListTile(
-                              title: const Text('Terverifikasi', style: TextStyle(fontSize: 14)), 
-                              subtitle: const Text('Data sudah diverifikasi', style: TextStyle(fontSize: 12)), 
-                              value: isVerified, 
-                              activeColor: Colors.green, 
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                              onChanged: (v) { 
-                                setModalState(() { isVerified = v; }); 
-                              }, 
-                              secondary: const Icon(Icons.verified_user_outlined, size: 20), 
-                            ),
+                            },
                           ),
                         ],
                       ),
                     ),
                   ),
                   
-                  // Submit Button
                   _submitBtn(
-                    label: isEditing ? 'Simpan Perubahan' : 'Tambah Siswa', 
-                    color: isEditing ? Colors.orange : Colors.blue, 
-                    icon: isEditing ? Icons.save : Icons.add_circle_outline, 
+                    label: isEditing ? 'Simpan Perubahan' : 'Tambah Siswa',
+                    color: isEditing ? Colors.orange : Colors.blue,
+                    icon: isEditing ? Icons.save : Icons.add_circle_outline,
                     onTap: () async {
-                      if (nameController.text.isEmpty || 
-                          nisnController.text.isEmpty || 
-                          classController.text.isEmpty) { 
+                      if (nameController.text.isEmpty ||
+                          nisnController.text.isEmpty ||
+                          classController.text.isEmpty) {
                         ScaffoldMessenger.of(ctx).showSnackBar(
                           SnackBar(
                             content: const Text('⚠️ Harap isi field wajib (*)'),
@@ -814,27 +697,25 @@ class _SiswaScreenState extends State<SiswaScreen> {
                             margin: const EdgeInsets.all(16),
                           ),
                         );
-                        return; 
+                        return;
                       }
                       
                       final payload = {
                         'full_name': nameController.text.trim(),
                         'nisn': nisnController.text.trim(),
                         'class_name': classController.text.trim(),
-                        'phone_number': phoneController.text.trim().isEmpty 
-                            ? null 
-                            : phoneController.text.trim(), 
-                        'status': selectedStatus, 
-                        'is_verified': isVerified, 
+                        'phone_number': phoneController.text.trim().isEmpty ? null : phoneController.text.trim(),
+                        'status': selectedStatus,
                         'role': 'student',
                       };
                       
                       Navigator.pop(ctx);
                       
-                      if (isEditing) { 
-                        await _updateStudent(id: studentData!['id'], data: payload); 
-                      } else { 
-                        await _createStudent(data: payload); 
+                      if (isEditing) {
+                        await _updateStudent(id: studentData!['id'], data: payload);
+                      } else {
+                        // ✅ FIX: Gunakan RPC function bukan admin API
+                        await _createStudentWithRpc(data: payload);
                       }
                     },
                   ),
@@ -848,7 +729,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // FORM PENEMPATAN - FIXED
+  // FORM PENEMPATAN
   // ══════════════════════════════════════════════════════════════════════════
 
   Future<void> _showPlacementForm({required Map<String, dynamic> studentData}) async {
@@ -912,7 +793,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                 children: [
                   _sheetHeader(
                     context: ctx,
-                    title: isEditing ? '🏢 Edit Penempatan PKL' : '🏢 Atur Penempatan PKL', 
+                    title: isEditing ? '🏢 Edit Penempatan PKL' : '🏢 Atur Penempatan PKL',
                     subtitle: 'Siswa: $studentName',
                   ),
                   
@@ -925,7 +806,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
                           _secTitle('🏭 Pilih Perusahaan (DUDI)'),
                           const SizedBox(height: 8),
                           
-                          // Search + Dropdown
                           TextField(
                             controller: searchCtrl,
                             onChanged: (_) => setModalState(() {}),
@@ -985,7 +865,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text(cname, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis), 
+                                              Text(cname, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis),
                                               Text(company['address'] ?? '', style: TextStyle(fontSize: 10, color: Colors.grey.shade600), overflow: TextOverflow.ellipsis, maxLines: 1),
                                             ],
                                           ),
@@ -1120,18 +1000,18 @@ class _SiswaScreenState extends State<SiswaScreen> {
                           DropdownButtonFormField<String>(
                             value: selectedStatus,
                             decoration: InputDecoration(
-                              labelText: 'Status Penempatan', 
-                              prefixIcon: const Icon(Icons.timeline), 
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), 
-                              filled: true, 
+                              labelText: 'Status Penempatan',
+                              prefixIcon: const Icon(Icons.timeline),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              filled: true,
                               fillColor: Colors.grey.shade50,
                               isDense: true,
-                            ), 
+                            ),
                             items: const [
                               DropdownMenuItem(value: 'active', child: Text('🟢 Aktif')),
                               DropdownMenuItem(value: 'completed', child: Text('✅ Selesai')),
                               DropdownMenuItem(value: 'terminated', child: Text('🔴 Dihentikan')),
-                            ], 
+                            ],
                             onChanged: (v) { setModalState(() => selectedStatus = v!); },
                           ),
                         ],
@@ -1140,9 +1020,9 @@ class _SiswaScreenState extends State<SiswaScreen> {
                   ),
                   
                   _submitBtn(
-                    label: isEditing ? 'Update Penempatan' : 'Simpan Penempatan', 
-                    color: Colors.purple, 
-                    icon: isEditing ? Icons.save : Icons.business_center, 
+                    label: isEditing ? 'Update Penempatan' : 'Simpan Penempatan',
+                    color: Colors.purple,
+                    icon: isEditing ? Icons.save : Icons.business_center,
                     onTap: () async {
                       if (selectedCompanyId == null) {
                         ScaffoldMessenger.of(ctx).showSnackBar(
@@ -1190,7 +1070,6 @@ class _SiswaScreenState extends State<SiswaScreen> {
     );
   }
 
-  /// Dialog tambah perusahaan baru ke DUDI
   Future<int?> _showAddCompanyDialog(BuildContext parentCtx) async {
     final nameCtrl = TextEditingController();
     final addrCtrl = TextEditingController();
@@ -1287,7 +1166,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SHARED HELPERS - FIXED
+  // SHARED HELPERS
   // ══════════════════════════════════════════════════════════════════════════
 
   Widget _sheetHeader({required BuildContext context, required String title, String? subtitle}) {
@@ -1341,7 +1220,7 @@ class _SiswaScreenState extends State<SiswaScreen> {
         prefixIcon: Icon(icon, size: 18),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12), 
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.blue, width: 2),
         ),
         filled: true,
@@ -1389,28 +1268,64 @@ class _SiswaScreenState extends State<SiswaScreen> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CRUD OPERATIONS
+  // CRUD OPERATIONS - FIXED: Menggunakan RPC function
   // ══════════════════════════════════════════════════════════════════════════
 
-  Future<void> _createStudent({required Map<String, dynamic> data}) async {
+  /// ✅ FIXED: Gunakan RPC function untuk create student
+  Future<void> _createStudentWithRpc({required Map<String, dynamic> data}) async {
     try {
       if (!mounted) return;
       setState(() => _isLoading = true);
       
-      await supabase.from('profiles').insert(data);
+      // Generate email dan password dari NISN
+      final nisn = data['nisn'] as String? ?? '';
+      final email = '${nisn.toLowerCase()}@epkl.local';
+      final password = 'Siswa${nisn.padRight(8, '0').substring(0, 8)}';
+      
+      // ✅ Gunakan RPC function - TIDAK perlu service role key!
+      final response = await supabase.rpc('create_student_with_auth', params: {
+        'p_email': email,
+        'p_password': password,
+        'p_full_name': data['full_name'],
+        'p_nisn': data['nisn'],
+        'p_class_name': data['class_name'],
+        'p_phone_number': data['phone_number'],
+        'p_status': data['status'],
+      });
       
       if (!mounted) return;
-      _showMessage('✅ Siswa berhasil ditambahkan!'); 
-      await _loadStudents(); 
-    } on PostgrestException catch (e) { 
+      
+      // Check response
+      final success = response['success'] as bool? ?? false;
+      if (!success) {
+        final errorMsg = response['error'] ?? 'Unknown error';
+        final errorCode = response['code'] ?? 'ERROR';
+        
+        if (errorCode == 'DUPLICATE') {
+          _showMessage('⚠️ $errorMsg', isError: true);
+        } else {
+          _showMessage('❌ Gagal: $errorMsg', isError: true);
+        }
+        return;
+      }
+      
+      _showMessage('✅ Siswa berhasil ditambahkan!\n📧 Email: $email\n🔑 Password: $password');
+      await _loadStudents();
+      
+    } on PostgrestException catch (e) {
       if (!mounted) return;
-      _showMessage('❌ Error: ${e.message}', isError: true); 
-    } catch (e) { 
+      
+      if (e.code == '42883') {
+        _showMessage('❌ RPC function belum dibuat! Jalankan SQL di Supabase Editor.', isError: true);
+      } else {
+        _showMessage('❌ Database Error: ${e.message}', isError: true);
+      }
+    } catch (e) {
       if (!mounted) return;
-      _showMessage('❌ Gagal: $e', isError: true); 
-    } finally { 
+      _showMessage('❌ Gagal: $e', isError: true);
+    } finally {
       if (!mounted) return;
-      setState(() => _isLoading = false); 
+      setState(() => _isLoading = false);
     }
   }
 
@@ -1422,17 +1337,17 @@ class _SiswaScreenState extends State<SiswaScreen> {
       await supabase.from('profiles').update(data).eq('id', id);
       
       if (!mounted) return;
-      _showMessage('✅ Siswa berhasil diperbarui!'); 
-      await _loadStudents(); 
-    } on PostgrestException catch (e) { 
+      _showMessage('✅ Siswa berhasil diperbarui!');
+      await _loadStudents();
+    } on PostgrestException catch (e) {
       if (!mounted) return;
-      _showMessage('❌ Error: ${e.message}', isError: true); 
-    } catch (e) { 
+      _showMessage('❌ Error: ${e.message}', isError: true);
+    } catch (e) {
       if (!mounted) return;
-      _showMessage('❌ Gagal: $e', isError: true); 
-    } finally { 
+      _showMessage('❌ Gagal: $e', isError: true);
+    } finally {
       if (!mounted) return;
-      setState(() => _isLoading = false); 
+      setState(() => _isLoading = false);
     }
   }
 
@@ -1445,11 +1360,11 @@ class _SiswaScreenState extends State<SiswaScreen> {
       }).eq('id', id);
       
       if (!mounted) return;
-      _showMessage(active ? '✅ Diaktifkan' : '⚠️ Dinonaktifkan'); 
-      await _loadStudents(); 
-    } catch (e) { 
+      _showMessage(active ? '✅ Diaktifkan' : '⚠️ Dinonaktifkan');
+      await _loadStudents();
+    } catch (e) {
       if (!mounted) return;
-      _showMessage('❌ Gagal: $e', isError: true); 
+      _showMessage('❌ Gagal: $e', isError: true);
     }
   }
 
@@ -1462,27 +1377,27 @@ class _SiswaScreenState extends State<SiswaScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red), 
-            SizedBox(width: 12), 
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 12),
             Flexible(child: Text('Hapus Siswa?', style: TextStyle(fontWeight: FontWeight.bold))),
-          ]
-        ), 
-        content: Text('Hapus "$name"?\n\nTindakan ini tidak dapat dibatalkan'), 
+          ],
+        ),
+        content: Text('Hapus "$name"?\n\nTindakan ini tidak dapat dibatalkan'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(c, false), 
-            child: const Text('Batal', style: TextStyle(fontWeight: FontWeight.w600)), 
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Batal', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.pop(c, true),
-            icon: const Icon(Icons.delete_forever, size: 16), 
+            icon: const Icon(Icons.delete_forever, size: 16),
             label: const Text('Hapus', style: TextStyle(fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red, 
+              backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
           ),
-        ]
+        ],
       ),
     );
     
@@ -1490,19 +1405,25 @@ class _SiswaScreenState extends State<SiswaScreen> {
   }
 
   Future<void> _deleteStudent(String id, String name) async {
-    try { 
-      if (!mounted) return; 
-      setState(() => _isLoading = true); 
-      await supabase.from('profiles').delete().eq('id', id); 
+    try {
       if (!mounted) return;
-      _showMessage('"$name" dihapus'); 
-      await _loadStudents(); 
-    } catch (e) { 
+      setState(() => _isLoading = true);
+      
+      // Hapus placement dulu (jika ada)
+      await supabase.from('placements').delete().eq('student_id', id);
+      
+      // Hapus profile
+      await supabase.from('profiles').delete().eq('id', id);
+      
       if (!mounted) return;
-      _showMessage('❌ Gagal: $e', isError: true); 
-    } finally { 
+      _showMessage('"$name" dihapus');
+      await _loadStudents();
+    } catch (e) {
       if (!mounted) return;
-      setState(() => _isLoading = false); 
+      _showMessage('❌ Gagal: $e', isError: true);
+    } finally {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
     }
   }
 
@@ -1512,11 +1433,11 @@ class _SiswaScreenState extends State<SiswaScreen> {
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)), 
-        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700, 
-        behavior: SnackBarBehavior.floating, 
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
-        margin: const EdgeInsets.all(16), 
+        content: Text(message, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 3),
       ),
     );
