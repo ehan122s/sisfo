@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { id as localeId } from 'date-fns/locale'
@@ -67,7 +67,7 @@ const STATUS_CONFIG: Record<AttendanceStatus, { dot: string; badge: string; trig
     Alpha: {
         dot: 'bg-red-500',
         badge: 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-500/15 dark:text-red-400 dark:border-red-500/30',
-        trigger: 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-emerald-500/25 dark:border-red-500/30',
+        trigger: 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25 dark:border-red-500/30',
     },
     Cuti: {
         dot: 'bg-violet-500',
@@ -84,6 +84,7 @@ const AVATAR_COLORS = [
     'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300',
 ]
 
+// Stat card definitions — mirrors STAT_CARDS in AttendancePage
 const STAT_CARDS = [
     {
         key: 'Hadir' as AttendanceStatus,
@@ -155,19 +156,8 @@ export function TeacherAttendancePage() {
     const [pendingNotes, setPendingNotes] = useState<Record<string, string>>({})
     const [savingTeacherId, setSavingTeacherId] = useState<string | null>(null)
     const [savedTeacherIds, setSavedTeacherIds] = useState<Set<string>>(new Set())
-    
-    // Perbaikan ESLint: Menyimpan track tanggal sebelumnya untuk mendeteksi perubahan saat render
-    const [prevDateStr, setPrevDateStr] = useState<string>(format(date, 'yyyy-MM-dd'))
-    
     const queryClient = useQueryClient()
     const dateStr = format(date, 'yyyy-MM-dd')
-
-    // Lakukan reset secara langsung saat proses render (Pattern resmi dari tim React untuk menggantikan useEffect sync)
-    if (dateStr !== prevDateStr) {
-        setPrevDateStr(dateStr)
-        setPendingNotes({})
-        setSavedTeacherIds(new Set())
-    }
 
     const clearSavedIndicator = useCallback((teacherId: string) => {
         setTimeout(() => {
@@ -274,15 +264,17 @@ export function TeacherAttendancePage() {
         })
     }, [debouncedNotes, getAttendanceRecord, updateNotesMutation])
 
-    const filteredTeachers = useMemo(() => {
-        return teachers.filter((t) =>
-            t.full_name.toLowerCase().includes(search.toLowerCase())
-        )
-    }, [teachers, search])
+    useEffect(() => {
+        setPendingNotes({})
+        setSavedTeacherIds(new Set())
+    }, [dateStr])
 
-    const countByStatus = useCallback((status: AttendanceStatus) => {
-        return teachers.filter((t) => getAttendanceRecord(t.id).status === status).length
-    }, [teachers, getAttendanceRecord])
+    const filteredTeachers = teachers.filter((t) =>
+        t.full_name.toLowerCase().includes(search.toLowerCase())
+    )
+
+    const countByStatus = (status: AttendanceStatus) =>
+        teachers.filter((t) => getAttendanceRecord(t.id).status === status).length
 
     const isLoading = isLoadingTeachers || isLoadingAttendance
     const totalCount = teachers.length
