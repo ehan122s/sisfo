@@ -30,6 +30,41 @@ class _TeacherAttendanceMonitorScreenState
     super.dispose();
   }
 
+  // ── Fullscreen Image Viewer ───────────────────────────────────────────────
+
+  void _showFullImage(BuildContext context, String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: Text(
+              'Foto Absen',
+              style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
+            ),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.white,
+                  size: 64,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final attendanceAsync = ref.watch(managedAttendanceProvider);
@@ -96,7 +131,7 @@ class _TeacherAttendanceMonitorScreenState
 
           return Column(
             children: [
-              // ── Summary ──────────────────────────────────────────────────
+              // ── Summary ────────────────────────────────────────────────
               Container(
                 color: Colors.white,
                 padding: const EdgeInsets.symmetric(
@@ -134,17 +169,10 @@ class _TeacherAttendanceMonitorScreenState
                 ),
               ),
               const Divider(height: 1),
-
-              // ── Tab Content ───────────────────────────────────────────────
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: [
-                    // Tab 1: Daftar
-                    _buildStudentList(students),
-                    // Tab 2: Peta
-                    _buildMap(students),
-                  ],
+                  children: [_buildStudentList(students), _buildMap(students)],
                 ),
               ),
             ],
@@ -241,7 +269,6 @@ class _TeacherAttendanceMonitorScreenState
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    // Avatar
                     CircleAvatar(
                       radius: 26,
                       backgroundColor: const Color(0xFFEFF6FF),
@@ -260,7 +287,6 @@ class _TeacherAttendanceMonitorScreenState
                           : null,
                     ),
                     const SizedBox(width: 14),
-                    // Info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,7 +360,6 @@ class _TeacherAttendanceMonitorScreenState
                         ],
                       ),
                     ),
-                    // Status badge
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -376,7 +401,6 @@ class _TeacherAttendanceMonitorScreenState
   // ── Peta ──────────────────────────────────────────────────────────────────
 
   Widget _buildMap(List<Map<String, dynamic>> students) {
-    // Filter siswa yang punya koordinat check-in
     final studentsWithLocation = students.where((s) {
       final log = s['attendance_log'];
       return log != null &&
@@ -384,9 +408,7 @@ class _TeacherAttendanceMonitorScreenState
           log['check_in_longitude'] != null;
     }).toList();
 
-    // Default center — Garut
     LatLng center = const LatLng(-7.2167, 107.9167);
-
     if (studentsWithLocation.isNotEmpty) {
       final log = studentsWithLocation.first['attendance_log'];
       center = LatLng(
@@ -440,7 +462,6 @@ class _TeacherAttendanceMonitorScreenState
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Label nama
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -466,7 +487,6 @@ class _TeacherAttendanceMonitorScreenState
                           ),
                         ),
                         const SizedBox(height: 2),
-                        // Avatar pin
                         Container(
                           width: 36,
                           height: 36,
@@ -501,8 +521,6 @@ class _TeacherAttendanceMonitorScreenState
             ),
           ],
         ),
-
-        // Legend
         Positioned(
           bottom: 16,
           left: 16,
@@ -538,8 +556,6 @@ class _TeacherAttendanceMonitorScreenState
             ),
           ),
         ),
-
-        // Info jika tidak ada yang hadir
         if (studentsWithLocation.isEmpty)
           Center(
             child: Container(
@@ -588,6 +604,7 @@ class _TeacherAttendanceMonitorScreenState
     final name = student['full_name'] ?? '-';
     final initial = name.substring(0, 1).toUpperCase();
     final status = student['attendance_status'] ?? 'Belum Hadir';
+    final photoUrl = log?['check_in_photo'] ?? log?['photo_url'];
 
     Color statusColor;
     switch (status) {
@@ -607,153 +624,218 @@ class _TeacherAttendanceMonitorScreenState
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Avatar + nama
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: const Color(0xFFEFF6FF),
-                  backgroundImage: student['avatar_url'] != null
-                      ? NetworkImage(student['avatar_url'])
-                      : null,
-                  child: student['avatar_url'] == null
-                      ? Text(
-                          initial,
-                          style: GoogleFonts.poppins(
-                            color: const Color(0xFF3B82F6),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        )
-                      : null,
+      isScrollControlled: true, // fix overflow
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.92,
+        builder: (context, scrollController) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: const Color(0xFFEFF6FF),
+                      backgroundImage: student['avatar_url'] != null
+                          ? NetworkImage(student['avatar_url'])
+                          : null,
+                      child: student['avatar_url'] == null
+                          ? Text(
+                              initial,
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF3B82F6),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1F2937),
+                            ),
+                          ),
+                          Text(
+                            student['class_name'] ?? '-',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        status,
+                        style: GoogleFonts.poppins(
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              // Scrollable content
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        name,
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1F2937),
-                        ),
+                      _DetailRow(
+                        icon: Icons.business_outlined,
+                        label: 'Perusahaan',
+                        value: student['company_name'] ?? '-',
                       ),
-                      Text(
-                        student['class_name'] ?? '-',
-                        style: GoogleFonts.poppins(
-                          fontSize: 13,
-                          color: Colors.grey[500],
+                      if (log != null) ...[
+                        _DetailRow(
+                          icon: Icons.login_rounded,
+                          label: 'Jam Masuk',
+                          value: log['check_in_time'] != null
+                              ? log['check_in_time'].toString().substring(
+                                  11,
+                                  16,
+                                )
+                              : '-',
+                          valueColor: const Color(0xFF10B981),
                         ),
-                      ),
+                        _DetailRow(
+                          icon: Icons.logout_rounded,
+                          label: 'Jam Pulang',
+                          value: log['check_out_time'] != null
+                              ? log['check_out_time'].toString().substring(
+                                  11,
+                                  16,
+                                )
+                              : 'Belum pulang',
+                          valueColor: log['check_out_time'] != null
+                              ? Colors.orange
+                              : Colors.grey,
+                        ),
+                        if (log['check_in_latitude'] != null)
+                          _DetailRow(
+                            icon: Icons.location_on_outlined,
+                            label: 'Koordinat Masuk',
+                            value:
+                                '${(log['check_in_latitude'] as num).toStringAsFixed(6)}, ${(log['check_in_longitude'] as num).toStringAsFixed(6)}',
+                          ),
+                        // Foto absen — tap untuk fullscreen
+                        if (photoUrl != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Foto Absen',
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: Colors.grey[500],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => _showFullImage(context, photoUrl),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Stack(
+                                children: [
+                                  Image.network(
+                                    photoUrl,
+                                    height: 200,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        const SizedBox.shrink(),
+                                  ),
+                                  // Zoom hint
+                                  Positioned(
+                                    bottom: 8,
+                                    right: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.zoom_in,
+                                            color: Colors.white,
+                                            size: 14,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'Perbesar',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ] else
+                        _DetailRow(
+                          icon: Icons.info_outline_rounded,
+                          label: 'Keterangan',
+                          value: 'Belum melakukan absen hari ini',
+                          valueColor: Colors.grey,
+                        ),
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    status,
-                    style: GoogleFonts.poppins(
-                      color: statusColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Info tiles
-            _DetailRow(
-              icon: Icons.business_outlined,
-              label: 'Perusahaan',
-              value: student['company_name'] ?? '-',
-            ),
-            if (log != null) ...[
-              _DetailRow(
-                icon: Icons.login_rounded,
-                label: 'Jam Masuk',
-                value: log['check_in_time'] != null
-                    ? log['check_in_time'].toString().substring(11, 16)
-                    : '-',
-                valueColor: const Color(0xFF10B981),
               ),
-              _DetailRow(
-                icon: Icons.logout_rounded,
-                label: 'Jam Pulang',
-                value: log['check_out_time'] != null
-                    ? log['check_out_time'].toString().substring(11, 16)
-                    : 'Belum pulang',
-                valueColor: log['check_out_time'] != null
-                    ? Colors.orange
-                    : Colors.grey,
-              ),
-              if (log['check_in_latitude'] != null)
-                _DetailRow(
-                  icon: Icons.location_on_outlined,
-                  label: 'Koordinat Masuk',
-                  value:
-                      '${(log['check_in_latitude'] as num).toStringAsFixed(6)}, ${(log['check_in_longitude'] as num).toStringAsFixed(6)}',
-                ),
-              // Foto check-in
-              if (log['check_in_photo'] != null ||
-                  log['photo_url'] != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  'Foto Absen',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    log['check_in_photo'] ?? log['photo_url'],
-                    height: 140,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                ),
-              ],
-            ] else
-              _DetailRow(
-                icon: Icons.info_outline_rounded,
-                label: 'Keterangan',
-                value: 'Belum melakukan absen hari ini',
-                valueColor: Colors.grey,
-              ),
-            const SizedBox(height: 8),
-          ],
+            ],
+          ),
         ),
       ),
     );
