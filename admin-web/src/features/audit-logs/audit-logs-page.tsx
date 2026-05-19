@@ -32,24 +32,24 @@ export function AuditLogsPage() {
   const getActionBadgeClass = (action: string) => {
     switch (action.toUpperCase()) {
       case "CREATE":
-        return "bg-[#EAF3DE] text-[#3B6D11] hover:bg-[#d8edbc] border-transparent";
+        return "bg-emerald-50 text-emerald-700 dark:bg-[#EAF3DE] dark:text-[#3B6D11] hover:bg-emerald-100 dark:hover:bg-[#d8edbc] border-transparent";
       case "UPDATE":
-        return "bg-[#E6F1FB] text-[#185FA5] hover:bg-[#cce3f7] border-transparent";
+        return "bg-blue-50 text-blue-700 dark:bg-[#E6F1FB] dark:text-[#185FA5] hover:bg-blue-100 dark:hover:bg-[#cce3f7] border-transparent";
       case "DELETE":
-        return "bg-[#FCEBEB] text-[#A32D2D] hover:bg-[#f9d4d4] border-transparent";
+        return "bg-rose-50 text-rose-700 dark:bg-[#FCEBEB] dark:text-[#A32D2D] hover:bg-rose-100 dark:hover:bg-[#f9d4d4] border-transparent";
       default:
-        return "bg-gray-100 text-gray-700 border-transparent";
+        return "bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-300 border-transparent";
     }
   };
 
   const getActionDotColor = (action: string) => {
     switch (action.toUpperCase()) {
       case "CREATE":
-        return "bg-[#3B6D11]";
+        return "bg-emerald-600 dark:bg-[#3B6D11]";
       case "UPDATE":
-        return "bg-[#185FA5]";
+        return "bg-blue-600 dark:bg-[#185FA5]";
       case "DELETE":
-        return "bg-[#A32D2D]";
+        return "bg-rose-600 dark:bg-[#A32D2D]";
       default:
         return "bg-gray-400";
     }
@@ -65,18 +65,12 @@ export function AuditLogsPage() {
       .toUpperCase();
   };
 
-  // --- FUNGSI EXPORT LOG ---
   const handleExport = () => {
-    // Gunakan filteredLogs jika ingin mengexport sesuai pencarian,
-    // atau gunakan 'logs' jika ingin selalu mengexport semua data.
     const dataToExport = filteredLogs;
-
     if (!dataToExport || dataToExport.length === 0) return;
 
-    // 1. Definisikan Header CSV
     const headers = ["Waktu", "Actor", "Action", "Target Table", "Record ID", "Details"];
 
-    // 2. Map data ke format baris CSV
     const csvRows = dataToExport.map((log) => {
       const waktu = format(new Date(log.created_at), "yyyy-MM-dd HH:mm:ss");
       // @ts-ignore
@@ -84,18 +78,12 @@ export function AuditLogsPage() {
       const action = log.action;
       const target = log.table_name;
       const recordId = log.record_id;
-
-      // Escape tanda kutip ganda di dalam JSON string agar CSV tidak rusak
       const details = log.details ? JSON.stringify(log.details).replace(/"/g, '""') : "";
 
-      // Bungkus setiap kolom dengan tanda kutip
       return `"${waktu}","${actor}","${action}","${target}","${recordId}","${details}"`;
     });
 
-    // 3. Gabungkan header dan data dengan newline
     const csvContent = [headers.join(","), ...csvRows].join("\n");
-
-    // 4. Buat Blob dan trigger download via anchor tag
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -108,7 +96,6 @@ export function AuditLogsPage() {
     link.click();
     document.body.removeChild(link);
   };
-  // -------------------------
 
   const totalCount = logs?.length || 0;
   const todayCount =
@@ -131,60 +118,72 @@ export function AuditLogsPage() {
       {/* Page Header */}
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-[11px] font-semibold text-[#378ADD] uppercase tracking-widest flex items-center gap-1.5 mb-1">
-            <Clock className="h-3 w-3" />
-            Activity Monitor
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
-          <p className="text-muted-foreground text-sm mt-1">Riwayat perubahan data dan aktivitas sistem.</p>
+          <p className="text-[10px] font-bold text-blue-600 dark:text-[#3b82f6] uppercase tracking-widest flex items-center gap-1.5 mb-1">ACTIVITY MONITOR</p>
+          <h1 className="text-3xl font-extrabold italic tracking-wide text-slate-800 dark:text-slate-100 uppercase">
+            AUDIT <span className="text-blue-600 dark:text-[#3b82f6]">LOGS</span>
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">Riwayat perubahan data dan aktivitas sistem.</p>
         </div>
 
-        {/* TOMBOL EXPORT DIPERBARUI DI SINI */}
-        <Button onClick={handleExport} disabled={isLoading || !filteredLogs?.length} className="bg-[#185FA5] hover:bg-[#0C447C] text-white rounded-xl gap-2 shadow-sm disabled:opacity-50">
-          <Download className="h-4 w-4" />
-          Export Log
+        {/* Tombol EXPORT LOG */}
+        <Button
+          onClick={handleExport}
+          disabled={isLoading || !filteredLogs?.length}
+          className="bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-[#3b82f6] font-bold rounded-xl gap-2 border border-blue-200 dark:border-blue-900/50 shadow-sm disabled:opacity-50 text-xs px-4 h-9 tracking-wider uppercase"
+        >
+          <Download className="h-3.5 w-3.5 text-blue-600 dark:text-[#3b82f6]" />
+          EXPORT LOG
         </Button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #378ADD, #185FA5)" }}>
-            <ClipboardList className="h-5 w-5 text-white" />
+        {/* CARD 1: TOTAL AKTIVITAS */}
+        <div className="bg-white dark:bg-[#141b2b] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden shadow-sm dark:shadow-md">
+          <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30">
+            <ClipboardList className="h-5 w-5 text-blue-600 dark:text-[#3b82f6]" />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Total Aktivitas</p>
-            <p className="text-2xl font-bold text-foreground">{isLoading ? "—" : totalCount}</p>
+            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Aktivitas</p>
+            <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">{isLoading ? "—" : totalCount}</p>
           </div>
+          {/* Garis Bawah: Berwarna di Light Mode, Gelap/Samar di Dark Mode */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 dark:bg-slate-800/40" />
         </div>
 
-        <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #378ADD, #185FA5)" }}>
-            <Clock className="h-5 w-5 text-white" />
+        {/* CARD 2: HARI INI */}
+        <div className="bg-white dark:bg-[#141b2b] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden shadow-sm dark:shadow-md">
+          <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/30">
+            <Clock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Hari Ini</p>
-            <p className="text-2xl font-bold text-foreground">{isLoading ? "—" : todayCount}</p>
+            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Hari Ini</p>
+            <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">{isLoading ? "—" : todayCount}</p>
           </div>
+          {/* Garis Bawah: Berwarna di Light Mode, Gelap/Samar di Dark Mode */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500 dark:bg-slate-800/40" />
         </div>
 
-        <div className="bg-white dark:bg-card border border-border rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #378ADD, #185FA5)" }}>
-            <Users className="h-5 w-5 text-white" />
+        {/* CARD 3: PENGGUNA AKTIF */}
+        <div className="bg-white dark:bg-[#141b2b] border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden shadow-sm dark:shadow-md">
+          <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30">
+            <Users className="h-5 w-5 text-blue-600 dark:text-[#3b82f6]" />
           </div>
           <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Pengguna Aktif</p>
-            <p className="text-2xl font-bold text-foreground">{isLoading ? "—" : uniqueActors}</p>
+            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pengguna Aktif</p>
+            <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">{isLoading ? "—" : uniqueActors}</p>
           </div>
+          {/* Garis Bawah: Berwarna di Light Mode, Gelap/Samar di Dark Mode */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 dark:bg-slate-800/40" />
         </div>
       </div>
 
-      {/* Table Card */}
-      <Card className="rounded-2xl border-border overflow-hidden shadow-sm">
-        <CardHeader className="bg-[#F0F6FD] dark:bg-[#0C2340] border-b border-[#B5D4F4] dark:border-[#1a3d6e] px-6 py-4 flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-[#185FA5] dark:text-[#85B7EB] text-base font-semibold">Aktivitas Sistem</CardTitle>
+      {/* Table Area */}
+      <Card className="rounded-2xl border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#11151f]/40 overflow-hidden shadow-md dark:shadow-lg">
+        <CardHeader className="bg-blue-50 dark:bg-[#14233c] border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-blue-700 dark:text-blue-400 text-sm font-semibold tracking-wide">Aktivitas Sistem</CardTitle>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-400" />
             <Input
               placeholder="Cari aktivitas..."
               value={search}
@@ -192,7 +191,7 @@ export function AuditLogsPage() {
                 setSearch(e.target.value);
                 setPage(0);
               }}
-              className="pl-8 h-8 text-sm w-52 rounded-xl border-[#B5D4F4] focus-visible:ring-[#185FA5] bg-white dark:bg-background"
+              className="pl-8 h-8 text-xs w-56 rounded-lg border-slate-300 dark:border-slate-700/60 focus-visible:ring-blue-500 dark:focus-visible:ring-[#3b82f6] bg-white dark:bg-[#0f131c] text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
           </div>
         </CardHeader>
@@ -200,12 +199,12 @@ export function AuditLogsPage() {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow className="bg-[#F0F6FD] dark:bg-[#0C2340] hover:bg-[#F0F6FD]">
-                <TableHead className="text-[#185FA5] dark:text-[#85B7EB] text-[11px] font-semibold uppercase tracking-wider px-6">Waktu</TableHead>
-                <TableHead className="text-[#185FA5] dark:text-[#85B7EB] text-[11px] font-semibold uppercase tracking-wider">Actor</TableHead>
-                <TableHead className="text-[#185FA5] dark:text-[#85B7EB] text-[11px] font-semibold uppercase tracking-wider">Action</TableHead>
-                <TableHead className="text-[#185FA5] dark:text-[#85B7EB] text-[11px] font-semibold uppercase tracking-wider">Target</TableHead>
-                <TableHead className="text-[#185FA5] dark:text-[#85B7EB] text-[11px] font-semibold uppercase tracking-wider">Details</TableHead>
+              <TableRow className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#14233c]/30 hover:bg-transparent">
+                <TableHead className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider px-6 h-11">Waktu</TableHead>
+                <TableHead className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider h-11">Actor</TableHead>
+                <TableHead className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider h-11">Action</TableHead>
+                <TableHead className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider h-11">Target</TableHead>
+                <TableHead className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider h-11">Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -213,46 +212,46 @@ export function AuditLogsPage() {
                 <TableRowsSkeleton columnCount={5} rowCount={10} />
               ) : (
                 paginatedLogs?.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-[#F7FAFF] dark:hover:bg-[#0C2340]/40 transition-colors">
+                  <TableRow key={log.id} className="border-b border-slate-200 dark:border-slate-800/60 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
                     {/* Waktu */}
-                    <TableCell className="px-6 whitespace-nowrap">
-                      <div className="text-xs text-muted-foreground">{format(new Date(log.created_at), "dd MMM", { locale: id })}</div>
-                      <div className="text-xs font-semibold text-[#378ADD]">{format(new Date(log.created_at), "HH:mm", { locale: id })}</div>
+                    <TableCell className="px-6 whitespace-nowrap py-3">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{format(new Date(log.created_at), "dd MMM", { locale: id })}</div>
+                      <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-0.5">{format(new Date(log.created_at), "HH:mm", { locale: id })}</div>
                     </TableCell>
 
                     {/* Actor */}
-                    <TableCell>
+                    <TableCell className="py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-semibold flex-shrink-0" style={{ background: "linear-gradient(135deg, #378ADD, #185FA5)" }}>
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style={{ background: "linear-gradient(135deg, #3b82f6, #1d4ed8)" }}>
                           {/* @ts-ignore */}
                           {getInitials(log.actor?.full_name || "")}
                         </div>
-                        <span className="text-sm font-medium">
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-200">
                           {/* @ts-ignore */}
-                          {log.actor?.full_name || "Unknown"}
+                          {log.actor?.full_name || "admin"}
                         </span>
                       </div>
                     </TableCell>
 
                     {/* Action */}
-                    <TableCell>
-                      <Badge className={`${getActionBadgeClass(log.action)} text-[11px] font-semibold gap-1.5 px-2.5 py-0.5 rounded-lg`} variant="outline">
+                    <TableCell className="py-3">
+                      <Badge className={`${getActionBadgeClass(log.action)} text-[10px] font-bold gap-1.5 px-2 py-0.5 rounded-md uppercase`} variant="outline">
                         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${getActionDotColor(log.action)}`} />
                         {log.action}
                       </Badge>
                     </TableCell>
 
                     {/* Target */}
-                    <TableCell>
+                    <TableCell className="py-3">
                       <div className="flex flex-col">
-                        <span className="text-[11px] font-semibold uppercase text-[#185FA5]">{log.table_name}</span>
-                        <span className="text-xs text-muted-foreground">{log.record_id}</span>
+                        <span className="text-[11px] font-bold uppercase text-blue-600 dark:text-blue-400/90 tracking-wide">{log.table_name}</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500 font-mono tracking-tight mt-0.5">{log.record_id}</span>
                       </div>
                     </TableCell>
 
                     {/* Details */}
-                    <TableCell>
-                      <span className="inline-block max-w-[200px] truncate text-[11px] font-mono bg-[#F0F6FD] dark:bg-[#0C2340] text-[#185FA5] dark:text-[#85B7EB] border border-[#B5D4F4] dark:border-[#1a3d6e] px-2 py-1 rounded-lg">
+                    <TableCell className="py-3">
+                      <span className="inline-block max-w-[220px] truncate text-[11px] font-mono bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded-md">
                         {JSON.stringify(log.details)}
                       </span>
                     </TableCell>
@@ -262,7 +261,7 @@ export function AuditLogsPage() {
 
               {!isLoading && filteredLogs?.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center h-24 text-muted-foreground text-sm">
+                  <TableCell colSpan={5} className="text-center h-24 text-slate-400 dark:text-slate-500 text-sm">
                     Tidak ada aktivitas ditemukan.
                   </TableCell>
                 </TableRow>
@@ -272,13 +271,13 @@ export function AuditLogsPage() {
 
           {/* Pagination */}
           {!isLoading && (filteredLogs?.length || 0) > 0 && (
-            <div className="flex items-center justify-between px-6 py-3 border-t border-[#B5D4F4] dark:border-[#1a3d6e] bg-[#F7FAFF] dark:bg-[#0C2340]/30">
-              <p className="text-xs text-muted-foreground">
+            <div className="flex items-center justify-between px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-transparent">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Menampilkan{" "}
-                <span className="font-medium text-foreground">
+                <span className="font-semibold text-slate-700 dark:text-slate-200">
                   {page * pageSize + 1}–{Math.min((page + 1) * pageSize, filteredLogs?.length || 0)}
                 </span>{" "}
-                dari <span className="font-medium text-foreground">{filteredLogs?.length}</span> entri
+                dari <span className="font-semibold text-slate-700 dark:text-slate-200">{filteredLogs?.length}</span> entri
               </p>
 
               <div className="flex items-center gap-1.5">
@@ -287,7 +286,7 @@ export function AuditLogsPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  className="h-8 px-3 rounded-lg border-[#B5D4F4] text-[#185FA5] hover:bg-[#E6F1FB] hover:border-[#378ADD] disabled:opacity-40 text-xs gap-1"
+                  className="h-8 px-3 rounded-lg border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white disabled:opacity-30 text-xs gap-1 bg-transparent"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                   Previous
@@ -299,8 +298,10 @@ export function AuditLogsPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => setPage(i)}
-                    className={`h-8 w-8 p-0 rounded-lg text-xs font-medium ${
-                      i === page ? "bg-[#185FA5] text-white border-[#185FA5] hover:bg-[#0C447C] hover:border-[#0C447C]" : "border-[#B5D4F4] text-[#185FA5] hover:bg-[#E6F1FB] hover:border-[#378ADD]"
+                    className={`h-8 w-8 p-0 rounded-lg text-xs font-semibold ${
+                      i === page
+                        ? "bg-blue-600 dark:bg-[#3b82f6] text-white border-blue-600 dark:border-[#3b82f6] hover:bg-blue-700 dark:hover:bg-blue-600"
+                        : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white bg-transparent"
                     }`}
                   >
                     {i + 1}
@@ -312,7 +313,7 @@ export function AuditLogsPage() {
                   size="sm"
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  className="h-8 px-3 rounded-lg border-[#B5D4F4] text-[#185FA5] hover:bg-[#E6F1FB] hover:border-[#378ADD] disabled:opacity-40 text-xs gap-1"
+                  className="h-8 px-3 rounded-lg border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white disabled:opacity-30 text-xs gap-1 bg-transparent"
                 >
                   Next
                   <ChevronRight className="h-3.5 w-3.5" />
