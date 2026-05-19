@@ -23,7 +23,8 @@ class NotificationRepository {
   Future<void> markAsRead(String notificationId) async {
     await supabase
         .from('notifications')
-        .update({'is_read': true}).eq('id', notificationId);
+        .update({'is_read': true})
+        .eq('id', notificationId);
   }
 
   /// Tandai semua notifikasi user sebagai sudah dibaca
@@ -37,10 +38,7 @@ class NotificationRepository {
 
   /// Hapus notifikasi tertentu
   Future<void> deleteNotification(String notificationId) async {
-    await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
+    await supabase.from('notifications').delete().eq('id', notificationId);
   }
 
   /// Realtime stream notifikasi untuk badge live update
@@ -50,11 +48,7 @@ class NotificationRepository {
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
         .order('created_at', ascending: false)
-        .map(
-          (data) => data
-              .map((e) => NotificationModel.fromJson(e))
-              .toList(),
-        );
+        .map((data) => data.map((e) => NotificationModel.fromJson(e)).toList());
   }
 }
 
@@ -64,12 +58,11 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
 
 /// Provider notifikasi guru — realtime stream untuk badge & notification screen
 /// Dipakai sebagai: ref.watch(teacherNotificationsProvider)
-final teacherNotificationsProvider =
-    StreamProvider<List<NotificationModel>>((ref) {
+final teacherNotificationsProvider = StreamProvider<List<NotificationModel>>((
+  ref,
+) {
   final user = ref.watch(authRepositoryProvider).currentUser;
   if (user == null) return const Stream.empty();
 
-  return ref
-      .read(notificationRepositoryProvider)
-      .notificationsStream(user.id);
+  return ref.read(notificationRepositoryProvider).notificationsStream(user.id);
 });
