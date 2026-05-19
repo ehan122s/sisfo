@@ -568,12 +568,11 @@ export function AttendancePage() {
                 {/* Stat Cards */}
                 {viewMode === 'input' && students.length > 0 && !isLoading && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {STAT_CARDS.map(({ key, label, icon: Icon, accent, iconBg, numColor, bar, barBg, }) => {
+                        {STAT_CARDS.map(({ key, label, icon: Icon, accent, iconBg, numColor, bar, barBg, darkColor }) => {
                             const count = summaryStats[key] || 0
                             const pct = totalCount > 0 ? Math.round((count / totalCount) * 100) : 0
                             return (
                                 <div
-
                                     key={key}
                                     className={cn(
                                         // White card, border top accent (3px), subtle shadow
