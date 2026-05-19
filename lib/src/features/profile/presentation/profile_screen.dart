@@ -564,6 +564,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     onPressed: () async {
                       Navigator.pop(context);
                       await ref.read(authRepositoryProvider).signOut();
+                      ref.invalidate(profileProvider);
                       if (mounted) context.go('/login');
                     },
                     style: ElevatedButton.styleFrom(

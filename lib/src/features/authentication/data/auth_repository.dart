@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/supabase_config.dart';
 import '../../../core/exceptions/app_exceptions.dart';
+
+// ignore: avoid_web_libraries_in_flutter
+import 'auth_repository_web.dart' if (dart.library.io) 'auth_repository_stub.dart';
 
 class AuthRepository {
   final GoTrueClient _auth = supabase.auth;
@@ -14,9 +18,6 @@ class AuthRepository {
     try {
       await _auth.signInWithPassword(email: email, password: password);
     } on AuthException catch (e) {
-      // Catch Supabase specific AuthException (if the library exposes one with same name, handle conflict)
-      // Actually Supabase throws `AuthException` from `supabase_flutter`.
-      // We should check import.
       throw AppAuthException(e.message, e.statusCode);
     } catch (e) {
       throw AppAuthException('Login Gagal: ${e.toString()}');
@@ -31,7 +32,6 @@ class AuthRepository {
     required String className,
   }) async {
     try {
-      // 1. Sign Up Auth User
       final AuthResponse res = await _auth.signUp(
         email: email,
         password: password,
@@ -41,7 +41,6 @@ class AuthRepository {
       final user = res.user;
       if (user == null) throw ServerException("Gagal membuat user");
 
-      // 2. Insert to Profiles
       await supabase.from('profiles').upsert({
         'id': user.id,
         'full_name': fullName,
@@ -57,7 +56,14 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
+    try {
+      await _auth.signOut(scope: SignOutScope.local);
+    } catch (_) {}
+    
+    // Clear web storage jika di browser
+    if (kIsWeb) {
+      clearWebStorage();
+    }
   }
 
   Future<String> getUserRole() async {

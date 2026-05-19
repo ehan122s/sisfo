@@ -60,7 +60,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
-    refreshListenable: _GoRouterRefreshStream(authRepository.authStateChanges),
+    refreshListenable: _GoRouterRefreshStream(
+      authRepository.authStateChanges,
+      // Invalidate semua provider saat auth state berubah
+      onAuthChange: () {
+        ref.invalidate(userProfileProvider);
+      },
+    ),
     redirect: (context, state) {
       final currentUser = ref.read(authRepositoryProvider).currentUser;
       final isLoggedIn = currentUser != null;
@@ -126,7 +132,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           child: const TeacherDashboardScreen(),
         ),
         routes: [
-          // Monitoring Absensi
           GoRoute(
             path: 'dashboard/attendance',
             parentNavigatorKey: _rootNavigatorKey,
@@ -136,7 +141,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               child: const TeacherAttendanceMonitorScreen(),
             ),
           ),
-          // Laporan Jurnal
           GoRoute(
             path: 'dashboard/journals',
             parentNavigatorKey: _rootNavigatorKey,
@@ -146,7 +150,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               child: const TeacherJournalApprovalScreen(),
             ),
           ),
-          // Daftar Siswa
           GoRoute(
             path: 'dashboard/students',
             parentNavigatorKey: _rootNavigatorKey,
@@ -156,7 +159,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               child: const TeacherStudentListScreen(),
             ),
             routes: [
-              // Detail Siswa
               GoRoute(
                 path: ':studentId',
                 parentNavigatorKey: _rootNavigatorKey,
@@ -175,7 +177,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Notifikasi / Riwayat Aktivitas
           GoRoute(
             path: 'dashboard/notifications',
             parentNavigatorKey: _rootNavigatorKey,
@@ -193,7 +194,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) =>
             MainScreen(navigationShell: navigationShell),
         branches: [
-          // Home
           StatefulShellBranch(
             navigatorKey: _shellNavigatorKey,
             routes: [
@@ -220,7 +220,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // History
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -233,7 +232,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Journal
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -268,7 +266,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Profile
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -355,11 +352,20 @@ class _RoleBaseRedirector extends ConsumerWidget {
   }
 }
 
+// ── GoRouter Refresh Stream dengan invalidate provider ────────────────────────
+
 class _GoRouterRefreshStream extends ChangeNotifier {
-  _GoRouterRefreshStream(Stream<dynamic> stream) {
-    _subscription = stream.asBroadcastStream().listen((_) => notifyListeners());
+  _GoRouterRefreshStream(
+    Stream<dynamic> stream, {
+    required VoidCallback onAuthChange,
+  }) {
+    _subscription = stream.asBroadcastStream().listen((_) {
+      onAuthChange(); // invalidate providers
+      notifyListeners();
+    });
   }
   late final dynamic _subscription;
+
   @override
   void dispose() {
     _subscription.cancel();

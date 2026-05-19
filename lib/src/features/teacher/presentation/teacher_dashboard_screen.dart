@@ -219,8 +219,10 @@ class TeacherDashboardScreen extends ConsumerWidget {
               icon: Icons.logout,
               color: Colors.red[50],
               iconColor: Colors.red,
-              onTap: () {
-                ref.read(authRepositoryProvider).signOut();
+              onTap: () async {
+                await ref.read(authRepositoryProvider).signOut();
+                ref.invalidate(userProfileProvider);
+                if (context.mounted) context.go('/login');
               },
             ),
           ],
