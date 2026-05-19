@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from "sonner"
 import { flexRender, type Row } from "@tanstack/react-table"
 import { supabase } from '@/lib/supabase'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
     Building2, UserPlus, Upload, Loader2, FileSpreadsheet,
