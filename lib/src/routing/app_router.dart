@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// Import repositories
 import '../features/authentication/data/auth_repository.dart';
 import '../features/profile/data/profile_repository.dart';
-
-// Import screens
 import '../features/authentication/presentation/login_screen.dart';
 import '../features/authentication/presentation/verification_status_screen.dart';
 import '../features/admin/presentation/admin_dashboard_screen.dart';
@@ -18,120 +15,269 @@ import '../features/home/domain/announcement_model.dart';
 import '../features/attendance/presentation/attendance_history_screen.dart';
 import '../features/journal/presentation/daily_journal_screen.dart';
 import '../features/journal/presentation/journal_form_screen.dart';
+import '../features/journal/presentation/journal_detail_screen.dart';
 import '../features/teacher/presentation/teacher_dashboard_screen.dart';
+import '../features/teacher/presentation/teacher_attendance_monitor_screen.dart';
+import '../features/teacher/presentation/teacher_journal_approval_screen.dart';
+import '../features/teacher/presentation/teacher_student_list_screen.dart';
+import '../features/teacher/presentation/teacher_student_detail_screen.dart';
+import '../features/teacher/presentation/notifications/notification_screen.dart';
 import '../features/authentication/presentation/splash_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
+CustomTransitionPage _buildPageWithTransition({
+  required BuildContext context,
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 350),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final fadeTween = Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+      final slideTween = Tween<Offset>(
+        begin: const Offset(0, 0.04),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut));
+      return FadeTransition(
+        opacity: fadeTween,
+        child: SlideTransition(position: slideTween, child: child),
+      );
+    },
+  );
+}
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  
+
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: _GoRouterRefreshStream(authRepository.authStateChanges),
-
     redirect: (context, state) {
       final currentUser = ref.read(authRepositoryProvider).currentUser;
       final isLoggedIn = currentUser != null;
-      final isLoggingIn = state.uri.toString() == '/login';
-      final isSplash = state.uri.toString() == '/splash';
-
-      if (!isLoggedIn) {
-        return (isLoggingIn || isSplash) ? null : '/login';
-      }
-
-      if (isLoggedIn && (isLoggingIn || isSplash)) {
-        return '/';
-      }
-
+      final path = state.uri.toString();
+      final isLoggingIn = path == '/login';
+      final isSplash = path == '/splash';
+      if (!isLoggedIn) return (isLoggingIn || isSplash) ? null : '/login';
+      if (isLoggedIn && (isLoggingIn || isSplash)) return '/';
       return null;
     },
-
     routes: [
       GoRoute(
         path: '/splash',
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (c, s) => _buildPageWithTransition(
+          context: c,
+          state: s,
+          child: const SplashScreen(),
+        ),
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (c, s) => _buildPageWithTransition(
+          context: c,
+          state: s,
+          child: const LoginScreen(),
+        ),
       ),
-
+      GoRoute(
+        path: '/verification',
+        pageBuilder: (c, s) => _buildPageWithTransition(
+          context: c,
+          state: s,
+          child: VerificationStatusScreen(
+            status: s.extra as String? ?? 'pending',
+          ),
+        ),
+      ),
       GoRoute(
         path: '/',
-        builder: (context, state) => const _RoleBaseRedirector(),
+        pageBuilder: (c, s) => _buildPageWithTransition(
+          context: c,
+          state: s,
+          child: const _RoleBaseRedirector(),
+        ),
       ),
-
-      // --- ADMIN ROUTE ---
       GoRoute(
         path: '/admin',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AdminDashboardScreen(),
+        pageBuilder: (c, s) => _buildPageWithTransition(
+          context: c,
+          state: s,
+          child: const AdminDashboardScreen(),
+        ),
       ),
 
-      // --- TEACHER ROUTE ---
+      // ── Teacher Routes ────────────────────────────────────────────────────
       GoRoute(
         path: '/teacher',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const TeacherDashboardScreen(),
+        pageBuilder: (c, s) => _buildPageWithTransition(
+          context: c,
+          state: s,
+          child: const TeacherDashboardScreen(),
+        ),
+        routes: [
+          // Monitoring Absensi
+          GoRoute(
+            path: 'dashboard/attendance',
+            parentNavigatorKey: _rootNavigatorKey,
+            pageBuilder: (c, s) => _buildPageWithTransition(
+              context: c,
+              state: s,
+              child: const TeacherAttendanceMonitorScreen(),
+            ),
+          ),
+          // Laporan Jurnal
+          GoRoute(
+            path: 'dashboard/journals',
+            parentNavigatorKey: _rootNavigatorKey,
+            pageBuilder: (c, s) => _buildPageWithTransition(
+              context: c,
+              state: s,
+              child: const TeacherJournalApprovalScreen(),
+            ),
+          ),
+          // Daftar Siswa
+          GoRoute(
+            path: 'dashboard/students',
+            parentNavigatorKey: _rootNavigatorKey,
+            pageBuilder: (c, s) => _buildPageWithTransition(
+              context: c,
+              state: s,
+              child: const TeacherStudentListScreen(),
+            ),
+            routes: [
+              // Detail Siswa
+              GoRoute(
+                path: ':studentId',
+                parentNavigatorKey: _rootNavigatorKey,
+                pageBuilder: (c, s) {
+                  final studentId = s.pathParameters['studentId']!;
+                  final studentData = s.extra as Map<String, dynamic>? ?? {};
+                  return _buildPageWithTransition(
+                    context: c,
+                    state: s,
+                    child: TeacherStudentDetailScreen(
+                      studentId: studentId,
+                      studentData: studentData,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          // Notifikasi / Riwayat Aktivitas
+          GoRoute(
+            path: 'dashboard/notifications',
+            parentNavigatorKey: _rootNavigatorKey,
+            pageBuilder: (c, s) => _buildPageWithTransition(
+              context: c,
+              state: s,
+              child: const NotificationScreen(),
+            ),
+          ),
+        ],
       ),
 
-      // --- STUDENT SHELL ---
+      // ── Student Shell ─────────────────────────────────────────────────────
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return MainScreen(navigationShell: navigationShell);
-        },
+        builder: (context, state, navigationShell) =>
+            MainScreen(navigationShell: navigationShell),
         branches: [
+          // Home
           StatefulShellBranch(
             navigatorKey: _shellNavigatorKey,
             routes: [
               GoRoute(
                 path: '/home',
-                builder: (context, state) => const HomeScreen(),
+                pageBuilder: (c, s) => _buildPageWithTransition(
+                  context: c,
+                  state: s,
+                  child: const HomeScreen(),
+                ),
                 routes: [
                   GoRoute(
                     path: 'announcements/detail',
                     parentNavigatorKey: _rootNavigatorKey,
-                    builder: (context, state) {
-                      final announcement = state.extra as AnnouncementModel;
-                      return AnnouncementDetailScreen(announcement: announcement);
-                    },
+                    pageBuilder: (c, s) => _buildPageWithTransition(
+                      context: c,
+                      state: s,
+                      child: AnnouncementDetailScreen(
+                        announcement: s.extra as AnnouncementModel,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ],
           ),
+          // History
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/history', 
-                builder: (context, state) => const AttendanceHistoryScreen()
+                path: '/history',
+                pageBuilder: (c, s) => _buildPageWithTransition(
+                  context: c,
+                  state: s,
+                  child: const AttendanceHistoryScreen(),
+                ),
               ),
             ],
           ),
+          // Journal
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/journal', 
-                builder: (context, state) => const DailyJournalScreen(),
+                path: '/journal',
+                pageBuilder: (c, s) => _buildPageWithTransition(
+                  context: c,
+                  state: s,
+                  child: const DailyJournalScreen(),
+                ),
                 routes: [
-                  // FIX: Menambahkan sub-route /create agar /journal/create bisa diakses
                   GoRoute(
                     path: 'create',
-                    parentNavigatorKey: _rootNavigatorKey, // Supaya form menutupi bottom nav
-                    builder: (context, state) => const JournalFormScreen(),
+                    parentNavigatorKey: _rootNavigatorKey,
+                    pageBuilder: (c, s) => _buildPageWithTransition(
+                      context: c,
+                      state: s,
+                      child: const JournalFormScreen(),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'detail',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    pageBuilder: (c, s) => _buildPageWithTransition(
+                      context: c,
+                      state: s,
+                      child: JournalDetailScreen(
+                        journal: s.extra as Map<String, dynamic>,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ],
           ),
+          // Profile
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/profile', 
-                builder: (context, state) => const ProfileScreen()
+                path: '/profile',
+                pageBuilder: (c, s) => _buildPageWithTransition(
+                  context: c,
+                  state: s,
+                  child: const ProfileScreen(),
+                ),
               ),
             ],
           ),
@@ -147,41 +293,63 @@ class _RoleBaseRedirector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(userProfileProvider);
-
     return profileAsync.when(
       data: (profile) {
-        if (profile == null) return const LoginScreen();
-
+        if (profile == null) {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => context.go('/login'),
+          );
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
         final role = profile['role']?.toString().toLowerCase() ?? 'student';
         final status = profile['status']?.toString().toLowerCase() ?? 'pending';
-
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (role == 'admin') {
             context.go('/admin');
           } else if (role == 'teacher') {
             context.go('/teacher');
           } else {
-            if (status != 'active') {
-              context.go('/login'); // Atau arahkan ke VerificationStatusScreen
-              showDialog(
-                context: context,
-                builder: (context) => VerificationStatusScreen(status: status),
-              );
-            } else {
-              context.go('/home');
-            }
+            context.go(
+              status == 'active' ? '/home' : '/verification',
+              extra: status == 'active' ? null : status,
+            );
           }
         });
-
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (err, stack) => Scaffold(
-        body: Center(child: Text('Gagal memuat profil: $err')),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (err, _) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Gagal memuat profil',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                err.toString(),
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => context.go('/login'),
+                child: const Text('Kembali ke Login'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

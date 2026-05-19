@@ -112,6 +112,7 @@ class _TeacherStudentDetailScreenState
         ),
         body: Column(
           children: [
+            // Month Picker
             Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -252,9 +253,6 @@ class _TeacherStudentDetailScreenState
             label: 'Alamat Perusahaan',
             value: s['company_address'] ?? '-',
           ),
-          const SizedBox(height: 24),
-          _buildInfoTile('NISN', s['nisn'] ?? '-'),
-          _buildInfoTile('Perusahaan', s['company_name'] ?? '-'),
         ],
       ),
     );
@@ -334,23 +332,6 @@ class _TeacherStudentDetailScreenState
             subtitle: 'Bulan ini belum ada catatan kehadiran',
           );
         }
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: logs.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final log = logs[index];
-            // PERBAIKAN: gunakan log['date'] bukan log['created_at']
-            final date = DateTime.tryParse(log['date'] ?? '');
-            final dateStr = date != null
-                ? DateFormat('EEE, dd MMM yyyy', 'id_ID').format(date)
-                : '-';
-            final timeIn = log['check_in_time'] != null
-                ? DateFormat('HH:mm').format(DateTime.parse(log['check_in_time']))
-                : '-';
-            final timeOut = log['check_out_time'] != null
-                ? DateFormat('HH:mm').format(DateTime.parse(log['check_out_time']))
-                : '-';
 
         // Summary counts
         final hadir = logs.where((l) => l['status'] == 'Hadir').length;
@@ -368,13 +349,10 @@ class _TeacherStudentDetailScreenState
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.access_time, color: Colors.blue),
+                  _SummaryChip(
+                    label: 'Hadir',
+                    count: hadir,
+                    color: const Color(0xFF10B981),
                   ),
                   _SummaryChip(
                     label: 'Telat',
@@ -697,149 +675,48 @@ class _TeacherStudentDetailScreenState
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    Color color;
-    switch (status) {
-      case 'Hadir':
-        color = Colors.green;
-        break;
-      case 'Telat':
-      case 'Terlambat':
-        color = Colors.orange;
-        break;
-      case 'Izin':
-        color = Colors.blue;
-        break;
-      case 'Sakit':
-        color = Colors.purple;
-        break;
-      case 'Alpa':
-        color = Colors.red;
-        break;
-      default:
-        color = Colors.grey;
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
+  void _showFullImage(BuildContext context, String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: Text(
+              'Foto Bukti',
+              style: GoogleFonts.poppins(color: Colors.white, fontSize: 14),
+            ),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.white,
+                  size: 64,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildJournalTab(
-    AsyncValue<List<Map<String, dynamic>>> journalsAsync,
-  ) {
-    return journalsAsync.when(
-      data: (journals) {
-        if (journals.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.edit_note, size: 64, color: Colors.grey[300]),
-                const SizedBox(height: 16),
-                Text(
-                  'Belum ada jurnal bulan ini',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 16),
-                ),
-              ],
-            ),
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: journals.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final journal = journals[index];
-            final date = DateTime.tryParse(journal['date'] ?? journal['created_at'] ?? '');
-            final dateStr = date != null
-                ? DateFormat('EEE, dd MMM', 'id_ID').format(date)
-                : '-';
-            final isApproved = journal['is_approved'] == true;
-
-            return Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade200),
-              ),
-              child: ListTile(
-                onTap: () => _showJournalDetailDialog(context, journal),
-                leading: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                    image: journal['evidence_photo'] != null
-                        ? DecorationImage(
-                            image: CachedNetworkImageProvider(journal['evidence_photo']),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: journal['evidence_photo'] == null
-                      ? const Icon(Icons.image, color: Colors.grey)
-                      : null,
-                ),
-                title: Text(
-                  journal['activity_title'] ?? 'Kegiatan Prakerin',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(dateStr),
-                    if (journal['description'] != null)
-                      Text(
-                        journal['description'],
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                  ],
-                ),
-                trailing: isApproved
-                    ? const Icon(Icons.check_circle, color: Colors.green)
-                    : const Icon(Icons.pending, color: Colors.orange),
-              ),
-            );
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) {
-        debugPrint('Error loading journals: $e');
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text('Terjadi kesalahan: $e', textAlign: TextAlign.center),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showJournalDetailDialog(
-    BuildContext context,
-    Map<String, dynamic> journal,
-  ) {
-    final date = DateTime.tryParse(journal['date'] ?? journal['created_at'] ?? '');
-    final dateStr = date != null
-        ? DateFormat('EEEE, dd MMMM yyyy • HH:mm', 'id_ID').format(date)
-        : '-';
+  void _showJournalDetail(BuildContext context, Map<String, dynamic> journal) {
+    final activities = journal['activities'] ?? '-';
+    final notes = journal['notes'] ?? '';
+    final challenges = journal['challenges'] ?? '';
+    final evidenceUrl = journal['evidence_url'];
+    final date =
+        journal['date']?.toString() ??
+        journal['created_at']?.toString().split('T')[0] ??
+        '-';
     final isApproved = journal['is_approved'] == true;
 
     showModalBottomSheet(
@@ -866,6 +743,53 @@ class _TeacherStudentDetailScreenState
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 16,
+                      color: Color(0xFF3B82F6),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      date,
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1F2937),
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isApproved
+                            ? const Color(0xFFD1FAE5)
+                            : const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        isApproved ? 'Disetujui' : 'Menunggu',
+                        style: GoogleFonts.poppins(
+                          color: isApproved
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFFD97706),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(height: 1),
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
@@ -873,76 +797,65 @@ class _TeacherStudentDetailScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (journal['evidence_photo'] != null)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CachedNetworkImage(
-                            imageUrl: journal['evidence_photo'],
-                            width: double.infinity,
-                            height: 250,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              height: 250,
-                              color: Colors.grey[200],
-                              child: const Center(child: CircularProgressIndicator()),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              height: 250,
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.broken_image, size: 50),
-                            ),
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      Text(
-                        journal['activity_title'] ?? 'Kegiatan Prakerin',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(dateStr, style: TextStyle(color: Colors.grey[600])),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isApproved
-                                  ? Colors.green.withValues(alpha: 0.1)
-                                  : Colors.orange.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                      // Foto — tap untuk fullscreen
+                      if (evidenceUrl != null) ...[
+                        GestureDetector(
+                          onTap: () => _showFullImage(context, evidenceUrl),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Stack(
                               children: [
-                                Icon(
-                                  isApproved ? Icons.check_circle : Icons.pending,
-                                  size: 16,
-                                  color: isApproved ? Colors.green : Colors.orange,
+                                Image.network(
+                                  evidenceUrl,
+                                  width: double.infinity,
+                                  height: 220,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const SizedBox.shrink(),
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  isApproved ? 'Disetujui' : 'Menunggu',
-                                  style: TextStyle(
-                                    color: isApproved ? Colors.green : Colors.orange,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                                Positioned(
+                                  bottom: 8,
+                                  right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.zoom_in,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Perbesar',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Deskripsi Kegiatan',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                      _DetailSection(
+                        label: 'Aktivitas',
+                        value: activities,
+                        icon: Icons.task_alt_rounded,
+                        color: const Color(0xFF3B82F6),
                       ),
                       if (challenges.isNotEmpty) ...[
                         const SizedBox(height: 14),
@@ -952,9 +865,14 @@ class _TeacherStudentDetailScreenState
                           icon: Icons.warning_amber_rounded,
                           color: const Color(0xFFF59E0B),
                         ),
-                        child: Text(
-                          journal['description'] ?? 'Tidak ada deskripsi.',
-                          style: TextStyle(fontSize: 14, color: Colors.grey[800], height: 1.5),
+                      ],
+                      if (notes.isNotEmpty) ...[
+                        const SizedBox(height: 14),
+                        _DetailSection(
+                          label: 'Catatan',
+                          value: notes,
+                          icon: Icons.notes_rounded,
+                          color: const Color(0xFF8B5CF6),
                         ),
                       ],
                       const SizedBox(height: 24),
@@ -966,6 +884,144 @@ class _TeacherStudentDetailScreenState
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 48, color: const Color(0xFF3B82F6)),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: GoogleFonts.poppins(fontSize: 13, color: Colors.grey[400]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Summary Chip ──────────────────────────────────────────────────────────────
+
+class _SummaryChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+
+  const _SummaryChip({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              '$count',
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[600]),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Detail Section ────────────────────────────────────────────────────────────
+
+class _DetailSection extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _DetailSection({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 15, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withValues(alpha: 0.15)),
+          ),
+          child: Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: const Color(0xFF1F2937),
+              height: 1.5,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
