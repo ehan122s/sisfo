@@ -290,19 +290,36 @@ class AttendanceRepository {
     }
   }
 
-  // 5. Check if already checked in today
-  Future<bool> hasCheckedInToday(String studentId) async {
-    final today = DateTime.now().toIso8601String().split('T')[0];
-    final response = await _supabase
-        .from('attendance_logs')
-        .select()
-        .eq('student_id', studentId)
-        .gte('created_at', '$today 00:00:00')
-        .lte('created_at', '$today 23:59:59')
-        .limit(1);
+ // 5. Check if already checked in today (FIX TIMEZONE)
+Future<bool> hasCheckedInToday(String studentId) async {
+  final now = DateTime.now();
 
-    return (response as List).isNotEmpty;
-  }
+  final startOfDay = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  );
+
+  final endOfDay = startOfDay.add(
+    const Duration(days: 1),
+  );
+
+  final response = await _supabase
+      .from('attendance_logs')
+      .select()
+      .eq('student_id', studentId)
+      .gte(
+        'created_at',
+        startOfDay.toUtc().toIso8601String(),
+      )
+      .lt(
+        'created_at',
+        endOfDay.toUtc().toIso8601String(),
+      )
+      .limit(1);
+
+  return response.isNotEmpty;
+}
 
   // 6. Get Student Placement & Company Location
   Future<Map<String, dynamic>?> getStudentPlacement(String studentId) async {
@@ -355,31 +372,55 @@ final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
 });
 
 // Returns null if no log, otherwise returns the log (including check_out_time)
+// Returns today's attendance log
 final todaysAttendanceLogProvider =
     StreamProvider.autoDispose<Map<String, dynamic>?>((ref) {
-      final user = ref.watch(authRepositoryProvider).currentUser;
-      if (user == null) return Stream.value(null);
+  final user = ref.watch(authRepositoryProvider).currentUser;
 
-      final repository = ref.watch(attendanceRepositoryProvider);
+  if (user == null) {
+    return Stream.value(null);
+  }
 
-      return repository.getAttendanceStream(user.id).map((logs) {
-        if (logs.isEmpty) return null;
+  final repository = ref.watch(
+    attendanceRepositoryProvider,
+  );
 
-        final today = DateTime.now().toIso8601String().split('T')[0];
+  return repository
+      .getAttendanceStream(user.id)
+      .map((logs) {
+    if (logs.isEmpty) return null;
 
-        // Find the log that matches today
-        try {
-          final todayLog = logs.firstWhere((log) {
-            final logDate = (log['created_at'] as String).split('T')[0];
-            return logDate == today;
-          });
-          return todayLog;
-        } catch (e) {
-          // No log for today found in the recent list
-          return null;
-        }
-      });
-    });
+    final now = DateTime.now();
+
+    final today = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    );
+
+    try {
+      final todayLog = logs.firstWhere(
+        (log) {
+          final createdAt = DateTime.parse(
+            log['created_at'],
+          ).toLocal();
+
+          final logDate = DateTime(
+            createdAt.year,
+            createdAt.month,
+            createdAt.day,
+          );
+
+          return logDate == today;
+        },
+      );
+
+      return todayLog;
+    } catch (_) {
+      return null;
+    }
+  });
+});
 
 final studentPlacementProvider =
     FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
