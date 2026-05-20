@@ -58,13 +58,31 @@ class TeacherRepository {
     if (students.isEmpty) return [];
 
     final studentIds = students.map((s) => s['student_id']).toList();
-    final today = DateTime.now().toIso8601String().split('T')[0];
+    final now = DateTime.now();
+    // FIX: pakai DateTime constructor dengan jam, menit, detik
+    final startOfToday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      0,
+      0,
+      0,
+    ).toIso8601String();
+    final endOfToday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      23,
+      59,
+      59,
+    ).toIso8601String();
 
     final logsResponse = await _supabase
         .from('attendance_logs')
         .select()
         .inFilter('student_id', studentIds)
-        .gte('created_at', '$today 00:00:00')
+        .gte('created_at', startOfToday)
+        .lte('created_at', endOfToday)
         .order('created_at', ascending: false);
 
     final logs = List<Map<String, dynamic>>.from(logsResponse);
@@ -122,15 +140,16 @@ class TeacherRepository {
     final m = month ?? now.month;
     final y = year ?? now.year;
 
-    final startOfMonth = DateTime(y, m, 1).toIso8601String();
-    final endOfMonth = DateTime(y, m + 1, 0).toIso8601String();
+    // FIX: masukkan jam, menit, detik langsung ke DateTime
+    final startOfMonth = DateTime(y, m, 1, 0, 0, 0).toIso8601String();
+    final endOfMonth = DateTime(y, m + 1, 0, 23, 59, 59).toIso8601String();
 
     final logsResponse = await _supabase
         .from('attendance_logs')
         .select()
         .inFilter('student_id', studentIds)
         .gte('created_at', startOfMonth)
-        .lte('created_at', '$endOfMonth 23:59:59')
+        .lte('created_at', endOfMonth)
         .order('created_at', ascending: false);
 
     final logs = List<Map<String, dynamic>>.from(logsResponse);
@@ -155,23 +174,23 @@ class TeacherRepository {
     int month,
     int year,
   ) async {
-    final startOfMonth = DateTime(
-      year,
-      month,
-      1,
-    ).toIso8601String().split('T')[0];
+    // FIX: masukkan jam, menit, detik langsung ke DateTime
+    final startOfMonth = DateTime(year, month, 1, 0, 0, 0).toIso8601String();
     final endOfMonth = DateTime(
       year,
       month + 1,
       0,
-    ).toIso8601String().split('T')[0];
+      23,
+      59,
+      59,
+    ).toIso8601String();
 
     final response = await _supabase
         .from('attendance_logs')
         .select()
         .eq('student_id', studentId)
-        .gte('created_at', '$startOfMonth 00:00:00')
-        .lte('created_at', '$endOfMonth 23:59:59')
+        .gte('created_at', startOfMonth)
+        .lte('created_at', endOfMonth)
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(response);
@@ -183,23 +202,23 @@ class TeacherRepository {
     int month,
     int year,
   ) async {
-    final startOfMonth = DateTime(
-      year,
-      month,
-      1,
-    ).toIso8601String().split('T')[0];
+    // FIX: masukkan jam, menit, detik langsung ke DateTime
+    final startOfMonth = DateTime(year, month, 1, 0, 0, 0).toIso8601String();
     final endOfMonth = DateTime(
       year,
       month + 1,
       0,
-    ).toIso8601String().split('T')[0];
+      23,
+      59,
+      59,
+    ).toIso8601String();
 
     final response = await _supabase
         .from('daily_journals')
         .select()
         .eq('student_id', studentId)
-        .gte('created_at', '$startOfMonth 00:00:00')
-        .lte('created_at', '$endOfMonth 23:59:59')
+        .gte('created_at', startOfMonth)
+        .lte('created_at', endOfMonth)
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(response);

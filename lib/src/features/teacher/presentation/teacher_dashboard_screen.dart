@@ -7,7 +7,6 @@ import '../../profile/data/profile_repository.dart';
 import '../data/teacher_repository.dart';
 import '../data/notification_repository.dart';
 import '../../../services/excel_service.dart';
-import 'package:open_file/open_file.dart';
 
 class TeacherDashboardScreen extends ConsumerWidget {
   const TeacherDashboardScreen({super.key});
@@ -114,18 +113,18 @@ class TeacherDashboardScreen extends ConsumerWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF3B82F6), // Biru
+                      color: const Color(0xFF3B82F6),
                       width: 2,
                     ),
                   ),
                   child: CircleAvatar(
                     radius: 24,
-                    backgroundColor: const Color(0xFFEFF6FF), // Biru muda
+                    backgroundColor: const Color(0xFFEFF6FF),
                     child: Text(
                       profile?['full_name']?.substring(0, 1).toUpperCase() ??
                           'G',
                       style: GoogleFonts.poppins(
-                        color: const Color(0xFF3B82F6), // Biru
+                        color: const Color(0xFF3B82F6),
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                       ),
@@ -388,26 +387,13 @@ class TeacherDashboardScreen extends ConsumerWidget {
       final profile = ref.read(userProfileProvider).value;
       final teacherName = profile?['full_name'] ?? 'Guru';
 
-      final file = await ExcelService().generateAttendanceReport(
-        data,
-        teacherName,
-      );
+      // FIX: generateAttendanceReport sekarang void, download otomatis via browser
+      await ExcelService().generateAttendanceReport(data, teacherName);
 
-      if (file.existsSync()) {
-        final result = await OpenFile.open(file.path);
-        if (result.type != ResultType.done) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Gagal membuka file: ${result.message}')),
-            );
-          }
-        } else {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('File disimpan & dibuka.')),
-            );
-          }
-        }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Laporan berhasil diunduh!')),
+        );
       }
     } catch (e) {
       if (context.mounted) {
