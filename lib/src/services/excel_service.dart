@@ -1,11 +1,11 @@
-import 'dart:io';
 import 'package:excel/excel.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 class ExcelService {
-  /// Generates an Excel file for Attendance Report
-  Future<File> generateAttendanceReport(
+  /// Generates and downloads an Excel file for Attendance Report (Flutter Web)
+  Future<void> generateAttendanceReport(
     List<Map<String, dynamic>> data,
     String teacherName,
   ) async {
@@ -60,7 +60,6 @@ class ExcelService {
     }
 
     // Data Rows
-    // data expected to be a flat list of attendance logs merged with student info
     for (var i = 0; i < data.length; i++) {
       final row = data[i];
       final rowIndex = i + 3;
@@ -69,25 +68,25 @@ class ExcelService {
           .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex))
           .value = TextCellValue(
         row['full_name'] ?? '-',
-      ); // Nama
+      );
 
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex))
           .value = TextCellValue(
         row['nisn'] ?? '-',
-      ); // NISN
+      );
 
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex))
           .value = TextCellValue(
         row['class_name'] ?? '-',
-      ); // Kelas
+      );
 
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex))
           .value = TextCellValue(
         row['company_name'] ?? '-',
-      ); // Perusahaan
+      );
 
       // Format Date/Time
       String dateStr = '-';
@@ -109,42 +108,44 @@ class ExcelService {
           .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex))
           .value = TextCellValue(
         dateStr,
-      ); // Tanggal
+      );
 
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex))
           .value = TextCellValue(
         checkInStr,
-      ); // Jam Masuk
+      );
 
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex))
           .value = TextCellValue(
         checkOutStr,
-      ); // Jam Pulang
+      );
 
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex))
           .value = TextCellValue(
         row['status'] ?? '-',
-      ); // Status
+      );
     }
 
-    // Auto-fit columns (not natively supported perfectly, but we can set fixed widths)
-    // excel.sheets[sheetName]?.setColAutoFit(0); // Deprecated/Experimental in some versions
+    // Generate bytes
+    final fileBytes = excel.save();
+    if (fileBytes == null) {
+      throw Exception('Failed to generate Excel file');
+    }
 
-    // Save File
-    final directory = await getApplicationDocumentsDirectory();
+    // Download via browser (Flutter Web)
     final fileName =
         'Laporan_Absensi_${DateFormat('yyyyMMdd_HHmm').format(DateTime.now())}.xlsx';
-    final file = File('${directory.path}/$fileName');
 
-    final fileBytes = excel.save();
-    if (fileBytes != null) {
-      await file.writeAsBytes(fileBytes);
-      return file;
-    } else {
-      throw Exception('Failed to save Excel file');
-    }
+    final blob = html.Blob([
+      fileBytes,
+    ], 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', fileName)
+      ..click();
+    html.Url.revokeObjectUrl(url);
   }
 }

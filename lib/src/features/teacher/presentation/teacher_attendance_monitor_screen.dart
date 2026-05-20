@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../data/teacher_repository.dart';
 
 class TeacherAttendanceMonitorScreen extends ConsumerStatefulWidget {
@@ -17,6 +18,7 @@ class _TeacherAttendanceMonitorScreenState
     extends ConsumerState<TeacherAttendanceMonitorScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  DateTime _selectedDate = DateTime.now();
 
   @override
   void initState() {
@@ -30,7 +32,34 @@ class _TeacherAttendanceMonitorScreenState
     super.dispose();
   }
 
-  // ── Fullscreen Image Viewer ───────────────────────────────────────────────
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: Color(0xFF1E3A8A),
+            onPrimary: Colors.white,
+            surface: Colors.white,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  bool get _isToday {
+    final now = DateTime.now();
+    return _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+  }
 
   void _showFullImage(BuildContext context, String imageUrl) {
     Navigator.of(context).push(
@@ -67,7 +96,10 @@ class _TeacherAttendanceMonitorScreenState
 
   @override
   Widget build(BuildContext context) {
-    final attendanceAsync = ref.watch(managedAttendanceProvider);
+    final attendanceAsync = ref.watch(managedAttendanceProvider(_selectedDate));
+    final dateLabel = _isToday
+        ? 'Hari Ini'
+        : DateFormat('EEE, dd MMM yyyy', 'id_ID').format(_selectedDate);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
@@ -93,7 +125,8 @@ class _TeacherAttendanceMonitorScreenState
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            onPressed: () => ref.refresh(managedAttendanceProvider),
+            onPressed: () =>
+                ref.refresh(managedAttendanceProvider(_selectedDate)),
           ),
         ],
         bottom: TabBar(
@@ -131,11 +164,93 @@ class _TeacherAttendanceMonitorScreenState
 
           return Column(
             children: [
-              // ── Summary ────────────────────────────────────────────────
+              // ── Date Picker Bar ───────────────────────────────────────
               Container(
                 color: Colors.white,
                 padding: const EdgeInsets.symmetric(
-                  vertical: 14,
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    // Prev day
+                    IconButton(
+                      onPressed: () => setState(() {
+                        _selectedDate = _selectedDate.subtract(
+                          const Duration(days: 1),
+                        );
+                      }),
+                      icon: const Icon(
+                        Icons.chevron_left_rounded,
+                        color: Color(0xFF1E3A8A),
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
+                    // Date label — tap untuk date picker
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _pickDate,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEFF6FF),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.calendar_today_rounded,
+                                size: 14,
+                                color: Color(0xFF1E3A8A),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                dateLabel,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF1E3A8A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Next day (disabled jika hari ini)
+                    IconButton(
+                      onPressed: _isToday
+                          ? null
+                          : () => setState(() {
+                              _selectedDate = _selectedDate.add(
+                                const Duration(days: 1),
+                              );
+                            }),
+                      icon: Icon(
+                        Icons.chevron_right_rounded,
+                        color: _isToday
+                            ? Colors.grey[300]
+                            : const Color(0xFF1E3A8A),
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Summary ───────────────────────────────────────────────
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
                   horizontal: 16,
                 ),
                 child: Row(
@@ -169,6 +284,7 @@ class _TeacherAttendanceMonitorScreenState
                 ),
               ),
               const Divider(height: 1),
+
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -219,7 +335,8 @@ class _TeacherAttendanceMonitorScreenState
     }
 
     return RefreshIndicator(
-      onRefresh: () async => ref.refresh(managedAttendanceProvider),
+      onRefresh: () async =>
+          ref.refresh(managedAttendanceProvider(_selectedDate)),
       child: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: students.length,
@@ -581,7 +698,7 @@ class _TeacherAttendanceMonitorScreenState
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Belum ada siswa\nyang absen hari ini',
+                    'Belum ada siswa\nyang absen pada tanggal ini',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 14,
@@ -624,7 +741,7 @@ class _TeacherAttendanceMonitorScreenState
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      isScrollControlled: true, // fix overflow
+      isScrollControlled: true,
       builder: (context) => DraggableScrollableSheet(
         initialChildSize: 0.6,
         minChildSize: 0.4,
@@ -636,7 +753,6 @@ class _TeacherAttendanceMonitorScreenState
           ),
           child: Column(
             children: [
-              // Handle bar
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 width: 40,
@@ -646,7 +762,6 @@ class _TeacherAttendanceMonitorScreenState
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              // Header
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -714,7 +829,6 @@ class _TeacherAttendanceMonitorScreenState
               ),
               const SizedBox(height: 12),
               const Divider(height: 1),
-              // Scrollable content
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
@@ -759,7 +873,6 @@ class _TeacherAttendanceMonitorScreenState
                             value:
                                 '${(log['check_in_latitude'] as num).toStringAsFixed(6)}, ${(log['check_in_longitude'] as num).toStringAsFixed(6)}',
                           ),
-                        // Foto absen — tap untuk fullscreen
                         if (photoUrl != null) ...[
                           const SizedBox(height: 4),
                           Text(
@@ -785,7 +898,6 @@ class _TeacherAttendanceMonitorScreenState
                                     errorBuilder: (_, __, ___) =>
                                         const SizedBox.shrink(),
                                   ),
-                                  // Zoom hint
                                   Positioned(
                                     bottom: 8,
                                     right: 8,
@@ -827,7 +939,7 @@ class _TeacherAttendanceMonitorScreenState
                         _DetailRow(
                           icon: Icons.info_outline_rounded,
                           label: 'Keterangan',
-                          value: 'Belum melakukan absen hari ini',
+                          value: 'Belum melakukan absen pada tanggal ini',
                           valueColor: Colors.grey,
                         ),
                     ],

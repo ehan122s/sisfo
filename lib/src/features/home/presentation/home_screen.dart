@@ -9,6 +9,7 @@ import '../../authentication/data/auth_repository.dart';
 import '../../profile/data/profile_repository.dart';
 import '../../attendance/presentation/attendance_screen.dart';
 import '../../attendance/data/attendance_repository.dart';
+import '../../attendance/data/attendance_timer_provider.dart';
 import '../../offline/presentation/sync_status_indicator.dart';
 import '../../journal/data/journal_repository.dart';
 import 'announcement_banner.dart';
@@ -359,6 +360,8 @@ class _MainSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final todayLogAsync = ref.watch(todaysAttendanceLogProvider);
+    final timerState = ref.watch(attendanceTimerProvider);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       child: Column(
@@ -380,6 +383,7 @@ class _MainSection extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // ── Kartu Status ──────────────────────────────────────
                 Expanded(
                   child: todayLogAsync.when(
                     data: (log) {
@@ -437,20 +441,61 @@ class _MainSection extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(width: 14),
+                // ── Kartu Durasi (real-time) ──────────────────────────
                 Expanded(
                   child: todayLogAsync.when(
                     data: (log) {
-                      String dur = '0j 0m';
+                      // Sudah checkout → durasi final
                       if (log?['check_in_time'] != null &&
                           log?['check_out_time'] != null) {
                         final s = DateTime.parse(log!['check_in_time']);
                         final e = DateTime.parse(log['check_out_time']);
                         final d = e.difference(s);
-                        dur = '${d.inHours}j ${d.inMinutes.remainder(60)}m';
+                        final dur =
+                            '${d.inHours}j ${d.inMinutes.remainder(60)}m';
+                        return _StatCard(
+                          label: 'Durasi',
+                          value: dur,
+                          sub: 'Target: 8 Jam',
+                          icon: Icons.timelapse_rounded,
+                          cardColor: Colors.white,
+                          iconBg: _kBlue500.withOpacity(0.1),
+                          iconColor: _kBlue500,
+                          textColor: const Color(0xFF1A1A2E),
+                          subColor: const Color(0xFF9E9E9E),
+                        );
                       }
+
+                      // Sudah check-in, belum checkout → jalankan timer
+                      if (log?['check_in_time'] != null) {
+                        // Restore timer kalau belum jalan (misal app baru dibuka)
+                        if (!timerState.isRunning) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            ref
+                                .read(attendanceTimerProvider.notifier)
+                                .start(DateTime.parse(log!['check_in_time']));
+                          });
+                        }
+                        final elapsed = timerState.elapsed;
+                        final dur =
+                            '${elapsed.inHours}j ${elapsed.inMinutes.remainder(60)}m';
+                        return _StatCard(
+                          label: 'Durasi',
+                          value: dur,
+                          sub: 'Target: 8 Jam',
+                          icon: Icons.timelapse_rounded,
+                          cardColor: Colors.white,
+                          iconBg: _kBlue500.withOpacity(0.1),
+                          iconColor: _kBlue500,
+                          textColor: const Color(0xFF1A1A2E),
+                          subColor: const Color(0xFF9E9E9E),
+                        );
+                      }
+
+                      // Belum check-in
                       return _StatCard(
                         label: 'Durasi',
-                        value: dur,
+                        value: '0j 0m',
                         sub: 'Target: 8 Jam',
                         icon: Icons.timelapse_rounded,
                         cardColor: Colors.white,
@@ -832,7 +877,7 @@ class _PulseCheckInButtonState extends ConsumerState<_PulseCheckInButton>
               'Sampai jumpa besok 👋',
               style: GoogleFonts.poppins(
                 fontSize: 13,
-                color: Color(0xFF9E9E9E),
+                color: const Color(0xFF9E9E9E),
               ),
             ),
           ],
