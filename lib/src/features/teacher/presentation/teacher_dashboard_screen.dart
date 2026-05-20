@@ -20,7 +20,6 @@ class TeacherDashboardScreen extends ConsumerWidget {
       backgroundColor: const Color(0xFFF8F9FA),
       body: Stack(
         children: [
-          // Background decoration bubbles
           Positioned(
             top: -100,
             right: -50,
@@ -45,7 +44,6 @@ class TeacherDashboardScreen extends ConsumerWidget {
               ),
             ),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(
@@ -55,12 +53,8 @@ class TeacherDashboardScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Top Bar
                   _buildTopBar(context, ref, profileAsync),
-
                   const SizedBox(height: 32),
-
-                  // 2. Stats Section
                   Text(
                     'Ringkasan Hari Ini',
                     style: GoogleFonts.poppins(
@@ -71,10 +65,7 @@ class TeacherDashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   _buildStatsRow(statsAsync),
-
                   const SizedBox(height: 32),
-
-                  // 3. Menu Grid
                   Text(
                     'Menu Utama',
                     style: GoogleFonts.poppins(
@@ -85,7 +76,6 @@ class TeacherDashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   _buildMenuGrid(context),
-
                   const SizedBox(height: 30),
                 ],
               ),
@@ -107,7 +97,6 @@ class TeacherDashboardScreen extends ConsumerWidget {
           child: profileAsync.when(
             data: (profile) => Row(
               children: [
-                // ── Avatar biru ──
                 Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
@@ -162,8 +151,6 @@ class TeacherDashboardScreen extends ConsumerWidget {
             error: (err, stack) => _buildProfileSkeleton(),
           ),
         ),
-
-        // Actions
         Row(
           children: [
             Stack(
@@ -363,47 +350,87 @@ class TeacherDashboardScreen extends ConsumerWidget {
   }
 
   Future<void> _handleExport(BuildContext context, WidgetRef ref) async {
+    final user = ref.read(authRepositoryProvider).currentUser;
+    if (user == null) return;
+
+    List<Map<String, dynamic>> studentList = [];
     try {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Menyiapkan laporan...')));
-
-      final user = ref.read(authRepositoryProvider).currentUser;
-      if (user == null) return;
-
-      final data = await ref
+      studentList = await ref
           .read(teacherRepositoryProvider)
-          .getAttendanceReportForExport(user.id);
+          .getStudentList(user.id);
+    } catch (_) {}
 
-      if (data.isEmpty) {
-        if (context.mounted) {
+    if (!context.mounted) return;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => _ExportDialog(
+        studentList: studentList,
+        teacherName:
+            ref.read(userProfileProvider).value?['full_name'] ?? 'Guru',
+        onExport: (month, year, studentId, format) async {
+          Navigator.of(ctx).pop();
+          if (!context.mounted) return;
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Tidak ada data absensi bulan ini.')),
+            const SnackBar(content: Text('Menyiapkan laporan...')),
           );
-        }
-        return;
-      }
 
-      final profile = ref.read(userProfileProvider).value;
-      final teacherName = profile?['full_name'] ?? 'Guru';
+          try {
+            final repo = ref.read(teacherRepositoryProvider);
+            final teacherName =
+                ref.read(userProfileProvider).value?['full_name'] ?? 'Guru';
 
-      // FIX: generateAttendanceReport sekarang void, download otomatis via browser
-      await ExcelService().generateAttendanceReport(data, teacherName);
+            final attendanceData = await repo.getAttendanceReportForExport(
+              user.id,
+              month: month,
+              year: year,
+              studentId: studentId,
+            );
+            final journalData = await repo.getJournalReportForExport(
+              user.id,
+              month: month,
+              year: year,
+              studentId: studentId,
+            );
 
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Laporan berhasil diunduh!')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal export: $e')));
-      }
-    }
+            if (format == 'excel') {
+              await ExcelService().generateFullReport(
+                attendanceData: attendanceData,
+                journalData: journalData,
+                teacherName: teacherName,
+                month: month,
+                year: year,
+              );
+            } else {
+              await ExcelService().generatePdfReport(
+                attendanceData: attendanceData,
+                journalData: journalData,
+                teacherName: teacherName,
+                month: month,
+                year: year,
+              );
+            }
+
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Laporan berhasil diunduh!')),
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Gagal export: $e')));
+            }
+          }
+        },
+      ),
+    );
   }
 }
+
+// ── _StatCard ─────────────────────────────────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
   final String label;
@@ -471,6 +498,8 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
+
+// ── _DashboardMenuCard ────────────────────────────────────────────────────────
 
 class _DashboardMenuCard extends StatelessWidget {
   final IconData icon;
@@ -558,6 +587,288 @@ class _DashboardMenuCard extends StatelessWidget {
                       ],
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── _ExportDialog ─────────────────────────────────────────────────────────────
+
+class _ExportDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> studentList;
+  final String teacherName;
+  final void Function(int month, int year, String? studentId, String format)
+  onExport;
+
+  const _ExportDialog({
+    required this.studentList,
+    required this.teacherName,
+    required this.onExport,
+  });
+
+  @override
+  State<_ExportDialog> createState() => _ExportDialogState();
+}
+
+class _ExportDialogState extends State<_ExportDialog> {
+  int _selectedMonth = DateTime.now().month;
+  int _selectedYear = DateTime.now().year;
+  String? _selectedStudentId;
+  String _format = 'excel';
+
+  static const _months = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final years = List.generate(3, (i) => DateTime.now().year - i);
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.download_outlined,
+              color: Color(0xFF3B82F6),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'Export Laporan',
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Periode',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: const Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedMonth,
+                    decoration: _inputDecoration('Bulan'),
+                    items: List.generate(
+                      12,
+                      (i) => DropdownMenuItem(
+                        value: i + 1,
+                        child: Text(
+                          _months[i],
+                          style: GoogleFonts.poppins(fontSize: 13),
+                        ),
+                      ),
+                    ),
+                    onChanged: (v) => setState(() => _selectedMonth = v!),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedYear,
+                    decoration: _inputDecoration('Tahun'),
+                    items: years
+                        .map(
+                          (y) => DropdownMenuItem(
+                            value: y,
+                            child: Text(
+                              '$y',
+                              style: GoogleFonts.poppins(fontSize: 13),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedYear = v!),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Siswa',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: const Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String?>(
+              value: _selectedStudentId,
+              decoration: _inputDecoration('Pilih Siswa'),
+              items: [
+                DropdownMenuItem(
+                  value: null,
+                  child: Text(
+                    'Semua Siswa',
+                    style: GoogleFonts.poppins(fontSize: 13),
+                  ),
+                ),
+                ...widget.studentList.map(
+                  (s) => DropdownMenuItem(
+                    value: s['student_id'] as String?,
+                    child: Text(
+                      s['full_name'] ?? '-',
+                      style: GoogleFonts.poppins(fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+              onChanged: (v) => setState(() => _selectedStudentId = v),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Format',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: const Color(0xFF374151),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _FormatChip(
+                  label: 'Excel (.xlsx)',
+                  icon: Icons.table_chart_outlined,
+                  color: const Color(0xFF10B981),
+                  selected: _format == 'excel',
+                  onTap: () => setState(() => _format = 'excel'),
+                ),
+                const SizedBox(width: 10),
+                _FormatChip(
+                  label: 'PDF',
+                  icon: Icons.picture_as_pdf_outlined,
+                  color: const Color(0xFFEF4444),
+                  selected: _format == 'pdf',
+                  onTap: () => setState(() => _format = 'pdf'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text('Batal', style: GoogleFonts.poppins(color: Colors.grey)),
+        ),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF3B82F6),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          icon: const Icon(Icons.download_rounded, size: 18),
+          label: Text('Download', style: GoogleFonts.poppins()),
+          onPressed: () => widget.onExport(
+            _selectedMonth,
+            _selectedYear,
+            _selectedStudentId,
+            _format,
+          ),
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(String label) => InputDecoration(
+    labelText: label,
+    labelStyle: GoogleFonts.poppins(fontSize: 12),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: Colors.grey.shade300),
+    ),
+  );
+}
+
+// ── _FormatChip ───────────────────────────────────────────────────────────────
+
+class _FormatChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FormatChip({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.1) : Colors.grey[50],
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? color : Colors.grey.shade300,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: selected ? color : Colors.grey, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                  color: selected ? color : Colors.grey,
                 ),
               ),
             ],
