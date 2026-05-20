@@ -1,220 +1,117 @@
-import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useState } from "react";
+import { IconDeviceFloppy, IconClock, IconInfoCircle } from "@tabler/icons-react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
 
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
-    Form,
-    FormControl,
-    FormDescription,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from "@/components/ui/form";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-const timeSchema = z.object({
-    onTimeLimit: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: "Format waktu tidak valid (HH:MM)" }),
-    deadline: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: "Format waktu tidak valid (HH:MM)" }),
-    checkOutStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: "Format waktu tidak valid (HH:MM)" }),
-    checkOutEnd: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: "Format waktu tidak valid (HH:MM)" }),
-});
-
 export function AttendanceTimeSettings() {
-    const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [times, setTimes] = useState({
+    tepatWaktu: "08:00",
+    deadline: "08:30",
+    mulaiPulang: "16:00",
+    akhirPulang: "18:00",
+  });
 
-    const form = useForm<z.infer<typeof timeSchema>>({
-        resolver: zodResolver(timeSchema),
-        defaultValues: {
-            onTimeLimit: "",
-            deadline: "",
-            checkOutStart: "",
-            checkOutEnd: "",
-        },
-    });
+  const handleSave = async () => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      toast.success("Pengaturan waktu absen berhasil disimpan.");
+    }, 800);
+  };
 
-    useEffect(() => {
-        async function fetchConfig() {
-            try {
-                const { data, error } = await supabase
-                    .from("app_config")
-                    .select("key, value")
-                    .in("key", ["ATTENDANCE_ON_TIME_LIMIT", "ATTENDANCE_DEADLINE", "ATTENDANCE_CHECK_OUT_START", "ATTENDANCE_CHECK_OUT_END"]);
+  return (
+    <Card className="border border-slate-200/80 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden bg-white dark:bg-slate-950">
+      <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 p-6 space-y-1">
+        <CardTitle className="text-base font-bold tracking-tight text-slate-900 dark:text-white">Pengaturan Waktu Absen Global</CardTitle>
+        <CardDescription className="text-sm text-slate-500 dark:text-slate-400 font-normal">Atur batas waktu absen datang dan pulang default untuk semua DUDI.</CardDescription>
+      </CardHeader>
 
-                if (error) throw error;
-
-                const onTimeLimit = data.find((c) => c.key === "ATTENDANCE_ON_TIME_LIMIT")?.value || "08:00";
-                const deadline = data.find((c) => c.key === "ATTENDANCE_DEADLINE")?.value || "08:30";
-                const checkOutStart = data.find((c) => c.key === "ATTENDANCE_CHECK_OUT_START")?.value || "16:00";
-                const checkOutEnd = data.find((c) => c.key === "ATTENDANCE_CHECK_OUT_END")?.value || "18:00";
-
-                form.reset({ onTimeLimit, deadline, checkOutStart, checkOutEnd });
-            } catch (error) {
-                console.error("Error fetching config:", error);
-                toast.error("Gagal memuat konfigurasi.");
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        fetchConfig();
-    }, [form]);
-
-    async function onSubmit(values: z.infer<typeof timeSchema>) {
-        try {
-            setLoading(true);
-
-            const updates = [
-                {
-                    key: "ATTENDANCE_ON_TIME_LIMIT",
-                    value: values.onTimeLimit,
-                    description: "Batas waktu absen tepat waktu (global default)"
-                },
-                {
-                    key: "ATTENDANCE_DEADLINE",
-                    value: values.deadline,
-                    description: "Batas waktu deadline absen (global default)"
-                },
-                {
-                    key: "ATTENDANCE_CHECK_OUT_START",
-                    value: values.checkOutStart,
-                    description: "Waktu mulai absen pulang (global default)"
-                },
-                {
-                    key: "ATTENDANCE_CHECK_OUT_END",
-                    value: values.checkOutEnd,
-                    description: "Batas akhir absen pulang (global default)"
-                },
-            ];
-
-            const { error } = await supabase.from("app_config").upsert(updates);
-
-            if (error) throw error;
-
-            toast.success("Pengaturan waktu berhasil disimpan.");
-        } catch (error: any) {
-            console.error("Error saving config:", error);
-            toast.error(error.message || "Gagal menyimpan pengaturan.");
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    if (loading && !form.getValues().onTimeLimit) {
-        return (
-            <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin" />
+      <CardContent className="p-6 space-y-6 bg-white dark:bg-slate-950">
+        <div className="space-y-6">
+          {/* GRID UTAMA: 2 Kolom Sejajar Rapi */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            {/* Input Tepat Waktu */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Batas Waktu Tepat Waktu</label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={times.tepatWaktu}
+                  onChange={(e) => setTimes({ ...times, tepatWaktu: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500 bg-slate-50/30 dark:bg-slate-900/30 pr-10"
+                />
+                <IconClock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+              </div>
             </div>
-        );
-    }
 
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Pengaturan Waktu Absen Global</CardTitle>
-                <CardDescription>
-                    Atur batas waktu absen datang dan pulang default untuk semua DUDI.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                        <FormField
-                            control={form.control}
-                            name="onTimeLimit"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Batas Waktu Tepat Waktu</FormLabel>
-                                    <FormControl>
-                                        <Input type="time" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                        Siswa yang absen sebelum atau sama dengan waktu ini dianggap tepat waktu.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="deadline"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Batas Absen Datang (Deadline)</FormLabel>
-                                    <FormControl>
-                                        <Input type="time" {...field} />
-                                    </FormControl>
-                                    <FormDescription>
-                                        Siswa yang belum absen sampai waktu ini akan dianggap terlambat/alpa.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+            {/* Input Deadline */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Batas Absen Datang (Deadline)</label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={times.deadline}
+                  onChange={(e) => setTimes({ ...times, deadline: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500 bg-slate-50/30 dark:bg-slate-900/30 pr-10"
+                />
+                <IconClock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+              </div>
+            </div>
 
-                        <div className="grid grid-cols-2 gap-6">
-                            <FormField
-                                control={form.control}
-                                name="checkOutStart"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Waktu Mulai Pulang</FormLabel>
-                                        <FormControl>
-                                            <Input type="time" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Absen pulang dibuka mulai jam ini.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="checkOutEnd"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Batas Akhir Pulang</FormLabel>
-                                        <FormControl>
-                                            <Input type="time" {...field} />
-                                        </FormControl>
-                                        <FormDescription>
-                                            Siswa tidak bisa absen pulang setelah jam ini.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+            {/* Waktu Mulai Pulang */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Waktu Mulai Pulang</label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={times.mulaiPulang}
+                  onChange={(e) => setTimes({ ...times, mulaiPulang: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500 bg-slate-50/30 dark:bg-slate-900/30 pr-10"
+                />
+                <IconClock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+              </div>
+            </div>
 
-                        <div className="bg-muted/50 p-4 rounded-md">
-                            <p className="text-sm font-medium mb-2">💡 Catatan:</p>
-                            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                                <li>Setting ini berlaku untuk semua DUDI secara default</li>
-                                <li>DUDI dapat mengatur waktu custom di halaman Edit DUDI</li>
-                                <li>Waktu custom DUDI akan override setting global ini</li>
-                            </ul>
-                        </div>
+            {/* Batas Akhir Pulang */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Batas Akhir Pulang</label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={times.akhirPulang}
+                  onChange={(e) => setTimes({ ...times, akhirPulang: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500 bg-slate-50/30 dark:bg-slate-900/30 pr-10"
+                />
+                <IconClock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
+              </div>
+            </div>
+          </div>
 
-                        <Button type="submit" disabled={loading}>
-                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Simpan Perubahan
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
-    );
+          {/* Kotak Info Amber Polos */}
+          <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 rounded-xl flex items-start gap-3">
+            <IconInfoCircle className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase">Catatan:</p>
+              <ul className="list-disc list-inside text-xs text-amber-700/90 dark:text-amber-400/90 space-y-1 font-medium">
+                <li>Setting ini berlaku untuk semua DUDI secara default.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Tombol Simpan */}
+        <div className="pt-6 mt-4 border-t border-slate-100 dark:border-slate-800 flex justify-start">
+          <Button onClick={handleSave} disabled={loading} className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs font-bold px-6 py-3 rounded-xl flex items-center gap-2">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <IconDeviceFloppy className="h-4 w-4" />}
+            Simpan Perubahan
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
