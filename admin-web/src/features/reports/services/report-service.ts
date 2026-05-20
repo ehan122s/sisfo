@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase'
 
 export interface AttendanceReportItem {
@@ -32,6 +31,26 @@ interface RpcReportRow {
     percentage: number
 }
 
+// Interface untuk kolom output dari get_yearly_attendance_report (pakai prefix out_)
+interface RpcYearlyReportRow {
+    out_student_id: string
+    out_student_name: string
+    out_class_name: string
+    out_company_name: string
+    out_hadir: number
+    out_terlambat: number
+    out_sakit: number
+    out_izin: number
+    out_alpa: number
+    out_total_days: number
+    out_percentage: number
+}
+
+// Interface baru untuk mendefinisikan struktur data kembalian dari rpc 'get_distinct_classes'
+interface RpcClassRow {
+    class_name: string
+}
+
 export const getMonthlyAttendanceReport = async (
     month: number, // 0-indexed (JS Date convention)
     year: number,
@@ -43,7 +62,6 @@ export const getMonthlyAttendanceReport = async (
             p_month: month + 1, // Convert 0-indexed to 1-indexed
             p_class: className && className !== 'all' ? className : null
         })
-        .range(0, 9999)
 
     if (error) throw error
     if (!data) return []
@@ -90,8 +108,8 @@ export const getClassList = async (): Promise<string[]> => {
 
     if (error) throw error
 
-    // @ts-ignore
-    const classes = (data || []).map(d => d.class_name).filter(Boolean)
+    // Menentukan tipe data d secara eksplisit sebagai RpcClassRow agar tidak dianggap 'any'
+    const classes = (data as RpcClassRow[] || []).map((d: RpcClassRow) => d.class_name).filter(Boolean)
     return classes.sort() as string[]
 }
 
@@ -104,24 +122,23 @@ export const getYearlyAttendanceReport = async (
             p_year: year,
             p_class: className && className !== 'all' ? className : null
         })
-        .range(0, 9999)
 
     if (error) throw error
     if (!data) return []
 
-    return (data as RpcReportRow[]).map(row => ({
-        studentId: row.student_id,
-        studentName: row.student_name || 'Unnamed',
-        className: row.class_name || '-',
-        companyName: row.company_name || '-',
+    return (data as RpcYearlyReportRow[]).map(row => ({
+        studentId: row.out_student_id,
+        studentName: row.out_student_name || 'Unnamed',
+        className: row.out_class_name || '-',
+        companyName: row.out_company_name || '-',
         stats: {
-            hadir: row.hadir,
-            terlambat: row.terlambat,
-            sakit: row.sakit,
-            izin: row.izin,
-            alpa: row.alpa,
-            totalDays: row.total_days,
-            percentage: row.percentage
+            hadir: row.out_hadir,
+            terlambat: row.out_terlambat,
+            sakit: row.out_sakit,
+            izin: row.out_izin,
+            alpa: row.out_alpa,
+            totalDays: row.out_total_days,
+            percentage: row.out_percentage
         }
     }))
 }
