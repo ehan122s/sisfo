@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:go_router/go_router.dart';
+import '../../../services/fcm_service.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
@@ -16,18 +17,16 @@ class _SettingScreenState extends State<SettingScreen> {
   final SupabaseClient supabase = Supabase.instance.client;
   final LocalAuthentication _localAuth = LocalAuthentication();
 
-  // State variables
   bool _notifEnabled = true;
   bool _biometricEnabled = false;
   bool _darkModeEnabled = false;
   bool _loadingProfile = true;
   bool _savingChanges = false;
-  bool _isBiometricSupported = false; // ✅ Track biometric support
-  String _biometricType = ''; // ✅ Type of biometric available
+  bool _isBiometricSupported = false;
+  String _biometricType = '';
 
   Map<String, dynamic>? _profile;
 
-  // Controllers untuk edit profil
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _classController;
@@ -42,7 +41,7 @@ class _SettingScreenState extends State<SettingScreen> {
     _nisnController = TextEditingController();
     _loadSettings();
     _fetchProfile();
-    _checkBiometricSupport(); // ✅ Check on init
+    _checkBiometricSupport();
   }
 
   @override
@@ -54,14 +53,9 @@ class _SettingScreenState extends State<SettingScreen> {
     super.dispose();
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // LOAD SETTINGS DARI LOCAL STORAGE
-  // ════════════════════════════════════════════════════════════════
-
   Future<void> _loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
       setState(() {
         _notifEnabled = prefs.getBool('notif_enabled') ?? true;
         _biometricEnabled = prefs.getBool('biometric_enabled') ?? false;
@@ -75,7 +69,6 @@ class _SettingScreenState extends State<SettingScreen> {
   Future<void> _saveSetting(String key, dynamic value) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-
       if (value is bool) {
         await prefs.setBool(key, value);
       } else if (value is String) {
@@ -83,29 +76,16 @@ class _SettingScreenState extends State<SettingScreen> {
       } else if (value is int) {
         await prefs.setInt(key, value);
       }
-
-      debugPrint('Saved setting: $key = $value');
     } catch (e) {
       debugPrint('Error saving setting $key: $e');
       _showSnackBar('Gagal menyimpan pengaturan', isError: true);
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // ✅ BIOMETRIC AUTHENTICATION - FULL VERSION WITH DEVICE CHECK
-  // ════════════════════════════════════════════════════════════════
-
-  /// Cek apakah device mendukung biometrik dan dapatkan jenisnya
   Future<void> _checkBiometricSupport() async {
     try {
-      debugPrint('🔍 Checking biometric support...');
-
-      // 1. Cek apakah hardware mendukung biometrik
       final isDeviceSupported = await _localAuth.isDeviceSupported();
-      debugPrint('📱 Device supported: $isDeviceSupported');
-
       if (!isDeviceSupported) {
-        debugPrint('❌ Device does NOT support biometric');
         if (mounted) {
           setState(() {
             _isBiometricSupported = false;
@@ -117,15 +97,11 @@ class _SettingScreenState extends State<SettingScreen> {
         return;
       }
 
-      // 2. Cek apakah biometrik tersedia (sudah di-setup oleh user)
       final canCheckBiometrics = await _localAuth.canCheckBiometrics;
-      debugPrint('🔐 Can check biometrics: $canCheckBiometrics');
-
       if (!canCheckBiometrics) {
-        debugPrint('⚠️ Biometrics not enrolled/setup yet');
         if (mounted) {
           setState(() {
-            _isBiometricSupported = true; // Device support, but not enrolled
+            _isBiometricSupported = true;
             _biometricType = 'not_enrolled';
             _biometricEnabled = false;
           });
@@ -134,12 +110,8 @@ class _SettingScreenState extends State<SettingScreen> {
         return;
       }
 
-      // 3. Dapatkan list jenis biometrik yang tersedia
       final availableBiometrics = await _localAuth.getAvailableBiometrics();
-      debugPrint('🧬 Available biometrics: $availableBiometrics');
-
       String biometricTypeName = '';
-
       if (availableBiometrics.contains(BiometricType.face)) {
         biometricTypeName = 'Face ID / Face Unlock';
       } else if (availableBiometrics.contains(BiometricType.fingerprint)) {
@@ -150,13 +122,10 @@ class _SettingScreenState extends State<SettingScreen> {
         biometricTypeName = 'Biometrik';
       }
 
-      debugPrint('✅ Biometric type detected: $biometricTypeName');
-
       if (mounted) {
         setState(() {
           _isBiometricSupported = true;
           _biometricType = biometricTypeName;
-          // Jika sebelumnya enabled tapi sekarang tidak available, disable
           if (_biometricEnabled && biometricTypeName.isEmpty) {
             _biometricEnabled = false;
             _saveSetting('biometric_enabled', false);
@@ -164,7 +133,7 @@ class _SettingScreenState extends State<SettingScreen> {
         });
       }
     } catch (e) {
-      debugPrint('❌ Error checking biometric support: $e');
+      debugPrint('Error checking biometric support: $e');
       if (mounted) {
         setState(() {
           _isBiometricSupported = false;
@@ -175,9 +144,7 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  /// Toggle biometric on/off
   Future<void> _toggleBiometric(bool enabled) async {
-    // Jika menonaktifkan
     if (!enabled) {
       setState(() => _biometricEnabled = false);
       await _saveSetting('biometric_enabled', false);
@@ -185,9 +152,6 @@ class _SettingScreenState extends State<SettingScreen> {
       return;
     }
 
-    // ─── CEK KEMBALI SUPPORT SEBELUM AKTIFKAN ───
-
-    // Refresh check terlebih dahulu
     await _checkBiometricSupport();
 
     if (!_isBiometricSupported) {
@@ -200,7 +164,6 @@ class _SettingScreenState extends State<SettingScreen> {
       return;
     }
 
-    // Tampilkan dialog konfirmasi
     final confirmAuth = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -262,7 +225,6 @@ class _SettingScreenState extends State<SettingScreen> {
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.pop(context, true),
-            // ✅ FIXED: verified_rounded (bukan verify_rounded)
             icon: const Icon(Icons.verified_rounded, size: 18),
             label: const Text('Verifikasi Sekarang'),
             style: ElevatedButton.styleFrom(
@@ -279,41 +241,33 @@ class _SettingScreenState extends State<SettingScreen> {
 
     if (confirmAuth != true) return;
 
-    // Tampilkan scanning dialog
     _showScanningDialog();
 
     try {
-      // Jalankan autentikasi
       final authenticated = await _localAuth.authenticate(
         localizedReason:
             'Verifikasi untuk mengaktifkan login biometrik di e-PKL',
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: false, // Allow fallback ke PIN/Pattern jika perlu
+          biometricOnly: false,
           useErrorDialogs: true,
           sensitiveTransaction: false,
         ),
       );
 
-      // Tutup scanning dialog
       if (mounted) Navigator.pop(context);
 
       if (authenticated && mounted) {
         setState(() => _biometricEnabled = true);
         await _saveSetting('biometric_enabled', true);
-
         _showSnackBar('✅ Login biometrik berhasil diaktifkan!');
-
-        // Success dialog
         _showSuccessDialog();
       }
     } on PlatformException catch (e) {
-      // Tutup scanning dialog
       if (mounted) {
         try {
           Navigator.pop(context);
         } catch (_) {}
-
         setState(() => _biometricEnabled = false);
         _handleBiometricError(e);
       }
@@ -328,7 +282,6 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  /// Handle biometric errors dengan pesan yang jelas
   void _handleBiometricError(PlatformException e) {
     String title = 'Gagal Autentikasi';
     String message;
@@ -344,36 +297,30 @@ class _SettingScreenState extends State<SettingScreen> {
         title = 'Belum Terdaftar';
         message =
             'Anda belum mendaftarkan sidik jari/wajah.\n\n'
-            'Silakan buka Pengaturan → Keamanan/Password & Biometrik → '
-            'Tambahkan Finger/Face ID.';
+            'Silakan buka Pengaturan → Keamanan/Password & Biometrik → Tambahkan Finger/Face ID.';
         icon = Icons.person_add_disabled;
         break;
       case 'LockedOut':
         title = 'Terlalu Banyak Percobaan';
         message =
-            'Terlalu banyak percobaan gagal.\n\nSilakan coba lagi dalam 30 detik, '
-            'atau gunakan PIN/Password perangkat Anda.';
+            'Terlalu banyak percobaan gagal.\n\nSilakan coba lagi dalam 30 detik.';
         icon = Icons.lock_clock;
         break;
       case 'PermanentlyLockedOut':
         title = 'Biometrik Terkunci';
         message =
-            'Biometrik terkunci karena terlalu banyak percobaan.\n\n'
-            'Gunakan PIN/Password perangkat Anda untuk membuka kunci, '
-            'lalu coba lagi.';
+            'Biometrik terkunci. Gunakan PIN/Password perangkat untuk membuka kunci.';
         icon = Icons.lock;
         break;
       case 'PasscodeNotSet':
         title = 'PIN Belum Diatur';
         message =
-            'Anda harus mengatur lock screen (PIN/Pattern/Password) '
-            'terlebih dahulu sebelum menggunakan biometrik.\n\n'
-            'Buka Pengaturan → Keamanan → Lock Screen.';
+            'Anda harus mengatur lock screen terlebih dahulu.\n\nBuka Pengaturan → Keamanan → Lock Screen.';
         icon = Icons.password;
         break;
       case 'Canceled':
       case 'UserCancel':
-        return; // User cancel, tidak perlu show error
+        return;
       default:
         message = e.message ?? 'Terjadi kesalahan saat autentikasi biometrik.';
     }
@@ -407,7 +354,6 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  /// Dialog ketika device tidak support biometrik
   void _showNotSupportedDialog() {
     showDialog(
       context: context,
@@ -440,8 +386,7 @@ class _SettingScreenState extends State<SettingScreen> {
               ),
               child: const Text(
                 '💡 Tips:\n'
-                '• Pastikan HP memiliki sensor fingerprint atau camera depan untuk Face Unlock\n'
-                '• Beberapa HP lawas mungkin tidak support fitur ini\n'
+                '• Pastikan HP memiliki sensor fingerprint atau camera depan\n'
                 '• Gunakan login biasa (email/password) sebagai alternatif',
                 style: TextStyle(fontSize: 12, height: 1.5),
               ),
@@ -458,7 +403,6 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  /// Dialog ketika biometrik belum didaftarkan/di-setup
   void _showNotEnrolledDialog() {
     showDialog(
       context: context,
@@ -466,7 +410,6 @@ class _SettingScreenState extends State<SettingScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            // ✅ FIXED: fingerprint_outlined (bukan fingerprint_off)
             Icon(
               Icons.fingerprint_outlined,
               color: Colors.orange.shade700,
@@ -515,10 +458,8 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  /// Widget panduan setup biometrik berdasarkan platform
   Widget _buildSetupGuide() {
     final isAndroid = Theme.of(context).platform == TargetPlatform.android;
-
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -583,29 +524,21 @@ class _SettingScreenState extends State<SettingScreen> {
         'Pilih "Keamanan" atau "Password & Keamanan"',
         'Pilih "Fingerprint" atau "Sidik Jari"',
         'Ikuti instruksi untuk mendaftarkan sidik jari',
-        'Untuk Face Unlock: Pilih "Face Recognition"',
       ];
     } else {
       return [
         'Buka Settings (Pengaturan)',
-        'Scroll ke bawah, pilih "Face ID & Passcode"',
+        'Pilih "Face ID & Passcode"',
         'Masukkan passcode iPhone Anda',
         'Aktifkan "Face ID" atau pilih "Add a Fingerprint"',
-        'Ikuti instruksi untuk menyelesaikan setup',
       ];
     }
   }
 
-  /// Buka pengaturan device (untuk setup biometrik)
   Future<void> _openDeviceSettings() async {
-    try {
-      _showSnackBar('📱 Silakan buka Pengaturan HP secara manual...');
-    } catch (e) {
-      debugPrint('Cannot open settings: $e');
-    }
+    _showSnackBar('📱 Silakan buka Pengaturan HP secara manual...');
   }
 
-  /// Dialog saat sedang scanning
   void _showScanningDialog() {
     showDialog(
       context: context,
@@ -699,7 +632,6 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  /// Dialog sukses setelah aktivasi
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -741,8 +673,7 @@ class _SettingScreenState extends State<SettingScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Login biometrik telah aktif menggunakan $_biometricType.\n\n'
-              'Sekarang Anda bisa login lebih cepat dan aman!',
+              'Login biometrik telah aktif menggunakan $_biometricType.\n\nSekarang Anda bisa login lebih cepat dan aman!',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -776,10 +707,6 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // FETCH & UPDATE PROFILE
-  // ════════════════════════════════════════════════════════════════
-
   Future<void> _fetchProfile() async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
@@ -790,10 +717,9 @@ class _SettingScreenState extends State<SettingScreen> {
     try {
       final data = await supabase
           .from('profiles')
-          .select('''
-            full_name, role, avatar_url, status, is_verified, 
-            phone_number, class_name, nisn
-          ''')
+          .select(
+            'full_name, role, avatar_url, status, is_verified, phone_number, class_name, nisn',
+          )
           .eq('id', userId)
           .single();
 
@@ -801,8 +727,6 @@ class _SettingScreenState extends State<SettingScreen> {
         setState(() {
           _profile = data;
           _loadingProfile = false;
-
-          // Set controllers
           _nameController.text = data['full_name'] ?? '';
           _phoneController.text = data['phone_number'] ?? '';
           _classController.text = data['class_name'] ?? '';
@@ -819,7 +743,6 @@ class _SettingScreenState extends State<SettingScreen> {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
 
-    // Validation
     if (_nameController.text.trim().isEmpty) {
       _showSnackBar('Nama wajib diisi!', isError: true);
       return;
@@ -835,7 +758,6 @@ class _SettingScreenState extends State<SettingScreen> {
             : _phoneController.text.trim(),
       };
 
-      // Student-specific fields
       final role = _profile?['role'];
       if (role == 'student') {
         updateData['class_name'] = _classController.text.trim();
@@ -857,10 +779,6 @@ class _SettingScreenState extends State<SettingScreen> {
       if (mounted) setState(() => _savingChanges = false);
     }
   }
-
-  // ════════════════════════════════════════════════════════════════
-  // CHANGE PASSWORD
-  // ════════════════════════════════════════════════════════════════
 
   Future<void> _resetPassword() async {
     final user = supabase.auth.currentUser;
@@ -917,7 +835,6 @@ class _SettingScreenState extends State<SettingScreen> {
 
     try {
       await supabase.auth.resetPasswordForEmail(email);
-
       if (mounted) {
         Navigator.pop(context);
         _showSnackBar('✅ Link reset password telah dikirim ke $email');
@@ -930,10 +847,6 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // DARK MODE TOGGLE
-  // ════════════════════════════════════════════════════════════════
-
   void _toggleDarkMode(bool enabled) async {
     setState(() => _darkModeEnabled = enabled);
     await _saveSetting('dark_mode', enabled);
@@ -941,10 +854,6 @@ class _SettingScreenState extends State<SettingScreen> {
       enabled ? '🌙 Mode gelap diaktifkan' : '☀️ Mode terang diaktifkan',
     );
   }
-
-  // ════════════════════════════════════════════════════════════════
-  // HELP & ABOUT
-  // ════════════════════════════════════════════════════════════════
 
   void _showHelpDialog() {
     showModalBottomSheet(
@@ -1029,9 +938,7 @@ class _SettingScreenState extends State<SettingScreen> {
         style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
       ),
       trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: () {
-        _showSnackBar('Membuka $title...');
-      },
+      onTap: () => _showSnackBar('Membuka $title...'),
     );
   }
 
@@ -1078,10 +985,6 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // EDIT PROFILE DIALOG
-  // ════════════════════════════════════════════════════════════════
-
   void _showEditProfileDialog() {
     _nameController.text = _profile?['full_name'] ?? '';
     _phoneController.text = _profile?['phone_number'] ?? '';
@@ -1118,9 +1021,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ],
               ),
               const Divider(),
-
               const SizedBox(height: 16),
-
               Flexible(
                 child: SingleChildScrollView(
                   child: Column(
@@ -1136,7 +1037,6 @@ class _SettingScreenState extends State<SettingScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-
                       TextField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
@@ -1148,7 +1048,6 @@ class _SettingScreenState extends State<SettingScreen> {
                           ),
                         ),
                       ),
-
                       if (_profile?['role'] == 'student') ...[
                         const SizedBox(height: 16),
                         TextField(
@@ -1178,9 +1077,7 @@ class _SettingScreenState extends State<SettingScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 20),
-
               SizedBox(
                 width: double.infinity,
                 height: 52,
@@ -1212,7 +1109,6 @@ class _SettingScreenState extends State<SettingScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 16),
             ],
           ),
@@ -1221,9 +1117,7 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // LOGOUT
-  // ════════════════════════════════════════════════════════════════
+  // ── LOGOUT ────────────────────────────────────────────────────────────────
 
   Future<void> _logout() async {
     final confirm = await showDialog<bool>(
@@ -1238,8 +1132,7 @@ class _SettingScreenState extends State<SettingScreen> {
           ],
         ),
         content: const Text(
-          'Apakah kamu yakin ingin keluar dari akun ini?\n\n'
-          'Anda perlu login kembali untuk mengakses aplikasi.',
+          'Apakah kamu yakin ingin keluar dari akun ini?\n\nAnda perlu login kembali untuk mengakses aplikasi.',
         ),
         actions: [
           TextButton(
@@ -1275,10 +1168,11 @@ class _SettingScreenState extends State<SettingScreen> {
     }
 
     try {
-      await supabase.auth.signOut();
+      await FcmService().onLogout();
+      await supabase.auth.signOut(scope: SignOutScope.local);
 
       if (mounted) {
-        Navigator.of(context).pop(); // tutup loading dialog
+        Navigator.of(context).pop();
         context.go('/login');
       }
     } catch (e) {
@@ -1289,13 +1183,10 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // SNACKBAR HELPER
-  // ════════════════════════════════════════════════════════════════
+  // ── SNACKBAR ──────────────────────────────────────────────────────────────
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
-
     ScaffoldMessenger.of(context).removeCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1319,9 +1210,7 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // BUILD UI - ✅ UPDATED BIOMETRIC TILE
-  // ════════════════════════════════════════════════════════════════
+  // ── BUILD UI ──────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -1331,7 +1220,7 @@ class _SettingScreenState extends State<SettingScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text(
-          "Pengaturan",
+          'Pengaturan',
           style: TextStyle(
             fontWeight: FontWeight.w900,
             color: Color(0xFF0F172A),
@@ -1355,94 +1244,71 @@ class _SettingScreenState extends State<SettingScreen> {
                 padding: const EdgeInsets.all(24),
                 children: [
                   _buildUserProfile(user),
-
                   const SizedBox(height: 32),
-
-                  _sectionTitle("Informasi Akun"),
+                  _sectionTitle('Informasi Akun'),
                   _buildInfoCard(),
-
                   _buildActionTile(
                     Icons.edit_note_rounded,
-                    "Edit Profil",
+                    'Edit Profil',
                     _showEditProfileDialog,
                     trailingText: 'Ubah data diri',
                   ),
-
                   const SizedBox(height: 32),
-
-                  _sectionTitle("Preferensi"),
-
+                  _sectionTitle('Preferensi'),
                   _buildSwitchTile(
                     Icons.notifications_active_rounded,
-                    "Push Notifications",
-                    "Notifikasi untuk jurnal & presensi baru",
+                    'Push Notifications',
+                    'Notifikasi untuk jurnal & presensi baru',
                     _notifEnabled,
                     (v) async {
                       setState(() => _notifEnabled = v);
                       await _saveSetting('notif_enabled', v);
-                      if (v) {
-                        _showSnackBar('🔔 Notifikasi diaktifkan');
-                      } else {
-                        _showSnackBar('🔕 Notifikasi dinonaktifkan');
-                      }
+                      _showSnackBar(
+                        v
+                            ? '🔔 Notifikasi diaktifkan'
+                            : '🔕 Notifikasi dinonaktifkan',
+                      );
                     },
                   ),
-
-                  // ✅ IMPROVED: Biometric tile with support info
                   _buildBiometricSwitchTile(),
-
                   _buildSwitchTile(
                     Icons.dark_mode_rounded,
-                    "Mode Gelap",
-                    "Tampilan tema gelap pada aplikasi",
+                    'Mode Gelap',
+                    'Tampilan tema gelap pada aplikasi',
                     _darkModeEnabled,
                     _toggleDarkMode,
                   ),
-
                   const SizedBox(height: 32),
-
-                  _sectionTitle("Keamanan"),
-
+                  _sectionTitle('Keamanan'),
                   _buildActionTile(
                     Icons.lock_reset_rounded,
-                    "Ganti Password",
+                    'Ganti Password',
                     _resetPassword,
                     trailingText: 'Kirim link reset',
                   ),
-
                   const SizedBox(height: 32),
-
-                  _sectionTitle("Dukungan"),
-
+                  _sectionTitle('Dukungan'),
                   _buildActionTile(
                     Icons.help_center_rounded,
-                    "Bantuan & Dokumentasi",
+                    'Bantuan & Dokumentasi',
                     _showHelpDialog,
                     trailingText: 'FAQ & Panduan',
                   ),
-
                   _buildActionTile(
                     Icons.info_outline_rounded,
-                    "Tentang Aplikasi",
+                    'Tentang Aplikasi',
                     _showAboutDialog,
                     trailingText: 'e-PKL v1.0.0',
                   ),
-
                   _buildActionTile(
                     Icons.privacy_tip_outlined,
-                    "Kebijakan Privasi",
-                    () {
-                      _showSnackBar('Membuka kebijakan privasi...');
-                    },
+                    'Kebijakan Privasi',
+                    () => _showSnackBar('Membuka kebijakan privasi...'),
                     trailingText: 'Baca kebijakan',
                   ),
-
                   const SizedBox(height: 40),
-
                   _buildLogoutButton(),
-
                   const SizedBox(height: 40),
-
                   Center(
                     child: Text(
                       'e-PKL v1.0.0 • Build 2024.01.15',
@@ -1453,7 +1319,6 @@ class _SettingScreenState extends State<SettingScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 20),
                 ],
               ),
@@ -1461,13 +1326,7 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // WIDGET COMPONENTS
-  // ════════════════════════════════════════════════════════════════
-
-  /// ✅ NEW: Special widget for biometric switch with status info
   Widget _buildBiometricSwitchTile() {
-    // Determine status and subtitle based on support
     String subtitle;
     bool isEnabled = _biometricEnabled;
     Color statusColor = Colors.grey;
@@ -1477,12 +1336,12 @@ class _SettingScreenState extends State<SettingScreen> {
       subtitle = '❌ Perangkat tidak mendukung biometrik';
       statusColor = Colors.red.shade300;
       statusIcon = Icons.block;
-      isEnabled = false; // Force disabled
+      isEnabled = false;
     } else if (_biometricType == 'not_enrolled') {
       subtitle = '⚠️ Belum setup biometrik di HP Anda';
       statusColor = Colors.orange.shade400;
       statusIcon = Icons.warning_amber_rounded;
-      isEnabled = false; // Force disabled until enrolled
+      isEnabled = false;
     } else if (_biometricType.isNotEmpty) {
       subtitle = '$_biometricType • ${isEnabled ? 'Aktif' : 'Nonaktif'}';
       statusColor = isEnabled ? Colors.green : Colors.blue;
@@ -1517,9 +1376,9 @@ class _SettingScreenState extends State<SettingScreen> {
           ),
           child: Icon(statusIcon, size: 20, color: statusColor),
         ),
-        title: Text(
-          "Login Biometrik",
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        title: const Text(
+          'Login Biometrik',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         subtitle: Text(
           subtitle,
@@ -1534,7 +1393,7 @@ class _SettingScreenState extends State<SettingScreen> {
         ),
         value: isEnabled,
         onChanged: !_isBiometricSupported || _biometricType == 'not_enrolled'
-            ? null // Disable switch if not supported or not enrolled
+            ? null
             : (v) => _toggleBiometric(v),
         activeColor: Colors.blue,
         inactiveThumbColor: Colors.grey.shade300,
@@ -1562,8 +1421,8 @@ class _SettingScreenState extends State<SettingScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [const Color(0xFF0F172A), const Color(0xFF1E293B)],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1596,10 +1455,10 @@ class _SettingScreenState extends State<SettingScreen> {
                     ),
                   ],
                 ),
-                child: avatarUrl != null && avatarUrl!.isNotEmpty
+                child: avatarUrl != null && avatarUrl.isNotEmpty
                     ? ClipOval(
                         child: Image.network(
-                          avatarUrl!,
+                          avatarUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) =>
                               _avatarInitialWidget(fullName),
@@ -1607,7 +1466,6 @@ class _SettingScreenState extends State<SettingScreen> {
                       )
                     : _avatarInitialWidget(fullName),
               ),
-
               if (isVerified)
                 Positioned(
                   right: 0,
@@ -1632,9 +1490,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 ),
             ],
           ),
-
           const SizedBox(width: 18),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1659,7 +1515,6 @@ class _SettingScreenState extends State<SettingScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 10),
-
                 Row(
                   children: [
                     Container(
@@ -1683,9 +1538,7 @@ class _SettingScreenState extends State<SettingScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 8),
-
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -1961,7 +1814,7 @@ class _SettingScreenState extends State<SettingScreen> {
         onPressed: _logout,
         icon: const Icon(Icons.logout_rounded, size: 20),
         label: const Text(
-          "Keluar dari Akun",
+          'Keluar dari Akun',
           style: TextStyle(
             fontWeight: FontWeight.w800,
             fontSize: 15,
