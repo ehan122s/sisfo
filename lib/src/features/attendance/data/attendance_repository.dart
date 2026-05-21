@@ -293,29 +293,17 @@ class AttendanceRepository {
  // 5. Check if already checked in today (FIX TIMEZONE)
 Future<bool> hasCheckedInToday(String studentId) async {
   final now = DateTime.now();
+  // Format lokal "2026-05-21"
+  final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
-  final startOfDay = DateTime(
-    now.year,
-    now.month,
-    now.day,
-  );
-
-  final endOfDay = startOfDay.add(
-    const Duration(days: 1),
-  );
-
+  // Manfaatkan casting tanggal di PostgreSQL Supabase via RPC atau gunakan range yang pas
   final response = await _supabase
       .from('attendance_logs')
       .select()
       .eq('student_id', studentId)
-      .gte(
-        'created_at',
-        startOfDay.toUtc().toIso8601String(),
-      )
-      .lt(
-        'created_at',
-        endOfDay.toUtc().toIso8601String(),
-      )
+      // Gunakan penanda timezone yang jelas atau filter berbasis date (tanpa jam) jika ada kolomnya
+      .gte('created_at', '${todayStr}T00:00:00+07:00') 
+      .lt('created_at', '${todayStr}T23:59:59+07:00')
       .limit(1);
 
   return response.isNotEmpty;
@@ -376,42 +364,25 @@ final attendanceRepositoryProvider = Provider<AttendanceRepository>((ref) {
 final todaysAttendanceLogProvider =
     StreamProvider.autoDispose<Map<String, dynamic>?>((ref) {
   final user = ref.watch(authRepositoryProvider).currentUser;
+  if (user == null) return Stream.value(null);
 
-  if (user == null) {
-    return Stream.value(null);
-  }
+  final repository = ref.watch(attendanceRepositoryProvider);
 
-  final repository = ref.watch(
-    attendanceRepositoryProvider,
-  );
-
-  return repository
-      .getAttendanceStream(user.id)
-      .map((logs) {
+  return repository.getAttendanceStream(user.id).map((logs) {
     if (logs.isEmpty) return null;
 
+    // Ambil tanggal hari ini format lokal: "2026-05-21"
     final now = DateTime.now();
-
-    final today = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
+    final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
     try {
       final todayLog = logs.firstWhere(
         (log) {
-          final createdAt = DateTime.parse(
-            log['created_at'],
-          ).toLocal();
-
-          final logDate = DateTime(
-            createdAt.year,
-            createdAt.month,
-            createdAt.day,
-          );
-
-          return logDate == today;
+          // Parse UTC ke Local dahulu sebelum mengambil substring tanggalnya
+          final localTime = DateTime.parse(log['created_at']).toLocal();
+          final logDateStr = "${localTime.year}-${localTime.month.toString().padLeft(2, '0')}-${localTime.day.toString().padLeft(2, '0')}";
+          
+          return logDateStr == todayStr;
         },
       );
 

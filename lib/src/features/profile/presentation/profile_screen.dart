@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../services/supabase_config.dart';
 import '../../authentication/data/auth_repository.dart';
 
+// --- Konstanta Warna ---
 const _kBlue900 = Color(0xFF0D47A1);
 const _kBlue700 = Color(0xFF1565C0);
 const _kBlue500 = Color(0xFF1E88E5);
@@ -15,11 +16,25 @@ const _kBlue300 = Color(0xFF64B5F6);
 const _kBlueBg = Color(0xFFF0F5FF);
 const _kNavy = Color(0xFF0F172A);
 
+// --- Gradien untuk Kartu Statistik ---
+final _kJournalGradient = LinearGradient(
+  colors: [Color(0xFF4F46E5), Color(0xFF7C3AED)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+final _kAttendanceGradient = LinearGradient(
+  colors: [Color(0xFFEA580C), Color(0xFFDB2777)],
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+);
+
+// --- Provider Data ---
 final profileProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
   ref,
 ) async {
   final user = ref.read(authRepositoryProvider).currentUser;
-  if (user == null) throw Exception('No user');
+  if (user == null) throw Exception('Tidak ada pengguna');
   return await supabase.from('profiles').select().eq('id', user.id).single();
 });
 
@@ -60,7 +75,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 600),
     );
     _fadeAnim = Tween<double>(
       begin: 0,
@@ -86,7 +101,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     setState(() => _isUploading = true);
     try {
       final user = ref.read(authRepositoryProvider).currentUser;
-      if (user == null) throw Exception('No user');
+      if (user == null) throw Exception('Tidak ada pengguna');
       final bytes = await picked.readAsBytes();
       final fileExt = picked.name.split('.').last;
       final fileName = '${user.id}/avatar.$fileExt';
@@ -490,62 +505,65 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
+            // Header Tinggi yang Berisi Biru & Profil
             SliverAppBar(
-              expandedHeight: 200,
+              expandedHeight: 280, // Tinggi diperbesar agar muat kartu profil
               pinned: true,
-              backgroundColor: _kBlue700,
+              backgroundColor: Colors.transparent,
               automaticallyImplyLeading: false,
               elevation: 0,
-              title: const Text(''),
               flexibleSpace: FlexibleSpaceBar(
-                background: _HeroHeader(
+                background: _CurvedHeaderBackground(
                   profileAsync: profileAsync,
                   isUploading: _isUploading,
                   onTapAvatar: _pickAndUploadAvatar,
                 ),
+                collapseMode: CollapseMode.pin,
               ),
             ),
+            
+            // Konten di Bawah Header (Tanpa Transform Translate)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Stats
+                    // Kartu Statistik
                     Row(
                       children: [
                         Expanded(
                           child: journalCountAsync.when(
-                            data: (n) => _StatCard(
+                            data: (n) => _GradientStatCard(
                               icon: LucideIcons.bookOpen,
                               label: 'Total Jurnal',
                               value: '$n',
-                              color: _kBlue700,
+                              gradient: _kJournalGradient,
                             ),
                             loading: () => _StatCardSkeleton(),
-                            error: (_, __) => _StatCard(
+                            error: (_, __) => _GradientStatCard(
                               icon: LucideIcons.bookOpen,
                               label: 'Total Jurnal',
                               value: '-',
-                              color: _kBlue700,
+                              gradient: _kJournalGradient,
                             ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: attendCountAsync.when(
-                            data: (n) => _StatCard(
+                            data: (n) => _GradientStatCard(
                               icon: LucideIcons.calendarCheck,
                               label: 'Kehadiran',
                               value: '$n',
-                              color: const Color(0xFF0891B2),
+                              gradient: _kAttendanceGradient,
                             ),
                             loading: () => _StatCardSkeleton(),
-                            error: (_, __) => _StatCard(
+                            error: (_, __) => _GradientStatCard(
                               icon: LucideIcons.calendarCheck,
                               label: 'Kehadiran',
                               value: '-',
-                              color: const Color(0xFF0891B2),
+                              gradient: _kAttendanceGradient,
                             ),
                           ),
                         ),
@@ -682,11 +700,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   );
 }
 
-class _HeroHeader extends StatelessWidget {
+// --- Widget Kustom untuk Desain Header & Profil ---
+
+// Background Header Biru dengan Profil di Dalamnya
+class _CurvedHeaderBackground extends StatelessWidget {
   final AsyncValue<Map<String, dynamic>> profileAsync;
   final bool isUploading;
   final VoidCallback onTapAvatar;
-  const _HeroHeader({
+  const _CurvedHeaderBackground({
     required this.profileAsync,
     required this.isUploading,
     required this.onTapAvatar,
@@ -701,9 +722,14 @@ class _HeroHeader extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
       ),
       child: Stack(
         children: [
+          // Dekorasi lingkaran latar belakang
           Positioned(
             top: -30,
             right: -30,
@@ -717,7 +743,7 @@ class _HeroHeader extends StatelessWidget {
             ),
           ),
           Positioned(
-            bottom: 10,
+            bottom: 20,
             left: -40,
             child: Container(
               width: 120,
@@ -728,140 +754,37 @@ class _HeroHeader extends StatelessWidget {
               ),
             ),
           ),
+          
+          // Judul Halaman di Atas
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
-                    onTap: isUploading ? null : onTapAvatar,
-                    child: Stack(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [Colors.white, _kBlue300],
-                            ),
-                          ),
-                          child: ClipOval(
-                            child: SizedBox(
-                              width: 72,
-                              height: 72,
-                              child: isUploading
-                                  ? Container(
-                                      color: const Color(0xFF1976D2),
-                                      child: const Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    )
-                                  : profileAsync.when(
-                                      data: (d) => d['avatar_url'] != null
-                                          ? Image.network(
-                                              '${d['avatar_url']}?t=${DateTime.now().millisecondsSinceEpoch}',
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  _DefaultAvatar(
-                                                    name: d['full_name'] ?? 'S',
-                                                  ),
-                                            )
-                                          : _DefaultAvatar(
-                                              name: d['full_name'] ?? 'S',
-                                            ),
-                                      loading: () => Container(
-                                        color: const Color(0xFF1976D2),
-                                      ),
-                                      error: (_, __) =>
-                                          _DefaultAvatar(name: 'S'),
-                                    ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 2,
-                          right: 2,
-                          child: Container(
-                            width: 22,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              color: _kBlue500,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt_rounded,
-                              color: Colors.white,
-                              size: 11,
-                            ),
-                          ),
-                        ),
-                      ],
+                  Text(
+                    'Profil Saya',
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: profileAsync.when(
-                      data: (d) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            d['full_name'] ?? 'Siswa Magang',
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'NISN: ${d['nisn'] ?? '-'}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.25),
-                              ),
-                            ),
-                            child: Text(
-                              d['class_name'] ?? '-',
-                              style: GoogleFonts.poppins(
-                                fontSize: 11,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      loading: () => const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                      error: (_, __) => Text(
-                        'Gagal memuat',
-                        style: GoogleFonts.poppins(color: Colors.white70),
-                      ),
-                    ),
-                  ),
+                  Icon(LucideIcons.bell, color: Colors.white.withOpacity(0.8)),
                 ],
               ),
+            ),
+          ),
+          
+          // Kartu Profil di Posisi Bawah Header (Didalam area biru)
+          Positioned(
+            bottom: 0,
+            left: 20,
+            right: 20,
+            child: _FloatingProfileCard(
+              profileAsync: profileAsync,
+              isUploading: isUploading,
+              onTapAvatar: onTapAvatar,
             ),
           ),
         ],
@@ -870,44 +793,180 @@ class _HeroHeader extends StatelessWidget {
   }
 }
 
-class _DefaultAvatar extends StatelessWidget {
-  final String name;
-  const _DefaultAvatar({required this.name});
+// Kartu Profil Putih (Tanpa margin bawah agar nempel di biru)
+class _FloatingProfileCard extends StatelessWidget {
+  final AsyncValue<Map<String, dynamic>> profileAsync;
+  final bool isUploading;
+  final VoidCallback onTapAvatar;
+  const _FloatingProfileCard({
+    required this.profileAsync,
+    required this.isUploading,
+    required this.onTapAvatar,
+  });
+
   @override
-  Widget build(BuildContext context) => Container(
-    color: const Color(0xFF1976D2),
-    child: Center(
-      child: Text(
-        name.isNotEmpty ? name[0].toUpperCase() : 'S',
-        style: GoogleFonts.poppins(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+  Widget build(BuildContext context) {
+    return Container(
+      // Margin bawah dihapus atau dibuat kecil agar tidak kepotong lengkungan
+      margin: const EdgeInsets.only(bottom: 10), 
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-    ),
-  );
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: isUploading ? null : onTapAvatar,
+            child: Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [_kBlue500, _kBlue300],
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: SizedBox(
+                      width: 60, // Ukuran avatar sedikit disesuaikan
+                      height: 60,
+                      child: isUploading
+                          ? Container(
+                              color: const Color(0xFF1976D2),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                          : profileAsync.when(
+                              data: (d) => d['avatar_url'] != null
+                                  ? Image.network(
+                                      '${d['avatar_url']}?t=${DateTime.now().millisecondsSinceEpoch}',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _DefaultAvatar(
+                                            name: d['full_name'] ?? 'S',
+                                          ),
+                                    )
+                                  : _DefaultAvatar(
+                                      name: d['full_name'] ?? 'S',
+                                    ),
+                              loading: () => Container(
+                                color: const Color(0xFF1976D2),
+                              ),
+                              error: (_, __) =>
+                                  _DefaultAvatar(name: 'S'),
+                            ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: _kBlue500,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                      size: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: profileAsync.when(
+              data: (d) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    d['full_name'] ?? 'Siswa Magang',
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: _kNavy,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'NISN: ${d['nisn'] ?? '-'}',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _kBlueBg,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      d['class_name'] ?? '-',
+                      style: GoogleFonts.poppins(
+                        fontSize: 10,
+                        color: _kBlue700,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => Text('Gagal memuat', style: GoogleFonts.poppins(color: Colors.red)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _StatCard extends StatelessWidget {
+// Widget lainnya tetap sama
+class _GradientStatCard extends StatelessWidget {
   final IconData icon;
   final String label, value;
-  final Color color;
-  const _StatCard({
+  final Gradient gradient;
+  const _GradientStatCard({
     required this.icon,
     required this.label,
     required this.value,
-    required this.color,
+    required this.gradient,
   });
+
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      gradient: gradient,
+      borderRadius: BorderRadius.circular(20),
       boxShadow: [
         BoxShadow(
-          color: color.withOpacity(0.1),
+          color: gradient.colors.first.withOpacity(0.3),
           blurRadius: 12,
           offset: const Offset(0, 4),
         ),
@@ -919,10 +978,10 @@ class _StatCard extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: color, size: 20),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
         const SizedBox(width: 12),
         Column(
@@ -931,16 +990,16 @@ class _StatCard extends StatelessWidget {
             Text(
               value,
               style: GoogleFonts.poppins(
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.w800,
-                color: _kNavy,
+                color: Colors.white,
               ),
             ),
             Text(
               label,
               style: GoogleFonts.poppins(
                 fontSize: 11,
-                color: Colors.grey.shade500,
+                color: Colors.white70,
               ),
             ),
           ],
@@ -956,7 +1015,7 @@ class _StatCardSkeleton extends StatelessWidget {
     height: 72,
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(20),
     ),
   );
 }
@@ -1136,6 +1195,25 @@ class _ModalHandle extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.grey.shade300,
         borderRadius: BorderRadius.circular(2),
+      ),
+    ),
+  );
+}
+
+class _DefaultAvatar extends StatelessWidget {
+  final String name;
+  const _DefaultAvatar({required this.name});
+  @override
+  Widget build(BuildContext context) => Container(
+    color: const Color(0xFF1976D2),
+    child: Center(
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : 'S',
+        style: GoogleFonts.poppins(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       ),
     ),
   );
