@@ -12,26 +12,29 @@ import '../data/notification_repository.dart';
 import '../data/teacher_repository.dart';
 
 // =========================================================================
-// ── CORPORATE LUXURY COLOR PALETTE ──
+// ── PREMIUM GLASSMORPHIC BLUE COLOR PALETTE ──
 // =========================================================================
 class AppColors {
-  // Brand Identities
-  static const Color primaryDark = Color(0xFF0F172A); // Slate 900
-  static const Color primaryBlue = Color(0xFF1E40AF); // Royal Cobalt Blue
-  static const Color accentIndigo = Color(0xFF6366F1); // Deep Indigo
-  static const Color accentGold = Color(0xFFD4AF37); // Metallic Champagne Gold
-  static const Color successEmerald = Color(0xFF059669); // Emerald Green
-  static const Color alertAmber = Color(0xFFD97706); // Amber Gold
+  // Pure Premium Blue & Cyan Tones
+  static const Color primaryBlue = Color(0xFF1D4ED8); // Royal Blue
+  static const Color accentBlue = Color(0xFF2563EB); // Electric Blue
+  static const Color lightBlue = Color(0xFF60A5FA); // Sky Blue
+  static const Color iceBlue = Color(0xFF93C5FD); // Ice Blue/Glass
+  static const Color cyanAccent = Color(0xFF06B6D4); // Vivid Cyan
 
-  // Surface & Backdrops
-  static const Color background = Color(0xFFF8FAFC); // Slate 50
+  // System States (Adjusted for blue harmony)
+  static const Color successEmerald = Color(0xFF10B981); // Mint Green
+  static const Color alertAmber = Color(0xFFF59E0B); // Amber Orange
+
+  // Backdrop & Glass Specifications
+  static const Color background = Color(0xFFF0F5FA); // Soft Ice-Blue Tint
   static const Color surface = Colors.white;
   static const Color glassBorder = Color(0xFFE2E8F0);
 
-  // Typography Colors
-  static const Color textPrimary = Color(0xFF0F172A);
-  static const Color textSecondary = Color(0xFF475569);
-  static const Color textMuted = Color(0xFF94A3B8);
+  // Premium Dark Slate for Typography
+  static const Color textPrimary = Color(0xFF0F172A); // Slate 900
+  static const Color textSecondary = Color(0xFF334155); // Slate 700
+  static const Color textMuted = Color(0xFF64748B); // Slate 500
 }
 
 // =========================================================================
@@ -91,7 +94,7 @@ class AppFonts {
 }
 
 // =========================================================================
-// ── PREMIUM GLASSMORPHISM CARD ──
+// ── TRUE GLASSMORPHISM CARD (with real BackdropFilter) ──
 // =========================================================================
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -99,36 +102,31 @@ class GlassCard extends StatelessWidget {
   final double borderRadius;
   final List<BoxShadow>? customShadow;
   final Color? borderColor;
+  final Color? backgroundColor;
 
   const GlassCard({
     super.key,
     required this.child,
     this.padding,
-    this.borderRadius = 20,
+    this.borderRadius = 24,
     this.customShadow,
     this.borderColor,
+    this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(
-          color: borderColor ?? Colors.white.withValues(alpha: 0.6),
-          width: 1.5,
-        ),
         boxShadow: customShadow ??
             [
               BoxShadow(
-                color: AppColors.primaryDark.withValues(alpha: 0.03),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: AppColors.primaryBlue.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 8),
               ),
               BoxShadow(
-                color: AppColors.accentIndigo.withValues(alpha: 0.02),
+                color: AppColors.cyanAccent.withValues(alpha: 0.02),
                 blurRadius: 32,
                 offset: const Offset(0, 16),
                 spreadRadius: -4,
@@ -136,8 +134,22 @@ class GlassCard extends StatelessWidget {
             ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius - 1.5),
-        child: child,
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: backgroundColor ?? Colors.white.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(borderRadius),
+              border: Border.all(
+                color: borderColor ?? Colors.white.withValues(alpha: 0.6),
+                width: 1.5,
+              ),
+            ),
+            child: child,
+          ),
+        ),
       ),
     );
   }
@@ -166,7 +178,7 @@ class _TeacherDashboardScreenState
     '/teacher/dashboard/reports',
   ];
 
-  // List of all modules (8 modules) for bottom sheet & see all module navigation
+  // List of all modules (8 modules) with premium blue palettes
   List<_MenuItem> _getMenuItems() {
     return [
       _MenuItem(
@@ -180,14 +192,14 @@ class _TeacherDashboardScreenState
         icon: Icons.groups_outlined,
         label: 'Siswa',
         description: 'Manajemen data & profil',
-        color: AppColors.accentIndigo,
+        color: AppColors.lightBlue,
         route: '/teacher/dashboard/students',
       ),
       _MenuItem(
         icon: Icons.business_outlined,
         label: 'Tempat PKL',
         description: 'Daftar mitra industri',
-        color: const Color(0xFF8B5CF6),
+        color: AppColors.cyanAccent,
         route: '/teacher/dashboard/placements',
       ),
       _MenuItem(
@@ -201,14 +213,14 @@ class _TeacherDashboardScreenState
         icon: Icons.book_outlined,
         label: 'Jurnal Harian',
         description: 'Validasi laporan kegiatan',
-        color: const Color(0xFF06B6D4),
+        color: AppColors.accentBlue,
         route: '/teacher/dashboard/journals',
       ),
       _MenuItem(
         icon: Icons.supervised_user_circle_outlined,
         label: 'Monitoring',
         description: 'Agenda kunjungan lapangan',
-        color: const Color(0xFFEC4899),
+        color: AppColors.lightBlue,
         route: '/teacher/dashboard/monitoring',
       ),
       _MenuItem(
@@ -222,7 +234,7 @@ class _TeacherDashboardScreenState
         icon: Icons.description_outlined,
         label: 'Laporan',
         description: 'Ekspor dokumen resmi',
-        color: const Color(0xFF64748B),
+        color: AppColors.textMuted,
         route: '/teacher/dashboard/reports',
       ),
     ];
@@ -243,40 +255,52 @@ class _TeacherDashboardScreenState
       extendBody: true,
       body: Stack(
         children: [
-          // ── Ambient Background Lights ──
+          // ── Ambient Background Blur Lights (Cyan & Ice Blue) ──
           Positioned(
-            top: -120,
-            left: -100,
-            right: -100,
+            top: -100,
+            left: -80,
             child: Container(
-              height: 460,
+              width: 380,
+              height: 380,
               decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(-0.6, -0.5),
-                  radius: 1.3,
-                  colors: [
-                    AppColors.accentIndigo.withValues(alpha: 0.08),
-                    AppColors.primaryBlue.withValues(alpha: 0.04),
-                    Colors.transparent,
-                  ],
-                ),
+                shape: BoxShape.circle,
+                color: AppColors.cyanAccent.withValues(alpha: 0.18),
+              ),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 90, sigmaY: 90),
+                child: Container(color: Colors.transparent),
               ),
             ),
           ),
           Positioned(
-            top: 220,
+            top: 150,
             right: -100,
             child: Container(
-              width: 340,
-              height: 340,
+              width: 320,
+              height: 320,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.accentGold.withValues(alpha: 0.04),
-                    Colors.transparent,
-                  ],
-                ),
+                color: AppColors.primaryBlue.withValues(alpha: 0.12),
+              ),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 100,
+            left: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.lightBlue.withValues(alpha: 0.1),
+              ),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+                child: Container(color: Colors.transparent),
               ),
             ),
           ),
@@ -300,7 +324,7 @@ class _TeacherDashboardScreenState
                   _buildMenuSectionHeader(context),
                   const SizedBox(height: 16),
                   _buildLuxuryMenuGrid(context),
-                  const SizedBox(height: 120), // Spacer padding for floating dock
+                  const SizedBox(height: 120), // Padding space for dock
                 ],
               ),
             ),
@@ -312,7 +336,7 @@ class _TeacherDashboardScreenState
   }
 
   // ═══════════════════════════════════════════
-  //  PREMIUM ARCHITECTURE APP BAR
+  // ── PREMIUM GLASS APP BAR
   // ═══════════════════════════════════════════
   Widget _buildLuxuryAppBar(
     BuildContext context,
@@ -323,13 +347,7 @@ class _TeacherDashboardScreenState
       padding: const EdgeInsets.all(16),
       borderRadius: 24,
       borderColor: Colors.white.withValues(alpha: 0.7),
-      customShadow: [
-        BoxShadow(
-          color: AppColors.primaryDark.withValues(alpha: 0.05),
-          blurRadius: 24,
-          offset: const Offset(0, 8),
-        ),
-      ],
+      backgroundColor: Colors.white.withValues(alpha: 0.5),
       child: Row(
         children: [
           profileAsync.when(
@@ -338,7 +356,7 @@ class _TeacherDashboardScreenState
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [AppColors.accentGold, AppColors.accentIndigo],
+                  colors: [AppColors.lightBlue, AppColors.primaryBlue],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -368,11 +386,11 @@ class _TeacherDashboardScreenState
                 height: 16,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: AppColors.accentIndigo,
+                  color: AppColors.primaryBlue,
                 ),
               ),
             ),
-            error: (_, __) => const CircleAvatar(
+            error: (error, stackTrace) => const CircleAvatar(
               radius: 24,
               backgroundColor: AppColors.background,
               child: Icon(Icons.person, color: AppColors.primaryBlue),
@@ -388,12 +406,12 @@ class _TeacherDashboardScreenState
                     children: [
                       Text(
                         'Selamat Datang,'.toUpperCase(),
-                        style: AppFonts.labelSmall(color: AppColors.accentGold),
+                        style: AppFonts.labelSmall(color: AppColors.primaryBlue),
                       ),
                       const SizedBox(width: 4),
                       const Icon(
                         Icons.verified_user,
-                        color: AppColors.accentGold,
+                        color: AppColors.primaryBlue,
                         size: 10,
                       ),
                     ],
@@ -408,27 +426,28 @@ class _TeacherDashboardScreenState
                 ],
               ),
               loading: () => _buildAppSkeleton(),
-              error: (_, __) => _buildAppSkeleton(),
+              error: (error, stackTrace) => _buildAppSkeleton(),
             ),
           ),
           _buildAppBarActionIcon(
             icon: Icons.notifications_none_rounded,
             badge: true,
-            color: AppColors.background,
+            color: Colors.white.withValues(alpha: 0.5),
             onTap: () => context.go('/teacher/dashboard/notifications'),
           ),
           const SizedBox(width: 8),
           _buildAppBarActionIcon(
             icon: Icons.download_outlined,
-            color: AppColors.background,
+            color: Colors.white.withValues(alpha: 0.5),
             iconColor: AppColors.primaryBlue,
             onTap: () => _handleExport(context, ref),
           ),
           const SizedBox(width: 8),
+          // ── LOGOUT BUTTON (GAMBAR PINTU TERBUKA) ──
           _buildAppBarActionIcon(
-            icon: Icons.power_settings_new_rounded,
-            color: const Color(0xFFFEF2F2),
-            iconColor: const Color(0xFFEF4444),
+            icon: Icons.logout_rounded, // Pintu terbuka
+            color: const Color(0xFFFEF2F2), // Merah transparan halus
+            iconColor: const Color(0xFFEF4444), // Ikon merah tegas
             onTap: () => ref.read(authRepositoryProvider).signOut(),
           ),
         ],
@@ -451,10 +470,10 @@ class _TeacherDashboardScreenState
         child: Container(
           padding: const EdgeInsets.all(11),
           decoration: BoxDecoration(
-            color: color ?? AppColors.background,
+            color: color ?? Colors.white.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppColors.glassBorder.withValues(alpha: 0.5),
+              color: AppColors.glassBorder.withValues(alpha: 0.6),
               width: 1,
             ),
           ),
@@ -562,7 +581,7 @@ class _TeacherDashboardScreenState
   }
 
   // ═══════════════════════════════════════════
-  //  LUXURY INTERACTIVE STATS ROW
+  // ── LUXURY INTERACTIVE STATS ROW
   // ═══════════════════════════════════════════
   Widget _buildLuxuryStatsRow(AsyncValue<Map<String, dynamic>> statsAsync) {
     return statsAsync.when(
@@ -583,7 +602,7 @@ class _TeacherDashboardScreenState
               title: 'Hadir',
               value: stats['present_today'].toString(),
               subtitle: 'Siswa Hari Ini',
-              accentColor: AppColors.successEmerald,
+              accentColor: AppColors.cyanAccent,
               icon: Icons.check_circle_outline_rounded,
             ),
           ),
@@ -604,10 +623,10 @@ class _TeacherDashboardScreenState
         alignment: Alignment.center,
         child: const CircularProgressIndicator(
           strokeWidth: 2,
-          color: AppColors.accentIndigo,
+          color: AppColors.primaryBlue,
         ),
       ),
-      error: (_, __) => Container(
+      error: (error, stackTrace) => Container(
         height: 110,
         alignment: Alignment.center,
         child: Text(
@@ -645,37 +664,36 @@ class _TeacherDashboardScreenState
   }
 
   // ═══════════════════════════════════════════
-  //  LUXURY MENU GRID (LIMIT TO 4 KEY MODULES)
+  // ── LUXURY MENU GRID
   // ═══════════════════════════════════════════
   Widget _buildLuxuryMenuGrid(BuildContext context) {
-    // Show only the 4 most important modules on Home
     final Map<int, List<dynamic>> homeModules = {
       0: [
         Icons.location_on_outlined,
         'Monitoring Absensi',
         'Pantau lokasi & waktu',
-        const Color(0xFF3B82F6),
+        AppColors.primaryBlue,
         '/teacher/dashboard/attendance'
       ],
       1: [
         Icons.book_outlined,
         'Laporan Jurnal',
         'Validasi kegiatan siswa',
-        const Color(0xFF10B981),
+        AppColors.cyanAccent,
         '/teacher/dashboard/journals'
       ],
       2: [
         Icons.groups_outlined,
         'Data Siswa',
         'Profil & status PKL',
-        const Color(0xFFF59E0B),
+        AppColors.lightBlue,
         '/teacher/dashboard/students'
       ],
       3: [
         Icons.history_edu_outlined,
         'Riwayat Aktivitas',
         'Log notifikasi & kejadian',
-        const Color(0xFF8B5CF6),
+        AppColors.accentBlue,
         '/teacher/dashboard/notifications'
       ],
     };
@@ -692,12 +710,12 @@ class _TeacherDashboardScreenState
       itemCount: 4,
       itemBuilder: (context, index) {
         final item = homeModules[index]!;
+        final Color itemColor = item[3] as Color;
         return GestureDetector(
           onTap: () => context.go(item[4] as String),
           child: GlassCard(
             padding: const EdgeInsets.all(16),
             borderRadius: 24,
-            borderColor: Colors.white,
             child: Stack(
               children: [
                 Positioned(
@@ -707,7 +725,7 @@ class _TeacherDashboardScreenState
                     width: 90,
                     height: 90,
                     decoration: BoxDecoration(
-                      color: (item[3] as Color).withValues(alpha: 0.05),
+                      color: itemColor.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -719,13 +737,13 @@ class _TeacherDashboardScreenState
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: (item[3] as Color).withValues(alpha: 0.08),
+                        color: itemColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Icon(
                         item[0] as IconData,
                         size: 22,
-                        color: item[3] as Color,
+                        color: itemColor,
                       ),
                     ),
                     Column(
@@ -770,7 +788,7 @@ class _TeacherDashboardScreenState
   }
 
   // ═══════════════════════════════════════════
-  //  EXPORT REPORT PRODUCER (COMPRESSED DIALOG)
+  // ── EXPORT REPORT PRODUCER (COMPRESSED DIALOG)
   // ═══════════════════════════════════════════
   Future<void> _handleExport(BuildContext context, WidgetRef ref) async {
     final user = ref.read(authRepositoryProvider).currentUser;
@@ -801,7 +819,7 @@ class _TeacherDashboardScreenState
                 'Mengompilasi berkas laporan...',
                 style: AppFonts.bodyLarge(color: Colors.white),
               ),
-              backgroundColor: AppColors.primaryDark,
+              backgroundColor: AppColors.primaryBlue,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -883,7 +901,7 @@ class _TeacherDashboardScreenState
   }
 
   // ═══════════════════════════════════════════
-  //  FROSTED GLASS FLOATING NAVIGATION DOCK
+  // ── FROSTED GLASS FLOATING NAVIGATION DOCK
   // ═══════════════════════════════════════════
   Widget _buildPremiumFloatingDock() {
     return Container(
@@ -891,13 +909,13 @@ class _TeacherDashboardScreenState
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryDark.withValues(alpha: 0.08),
+            color: AppColors.primaryBlue.withValues(alpha: 0.1),
             blurRadius: 36,
             offset: const Offset(0, 16),
             spreadRadius: -4,
           ),
           BoxShadow(
-            color: AppColors.accentIndigo.withValues(alpha: 0.04),
+            color: AppColors.cyanAccent.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, -2),
           ),
@@ -910,11 +928,10 @@ class _TeacherDashboardScreenState
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
             decoration: BoxDecoration(
-              // Elegant pure-white translucent aesthetic
-              color: Colors.white.withValues(alpha: 0.65),
+              color: Colors.white.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(26),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.55),
+                color: Colors.white.withValues(alpha: 0.45),
                 width: 1.5,
               ),
             ),
@@ -992,7 +1009,7 @@ class _TeacherDashboardScreenState
               label,
               style: AppFonts.labelSmall(
                 color: isSelected
-                    ? AppColors.primaryDark
+                    ? AppColors.textPrimary
                     : AppColors.textSecondary.withValues(alpha: 0.6),
               ).copyWith(
                 fontSize: 8,
@@ -1014,14 +1031,14 @@ class _TeacherDashboardScreenState
         width: 48,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [AppColors.accentGold, AppColors.accentIndigo],
+            colors: [AppColors.cyanAccent, AppColors.primaryBlue],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: AppColors.accentIndigo.withValues(alpha: 0.35),
+              color: AppColors.primaryBlue.withValues(alpha: 0.25),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),
@@ -1037,7 +1054,7 @@ class _TeacherDashboardScreenState
   }
 
   // ═══════════════════════════════════════════
-  //  MODAL BOTTOM SHEET: ALL 8 ACTIVE MODULES
+  // ── MODAL BOTTOM SHEET: ALL 8 ACTIVE MODULES
   // ═══════════════════════════════════════════
   void _showAllModulesSheet(BuildContext context) {
     final allItems = _getMenuItems();
@@ -1051,15 +1068,15 @@ class _TeacherDashboardScreenState
         child: Container(
           height: MediaQuery.of(context).size.height * 0.72,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.95),
+            color: Colors.white.withValues(alpha: 0.9),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.7),
+              color: Colors.white.withValues(alpha: 0.6),
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primaryDark.withValues(alpha: 0.15),
+                color: AppColors.primaryBlue.withValues(alpha: 0.1),
                 blurRadius: 40,
                 offset: const Offset(0, -10),
               ),
@@ -1076,7 +1093,7 @@ class _TeacherDashboardScreenState
                     width: 48,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: AppColors.textMuted.withValues(alpha: 0.4),
+                      color: AppColors.textMuted.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
@@ -1122,7 +1139,6 @@ class _TeacherDashboardScreenState
                         child: GlassCard(
                           padding: const EdgeInsets.all(16),
                           borderRadius: 24,
-                          borderColor: Colors.white,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1188,7 +1204,7 @@ class _TeacherDashboardScreenState
   }
 
   // ═══════════════════════════════════════════
-  //  EXECUTIVE MODAL BOTTOM SHEET QUICK ACTION
+  // ── QUICK ACTION MODAL SHEET
   // ═══════════════════════════════════════════
   void _showQuickActionSheet(BuildContext context) {
     showModalBottomSheet(
@@ -1197,7 +1213,11 @@ class _TeacherDashboardScreenState
       isScrollControlled: true,
       builder: (context) => Container(
         decoration: BoxDecoration(
-          color: AppColors.primaryDark.withValues(alpha: 0.98),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0F172A), Color(0xFF1E293B)], // Premium slate gradient
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.1),
@@ -1238,7 +1258,7 @@ class _TeacherDashboardScreenState
                   icon: Icons.person_add_alt_1_outlined,
                   title: 'Tambah Data Siswa',
                   subtitle: 'Pendaftaran peserta PKL baru',
-                  color: AppColors.accentIndigo,
+                  color: AppColors.lightBlue,
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/teacher/dashboard/students/add');
@@ -1249,7 +1269,7 @@ class _TeacherDashboardScreenState
                   icon: Icons.add_business_outlined,
                   title: 'Tambah Tempat PKL',
                   subtitle: 'Registrasi kemitraan industri',
-                  color: AppColors.accentGold,
+                  color: AppColors.cyanAccent,
                   onTap: () {
                     Navigator.pop(context);
                     context.go('/teacher/dashboard/placements/add');
@@ -1271,7 +1291,7 @@ class _TeacherDashboardScreenState
                   icon: Icons.cloud_download_outlined,
                   title: 'Ekspor Dokumen Laporan',
                   subtitle: 'Unduh rekapitulasi data lengkap (.xlsx / .pdf)',
-                  color: const Color(0xFF94A3B8),
+                  color: AppColors.iceBlue,
                   onTap: () {
                     Navigator.pop(context);
                     _handleExport(context, ref);
@@ -1312,13 +1332,6 @@ class _PremiumKPIStatCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
       borderRadius: 24,
       borderColor: Colors.white,
-      customShadow: [
-        BoxShadow(
-          color: AppColors.primaryDark.withValues(alpha: 0.02),
-          blurRadius: 16,
-          offset: const Offset(0, 6),
-        ),
-      ],
       child: Column(
         children: [
           Container(
@@ -1332,7 +1345,7 @@ class _PremiumKPIStatCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            style: AppFonts.headlineLarge(color: AppColors.primaryDark).copyWith(
+            style: AppFonts.headlineLarge(color: AppColors.textPrimary).copyWith(
               fontSize: 24,
               letterSpacing: -0.5,
             ),
@@ -1530,7 +1543,7 @@ class _ExportDialogState extends State<_ExportDialog> {
                 Expanded(
                   flex: 3,
                   child: DropdownButtonFormField<int>(
-                    value: _selectedMonth,
+                    initialValue: _selectedMonth,
                     dropdownColor: Colors.white,
                     decoration: _inputDecoration('Bulan'),
                     items: List.generate(
@@ -1550,7 +1563,7 @@ class _ExportDialogState extends State<_ExportDialog> {
                 Expanded(
                   flex: 2,
                   child: DropdownButtonFormField<int>(
-                    value: _selectedYear,
+                    initialValue: _selectedYear,
                     dropdownColor: Colors.white,
                     decoration: _inputDecoration('Tahun'),
                     items: years
@@ -1576,7 +1589,7 @@ class _ExportDialogState extends State<_ExportDialog> {
             ),
             const SizedBox(height: 10),
             DropdownButtonFormField<String?>(
-              value: _selectedStudentId,
+              initialValue: _selectedStudentId,
               dropdownColor: Colors.white,
               decoration: _inputDecoration('Pilih Siswa'),
               items: [
