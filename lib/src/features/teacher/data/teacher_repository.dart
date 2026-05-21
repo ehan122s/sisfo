@@ -18,7 +18,17 @@ class TeacherRepository {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  // 2. Get Pending Journals
+  // 2. Get Student List (untuk dropdown export)
+  Future<List<Map<String, dynamic>>> getStudentList(String teacherId) async {
+    final response = await _supabase
+        .from('managed_students_view')
+        .select('student_id, full_name')
+        .eq('teacher_id', teacherId)
+        .order('full_name');
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // 3. Get Pending Journals
   Future<List<Map<String, dynamic>>> getPendingJournals(
     String teacherId,
   ) async {
@@ -34,7 +44,7 @@ class TeacherRepository {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  // 3. Approve/Reject Journal
+  // 4. Approve/Reject Journal
   Future<void> updateJournalStatus(
     int journalId,
     bool isApproved, {
@@ -46,7 +56,7 @@ class TeacherRepository {
         .eq('id', journalId);
   }
 
-  // 4. Get Managed Students Attendance by Date
+  // 5. Get Managed Students Attendance by Date
   Future<List<Map<String, dynamic>>> getManagedStudentsAttendance(
     String teacherId, {
     DateTime? date,
@@ -56,7 +66,6 @@ class TeacherRepository {
 
     final studentIds = students.map((s) => s['student_id']).toList();
 
-    // Pakai kolom date (sudah lokal WIB) bukan created_at (UTC)
     final now = date ?? DateTime.now().toLocal();
     final targetDate =
         '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
@@ -89,7 +98,7 @@ class TeacherRepository {
     }).toList();
   }
 
-  // 5. Get Dashboard Stats
+  // 6. Get Dashboard Stats
   Future<Map<String, int>> getTeacherStats(String teacherId) async {
     final students = await getManagedStudents(teacherId);
     final totalStudents = students.length;
@@ -106,22 +115,27 @@ class TeacherRepository {
     };
   }
 
-  // 6. Get Attendance Report for Export
+  // 7. Get Attendance Report for Export
   Future<List<Map<String, dynamic>>> getAttendanceReportForExport(
     String teacherId, {
     int? month,
     int? year,
+    String? studentId,
   }) async {
     final students = await getManagedStudents(teacherId);
     if (students.isEmpty) return [];
-    final studentIds = students.map((s) => s['student_id']).toList();
+
     final now = DateTime.now();
     final m = month ?? now.month;
     final y = year ?? now.year;
 
-    // FIX: masukkan jam, menit, detik langsung ke DateTime
     final startOfMonth = DateTime(y, m, 1, 0, 0, 0).toIso8601String();
     final endOfMonth = DateTime(y, m + 1, 0, 23, 59, 59).toIso8601String();
+
+    // Filter studentIds: semua siswa guru, atau 1 siswa tertentu
+    final studentIds = studentId != null
+        ? [studentId]
+        : students.map((s) => s['student_id']).toList();
 
     final logsResponse = await _supabase
         .from('attendance_logs')
@@ -130,7 +144,9 @@ class TeacherRepository {
         .gte('created_at', startOfMonth)
         .lte('created_at', endOfMonth)
         .order('created_at', ascending: false);
+
     final logs = List<Map<String, dynamic>>.from(logsResponse);
+
     List<Map<String, dynamic>> flattenedData = [];
     for (var log in logs) {
       final student = students.firstWhere(
@@ -144,13 +160,44 @@ class TeacherRepository {
     return flattenedData;
   }
 
-  // 7. Get Student Attendance by Month
+  // 8. Get Journal Report for Export
+  Future<List<Map<String, dynamic>>> getJournalReportForExport(
+    String teacherId, {
+    int? month,
+    int? year,
+    String? studentId,
+  }) async {
+    final students = await getManagedStudents(teacherId);
+    if (students.isEmpty) return [];
+
+    final now = DateTime.now();
+    final m = month ?? now.month;
+    final y = year ?? now.year;
+
+    final startOfMonth = DateTime(y, m, 1, 0, 0, 0).toIso8601String();
+    final endOfMonth = DateTime(y, m + 1, 0, 23, 59, 59).toIso8601String();
+
+    final studentIds = studentId != null
+        ? [studentId]
+        : students.map((s) => s['student_id']).toList();
+
+    final response = await _supabase
+        .from('daily_journals')
+        .select('*, profiles!inner(full_name)')
+        .inFilter('student_id', studentIds)
+        .gte('created_at', startOfMonth)
+        .lte('created_at', endOfMonth)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  // 9. Get Student Attendance by Month
   Future<List<Map<String, dynamic>>> getStudentAttendanceByMonth(
     String studentId,
     int month,
     int year,
   ) async {
-    // FIX: masukkan jam, menit, detik langsung ke DateTime
     final startOfMonth = DateTime(year, month, 1, 0, 0, 0).toIso8601String();
     final endOfMonth = DateTime(
       year,
@@ -171,13 +218,12 @@ class TeacherRepository {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  // 8. Get Student Journals by Month
+  // 10. Get Student Journals by Month
   Future<List<Map<String, dynamic>>> getStudentJournalsByMonth(
     String studentId,
     int month,
     int year,
   ) async {
-    // FIX: masukkan jam, menit, detik langsung ke DateTime
     final startOfMonth = DateTime(year, month, 1, 0, 0, 0).toIso8601String();
     final endOfMonth = DateTime(
       year,
@@ -217,7 +263,6 @@ final pendingJournalsProvider =
       return ref.watch(teacherRepositoryProvider).getPendingJournals(user.id);
     });
 
-// Provider dengan parameter tanggal
 final managedAttendanceProvider = FutureProvider.autoDispose
     .family<List<Map<String, dynamic>>, DateTime?>((ref, date) async {
       final user = ref.watch(authRepositoryProvider).currentUser;
