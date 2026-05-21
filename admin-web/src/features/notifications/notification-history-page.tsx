@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useWhatsAppLogs } from '@/hooks/use-notification-logs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import {
     Dialog,
     DialogContent,
@@ -14,9 +15,11 @@ import {
     IconFilter,
     IconBell,
     IconFilterOff,
+    IconCalendar,
 } from '@tabler/icons-react'
 import { format } from 'date-fns'
 import { id as localeId } from 'date-fns/locale'
+import { cn } from '@/lib/utils'
 
 const DEFAULT_FILTERS = {
     dateFrom: '',
@@ -25,12 +28,31 @@ const DEFAULT_FILTERS = {
     status: '',
 }
 
+// ✅ Sesuai nilai di tabel notification_logs
+const TYPE_LABELS: Record<string, string> = {
+    on_time: 'Tepat Waktu',
+    late: 'Terlambat',
+    absent: 'Tidak Hadir',
+    no_journal: 'Belum Isi Jurnal',
+}
+
+const STATUS_COLORS: Record<string, string> = {
+    sent: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+    failed: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20',
+    pending: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+    sent: 'Terkirim',
+    failed: 'Gagal',
+    pending: 'Pending',
+}
+
 export function NotificationHistoryPage() {
     const [filters, setFilters] = useState(DEFAULT_FILTERS)
     const [appliedFilters, setAppliedFilters] = useState(DEFAULT_FILTERS)
     const [selectedLog, setSelectedLog] = useState<any | null>(null)
 
-    // Hanya menggunakan hook logs utama agar tidak memicu error stats undefined
     const { data: result, isLoading } = useWhatsAppLogs(appliedFilters)
 
     const logs = result?.data || []
@@ -46,8 +68,8 @@ export function NotificationHistoryPage() {
 
     return (
         <div className="bg-slate-50 dark:bg-[#0b0f19] min-h-screen p-6 space-y-6 text-slate-800 dark:text-slate-200 font-sans transition-colors duration-200">
-            
-            {/* Header Utama */}
+
+            {/* Header */}
             <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-5">
                 <div>
                     <h1 className="text-3xl font-black tracking-tight uppercase italic text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -63,7 +85,7 @@ export function NotificationHistoryPage() {
                 </div>
             </div>
 
-            {/* PANEL PENCARIAN TERPADU (Garis Biru di Kiri) */}
+            {/* Filter Panel */}
             <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 border-l-4 border-l-blue-600 dark:border-l-blue-500 rounded-xl p-5 shadow-sm dark:shadow-xl">
                 <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-2.5">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -76,31 +98,77 @@ export function NotificationHistoryPage() {
                         )}
                     </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    {/* DARI TANGGAL */}
+                    {/* ✅ FIX: Dari Tanggal pakai Popover + Calendar */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Dari Tanggal</label>
-                        <Input
-                            type="date"
-                            className="bg-slate-50 dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 h-9 text-xs focus:border-blue-500 focus:ring-0"
-                            value={filters.dateFrom}
-                            onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value }))}
-                        />
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal h-9 text-xs bg-slate-50 dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800",
+                                        !filters.dateFrom && "text-slate-400 dark:text-slate-500"
+                                    )}
+                                >
+                                    <IconCalendar className="mr-2 h-3.5 w-3.5 shrink-0" />
+                                    {filters.dateFrom
+                                        ? format(new Date(filters.dateFrom), 'dd MMM yyyy', { locale: localeId })
+                                        : 'mm/dd/yyyy'}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={filters.dateFrom ? new Date(filters.dateFrom) : undefined}
+                                    onSelect={(date) =>
+                                        setFilters(f => ({
+                                            ...f,
+                                            dateFrom: date ? format(date, 'yyyy-MM-dd') : ''
+                                        }))
+                                    }
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
-                    {/* SAMPAI TANGGAL */}
+                    {/* ✅ FIX: Sampai Tanggal pakai Popover + Calendar */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Sampai Tanggal</label>
-                        <Input
-                            type="date"
-                            className="bg-slate-50 dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 h-9 text-xs focus:border-blue-500 focus:ring-0"
-                            value={filters.dateTo}
-                            onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value }))}
-                        />
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal h-9 text-xs bg-slate-50 dark:bg-[#0b0f19] border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800",
+                                        !filters.dateTo && "text-slate-400 dark:text-slate-500"
+                                    )}
+                                >
+                                    <IconCalendar className="mr-2 h-3.5 w-3.5 shrink-0" />
+                                    {filters.dateTo
+                                        ? format(new Date(filters.dateTo), 'dd MMM yyyy', { locale: localeId })
+                                        : 'mm/dd/yyyy'}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={filters.dateTo ? new Date(filters.dateTo) : undefined}
+                                    onSelect={(date) =>
+                                        setFilters(f => ({
+                                            ...f,
+                                            dateTo: date ? format(date, 'yyyy-MM-dd') : ''
+                                        }))
+                                    }
+                                    initialFocus
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
-                    {/* KATEGORI DROPDOWN (Menggunakan Select HTML Standar agar bebas error) */}
+                    {/* ✅ Kategori sesuai nilai di notification_logs */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Kategori</label>
                         <select
@@ -109,14 +177,14 @@ export function NotificationHistoryPage() {
                             onChange={e => setFilters(f => ({ ...f, notificationType: e.target.value }))}
                         >
                             <option value="">Semua Tipe</option>
-                            <option value="tepat_waktu">Tepat Waktu</option>
-                            <option value="terlambat">Terlambat</option>
-                            <option value="tidak_hadir">Tidak Hadir</option>
-                            <option value="belum_isi_jurnal">Belum Isi Jurnal</option>
+                            <option value="on_time">Tepat Waktu</option>
+                            <option value="late">Terlambat</option>
+                            <option value="absent">Tidak Hadir</option>
+                            <option value="no_journal">Belum Isi Jurnal</option>
                         </select>
                     </div>
 
-                    {/* STATUS DROPDOWN (Menggunakan Select HTML Standar agar bebas error) */}
+                    {/* ✅ Status sesuai nilai di notification_logs */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Status</label>
                         <select
@@ -125,27 +193,26 @@ export function NotificationHistoryPage() {
                             onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
                         >
                             <option value="">Semua Status</option>
-                            <option value="terkirim">Terkirim</option>
-                            <option value="gagal">Gagal</option>
+                            <option value="sent">Terkirim</option>
+                            <option value="failed">Gagal</option>
                             <option value="pending">Pending</option>
                         </select>
                     </div>
                 </div>
 
-                {/* Tombol Aksi */}
                 <div className="flex justify-end gap-2 mt-4">
                     {hasActiveFilters && (
-                        <Button 
+                        <Button
                             variant="outline"
-                            onClick={handleReset} 
+                            onClick={handleReset}
                             className="border-slate-200 dark:border-slate-800 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs px-4 h-9 tracking-wider uppercase rounded-lg gap-1.5"
                         >
                             <IconFilterOff className="h-3.5 w-3.5" />
                             Reset
                         </Button>
                     )}
-                    <Button 
-                        onClick={handleApply} 
+                    <Button
+                        onClick={handleApply}
                         className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 h-9 tracking-wider uppercase rounded-lg shadow-md gap-1.5"
                     >
                         <IconFilter className="h-3.5 w-3.5" />
@@ -154,14 +221,14 @@ export function NotificationHistoryPage() {
                 </div>
             </div>
 
-            {/* TABEL DATA LOG (Garis Biru di Kiri) */}
+            {/* Table */}
             <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 border-l-4 border-l-blue-600 dark:border-l-blue-500 rounded-xl shadow-sm dark:shadow-2xl overflow-hidden">
                 <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                         <span className="p-1 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
                             <IconBell className="h-3.5 w-3.5" />
                         </span>
-                        Log Aktivitas Notifikasi
+                        Log Aktivitas Pengiriman
                     </div>
                     <span className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase">
                         TOTAL {totalCount} ENTRI DITEMUKAN
@@ -177,11 +244,11 @@ export function NotificationHistoryPage() {
                         <Table>
                             <TableHeader className="bg-slate-50/70 dark:bg-[#0b0f19]/60 border-b border-slate-200 dark:border-slate-800">
                                 <TableRow className="hover:bg-transparent border-slate-200 dark:border-slate-800">
-                                    <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11">Waktu</TableHead>
+                                    <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11">Waktu Kirim</TableHead>
                                     <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11">Nama Siswa</TableHead>
                                     <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11">Kelas</TableHead>
-                                    <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11">Judul Notifikasi</TableHead>
-                                    <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11">Tipe</TableHead>
+                                    <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11">Kategori</TableHead>
+                                    <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11">No. HP Ortu</TableHead>
                                     <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11">Status</TableHead>
                                     <TableHead className="text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase tracking-wider h-11 text-center">Aksi</TableHead>
                                 </TableRow>
@@ -190,31 +257,25 @@ export function NotificationHistoryPage() {
                                 {logs.map((log: any) => (
                                     <TableRow key={log.id} className="border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
                                         <TableCell className="font-mono text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap py-3.5">
-                                            {log.created_at ? format(new Date(log.created_at), 'dd MMM yy • HH:mm', { locale: localeId }) : '-'}
+                                            {log.sent_at ? format(new Date(log.sent_at), 'dd MMM yy • HH:mm', { locale: localeId }) : '-'}
                                         </TableCell>
                                         <TableCell className="py-3.5">
-                                            <div className="font-bold text-xs text-slate-800 dark:text-slate-200">{log.profiles?.full_name || 'Admin'}</div>
+                                            <div className="font-bold text-xs text-slate-800 dark:text-slate-200">{log.profiles?.full_name || '-'}</div>
                                         </TableCell>
                                         <TableCell className="py-3.5">
                                             <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">{log.profiles?.class_name || '-'}</div>
                                         </TableCell>
-                                        <TableCell className="max-w-[240px] truncate text-xs text-slate-600 dark:text-slate-300 py-3.5 font-medium">
-                                            {log.title || '-'}
-                                        </TableCell>
                                         <TableCell className="py-3.5">
                                             <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-                                                {log.type ? log.type.replace('_', ' ') : 'Info'}
+                                                {TYPE_LABELS[log.notification_type] || log.notification_type || '-'}
                                             </span>
                                         </TableCell>
+                                        <TableCell className="py-3.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+                                            {log.phone_number || '-'}
+                                        </TableCell>
                                         <TableCell className="py-3.5">
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                                log.status?.toLowerCase() === 'terkirim' || log.is_read
-                                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
-                                                    : log.status?.toLowerCase() === 'gagal'
-                                                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                                            }`}>
-                                                {log.status || (log.is_read ? 'Terkirim' : 'Pending')}
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[log.status] || 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                                                {STATUS_LABELS[log.status] || log.status || '-'}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-center py-3.5">
@@ -232,23 +293,24 @@ export function NotificationHistoryPage() {
                                 <IconBell className="h-6 w-6 opacity-30" />
                             </div>
                             <p className="text-[11px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase mt-2">DATABASE KOSONG</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500">Log akan muncul setelah notifikasi WA dikirim</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* DETAIL MODAL DRAWER */}
+            {/* Detail Modal */}
             <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
                 <DialogContent className="bg-white dark:bg-[#111827] border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 max-w-md rounded-xl">
                     <DialogHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
-                        <DialogTitle className="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Detail Notifikasi</DialogTitle>
+                        <DialogTitle className="text-sm font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Detail Notifikasi WA</DialogTitle>
                     </DialogHeader>
                     {selectedLog && (
                         <div className="space-y-4 pt-2 text-xs">
                             <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-[#0b0f19] p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                                 <div>
                                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-0.5">Siswa</p>
-                                    <p className="font-bold text-slate-800 dark:text-slate-200">{selectedLog.profiles?.full_name || 'Admin'}</p>
+                                    <p className="font-bold text-slate-800 dark:text-slate-200">{selectedLog.profiles?.full_name || '-'}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-0.5">Kelas</p>
@@ -257,21 +319,25 @@ export function NotificationHistoryPage() {
                                 <div>
                                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-0.5">Waktu Kirim</p>
                                     <p className="font-mono text-slate-500 dark:text-slate-400">
-                                        {selectedLog.created_at ? format(new Date(selectedLog.created_at), 'dd MMM yyyy • HH:mm:ss', { locale: localeId }) : '-'}
+                                        {selectedLog.sent_at ? format(new Date(selectedLog.sent_at), 'dd MMM yyyy • HH:mm:ss', { locale: localeId }) : '-'}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-0.5">Status</p>
-                                    <span className={`text-[10px] font-bold uppercase ${
-                                        selectedLog.status?.toLowerCase() === 'terkirim' || selectedLog.is_read ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                                    }`}>
-                                        {selectedLog.status || 'PENDING'}
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-0.5">No. HP Ortu</p>
+                                    <p className="font-mono text-slate-500 dark:text-slate-400">{selectedLog.phone_number || '-'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-0.5">Kategori</p>
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                                        {TYPE_LABELS[selectedLog.notification_type] || selectedLog.notification_type || '-'}
                                     </span>
                                 </div>
-                            </div>
-                            <div>
-                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-1">Judul Notifikasi</p>
-                                <p className="font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-[#0b0f19] px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800">{selectedLog.title || '-'}</p>
+                                <div>
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-0.5">Status</p>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[selectedLog.status] || ''}`}>
+                                        {STATUS_LABELS[selectedLog.status] || selectedLog.status || '-'}
+                                    </span>
+                                </div>
                             </div>
                             {selectedLog.message && (
                                 <div>
