@@ -346,8 +346,14 @@ class _DailyJournalScreenState extends ConsumerState<DailyJournalScreen> {
                         item: item,
                         status: status,
                         date: date,
-                        onTap: () =>
-                            context.push('/journal/detail', extra: item),
+                        // ✅ FIX: pakai await + tangkap return value untuk refresh list
+                        onTap: () async {
+                          final deleted = await context.push<bool>(
+                            '/journal/detail',
+                            extra: item,
+                          );
+                          if (deleted == true) _refresh();
+                        },
                       );
                     },
                     childCount: journals.length + (hasMore || loading ? 1 : 0),
@@ -533,9 +539,9 @@ class _JournalCard extends StatelessWidget {
 class _ImagePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
-    color: _kBlue500.withOpacity(0.08),
-    child: const Icon(LucideIcons.image, color: _kBlue300, size: 28),
-  );
+        color: _kBlue500.withOpacity(0.08),
+        child: const Icon(LucideIcons.image, color: _kBlue300, size: 28),
+      );
 }
 
 class _StatusBadge extends StatelessWidget {
@@ -544,31 +550,32 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: approved ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          approved ? LucideIcons.checkCircle : LucideIcons.clock,
-          size: 11,
-          color: approved ? const Color(0xFF2E7D32) : Colors.orange.shade700,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: approved ? const Color(0xFFE8F5E9) : const Color(0xFFFFF3E0),
+          borderRadius: BorderRadius.circular(20),
         ),
-        const SizedBox(width: 4),
-        Text(
-          approved ? 'Disetujui' : 'Menunggu',
-          style: GoogleFonts.poppins(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: approved ? const Color(0xFF2E7D32) : Colors.orange.shade700,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              approved ? LucideIcons.checkCircle : LucideIcons.clock,
+              size: 11,
+              color: approved ? const Color(0xFF2E7D32) : Colors.orange.shade700,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              approved ? 'Disetujui' : 'Menunggu',
+              style: GoogleFonts.poppins(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color:
+                    approved ? const Color(0xFF2E7D32) : Colors.orange.shade700,
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }
 
 class _StatPill extends StatelessWidget {
@@ -583,32 +590,32 @@ class _StatPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-    decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.15),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: Colors.white.withOpacity(0.2)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
         ),
-        const SizedBox(width: 6),
-        Text(
-          '$value $label',
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '$value $label',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
+      );
 }
 
 class _Blob extends StatelessWidget {
@@ -617,8 +624,8 @@ class _Blob extends StatelessWidget {
   const _Blob({required this.size, required this.color});
   @override
   Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-  );
+        width: size,
+        height: size,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+      );
 }
