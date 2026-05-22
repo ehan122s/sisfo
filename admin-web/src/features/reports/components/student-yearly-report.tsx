@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query"
 import { format, getDaysInMonth } from "date-fns"
 import { id } from "date-fns/locale"
 import { Printer, Loader2, FileDown } from "lucide-react"
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogHeader, 
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,6 @@ interface StudentYearlyReportProps {
     onOpenChange: (open: boolean) => void
 }
 
-// Fixed Hex Colors for html2canvas compatibility
 const COLORS = {
     white: '#ffffff',
     black: '#000000',
@@ -70,7 +69,7 @@ export function StudentYearlyReport({
 }: StudentYearlyReportProps) {
     const [isExporting, setIsExporting] = React.useState(false)
     const reportRef = React.useRef<HTMLDivElement>(null)
-    
+
     const { data: logs = [], isLoading } = useQuery({
         queryKey: ['yearly-attendance', student.id, year],
         queryFn: () => getStudentYearlyAttendance(student.id, year),
@@ -84,12 +83,23 @@ export function StudentYearlyReport({
         const matrix: Record<string, string> = {}
         const priority: Record<string, number> = { "-": 0, A: 1, I: 2, S: 2, H: 3 }
         logs.forEach(log => {
-            const date = new Date(log.created_at)
-            if (Number.isNaN(date.getTime())) return
-            const m = date.getMonth()
-            const d = date.getDate()
+            let m: number, d: number
+
+            // Kalau ada kolom date (format 'yyyy-MM-dd'), parse langsung tanpa konversi timezone
+            if (log.date) {
+                const parts = (log.date as string).split('-')
+                if (parts.length !== 3) return
+                m = parseInt(parts[1], 10) - 1 // 0-indexed month
+                d = parseInt(parts[2], 10)
+            } else {
+                // Fallback ke created_at
+                const date = new Date(log.created_at)
+                if (Number.isNaN(date.getTime())) return
+                m = date.getMonth()
+                d = date.getDate()
+            }
+
             const key = `${m}-${d}`
-            
             let code = '-'
             const status = log.status?.trim().toLowerCase()
             if (status === 'hadir' || status === 'terlambat' || status === 'telat' || status === 'present' || status === 'late') code = 'H'
@@ -98,23 +108,40 @@ export function StudentYearlyReport({
             else if (status === 'alpa' || status === 'belum hadir' || status === 'alpha' || status === 'absent') code = 'A'
 
             const current = matrix[key] || "-"
-            if (priority[code] > priority[current]) {
+            if (priority[code] > (priority[current] ?? 0)) {
                 matrix[key] = code
             }
         })
         return matrix
     }, [logs])
 
-    const recap = React.useMemo(() => {
-        const totals = { H: 0, S: 0, I: 0, A: 0 }
-        Object.values(attendanceMatrix).forEach(code => {
-            if (code === 'H') totals.H++
-            else if (code === 'S') totals.S++
-            else if (code === 'I') totals.I++
-            else if (code === 'A') totals.A++
+    // ── Hitung rekap per bulan di useMemo, bukan di dalam render ──
+    const monthlyRecap = React.useMemo(() => {
+        return months.map(m => {
+            const daysInMonth = getDaysInMonth(new Date(year, m))
+            let H = 0, S = 0, I = 0, A = 0
+            for (let d = 1; d <= daysInMonth; d++) {
+                const code = attendanceMatrix[`${m}-${d}`]
+                if (code === 'H') H++
+                else if (code === 'S') S++
+                else if (code === 'I') I++
+                else if (code === 'A') A++
+            }
+            return { H, S, I, A }
         })
-        return totals
-    }, [attendanceMatrix])
+    }, [attendanceMatrix, months, year])
+
+    const recap = React.useMemo(() => {
+        return monthlyRecap.reduce(
+            (acc, cur) => ({
+                H: acc.H + cur.H,
+                S: acc.S + cur.S,
+                I: acc.I + cur.I,
+                A: acc.A + cur.A,
+            }),
+            { H: 0, S: 0, I: 0, A: 0 }
+        )
+    }, [monthlyRecap])
 
     const handlePrint = () => {
         window.print()
@@ -129,19 +156,12 @@ export function StudentYearlyReport({
                 import("html2canvas"),
                 import("jspdf"),
             ])
-            // High reliability capture: Scroll to top and wait
             window.scrollTo(0, 0)
             await new Promise(resolve => setTimeout(resolve, 500))
 
-            // Increase scale for better resolution (3 = 288 DPI approx)
-            const scale = 3 
-            
-            // A4 Landscape dimensions in mm
+            const scale = 3
             const a4WidthMm = 297
             const a4HeightMm = 210
-            
-            // Convert to pixels (approx 96 DPI screen base)
-            // 1 mm = 3.7795 px
             const mmToPx = 3.7795
             const widthPx = Math.floor(a4WidthMm * mmToPx)
             const heightPx = Math.floor(a4HeightMm * mmToPx)
@@ -165,18 +185,16 @@ export function StudentYearlyReport({
                         el.style.position = 'relative'
                         el.style.display = 'block'
                         el.style.margin = '0'
-                        // Ensure padding matches print style (15mm)
-                        el.style.padding = '15mm' 
+                        el.style.padding = '15mm'
                         el.style.boxShadow = 'none'
                         el.style.visibility = 'visible'
-                        // Force exact dimensions
                         el.style.width = `${a4WidthMm}mm`
                         el.style.minHeight = `${a4HeightMm}mm`
                         el.style.boxSizing = 'border-box'
                     }
                 }
             })
-            
+
             const imgData = canvas.toDataURL('image/png', 1.0)
             const pdf = new jsPDF({
                 orientation: 'landscape',
@@ -222,11 +240,11 @@ export function StudentYearlyReport({
                             <p className="text-slate-500 animate-pulse font-semibold">Menyusun dokumen laporan...</p>
                         </div>
                     ) : (
-                        <div 
+                        <div
                             ref={reportRef}
                             id="printable-report"
                             className="bg-white mx-auto text-black shadow-2xl relative print:shadow-none print:m-0 print:block"
-                            style={{ 
+                            style={{
                                 boxSizing: 'border-box',
                                 fontFamily: "'Times New Roman', Times, serif",
                                 backgroundColor: '#ffffff',
@@ -258,7 +276,7 @@ export function StudentYearlyReport({
 
                             <div className="text-center mb-4">
                                 <h3 className="text-xl font-bold underline underline-offset-4 uppercase tracking-tight">Laporan Kehadiran Siswa PKL</h3>
-                                <p className="font-sans font-bold mt-1 text-sm">Tahun Pelajaran {year} / {year+1}</p>
+                                <p className="font-sans font-bold mt-1 text-sm">Tahun Pelajaran {year} / {year + 1}</p>
                             </div>
 
                             {/* Identitas Siswa */}
@@ -318,8 +336,7 @@ export function StudentYearlyReport({
                                         {months.map(m => {
                                             const monthName = format(new Date(year, m), 'MMMM', { locale: id })
                                             const daysInMonth = getDaysInMonth(new Date(year, m))
-                                            
-                                            let mH = 0, mS = 0, mI = 0, mA = 0
+                                            const { H: mH, S: mS, I: mI, A: mA } = monthlyRecap[m]
 
                                             return (
                                                 <tr key={m} className="h-5">
@@ -327,30 +344,23 @@ export function StudentYearlyReport({
                                                     {days.map(d => {
                                                         const code = attendanceMatrix[`${m}-${d}`] || '-'
                                                         const isInvalidDay = d > daysInMonth
-                                                        
-                                                        if (!isInvalidDay) {
-                                                            if (code === 'H') mH++
-                                                            else if (code === 'S') mS++
-                                                            else if (code === 'I') mI++
-                                                            else if (code === 'A') mA++
-                                                        }
 
                                                         const cellStyle: React.CSSProperties = {
-                                                            backgroundColor: isInvalidDay ? COLORS.gray200 : 
-                                                                code === 'H' ? COLORS.green50 : 
-                                                                code === 'S' ? COLORS.yellow50 : 
-                                                                code === 'I' ? COLORS.blue50 : 
+                                                            backgroundColor: isInvalidDay ? COLORS.gray200 :
+                                                                code === 'H' ? COLORS.green50 :
+                                                                code === 'S' ? COLORS.yellow50 :
+                                                                code === 'I' ? COLORS.blue50 :
                                                                 code === 'A' ? COLORS.red50 : 'transparent',
-                                                            color: 
-                                                                code === 'H' ? COLORS.green600 : 
-                                                                code === 'S' ? COLORS.yellow600 : 
-                                                                code === 'I' ? COLORS.blue600 : 
+                                                            color:
+                                                                code === 'H' ? COLORS.green600 :
+                                                                code === 'S' ? COLORS.yellow600 :
+                                                                code === 'I' ? COLORS.blue600 :
                                                                 code === 'A' ? COLORS.red600 : COLORS.black
                                                         }
 
                                                         return (
-                                                            <td 
-                                                                key={d} 
+                                                            <td
+                                                                key={d}
                                                                 className="border border-black text-center p-0 font-bold"
                                                                 style={cellStyle}
                                                             >
@@ -358,6 +368,7 @@ export function StudentYearlyReport({
                                                             </td>
                                                         )
                                                     })}
+                                                    {/* Rekap per bulan dari useMemo, bukan dihitung ulang di render */}
                                                     <td className="border border-black text-center font-black text-[8px]" style={{ backgroundColor: COLORS.green50 }}>{mH || ''}</td>
                                                     <td className="border border-black text-center font-black text-[8px]" style={{ backgroundColor: COLORS.yellow50 }}>{mS || ''}</td>
                                                     <td className="border border-black text-center font-black text-[8px]" style={{ backgroundColor: COLORS.blue50 }}>{mI || ''}</td>
@@ -444,13 +455,10 @@ export function StudentYearlyReport({
                         .no-print {
                             display: none !important;
                         }
-                        /* Reset default browser print styles */
                         html, body {
                             height: 100%;
                             width: 100%;
                         }
-                        
-                        /* Main Report Container - Force Exact A4 */
                         #printable-report {
                             visibility: visible !important;
                             position: fixed !important;
@@ -458,7 +466,7 @@ export function StudentYearlyReport({
                             top: 0 !important;
                             width: 297mm !important;
                             height: 210mm !important;
-                            padding: 15mm !important; /* Safe Margin */
+                            padding: 15mm !important;
                             margin: 0 !important;
                             border: none !important;
                             box-shadow: none !important;
@@ -466,25 +474,17 @@ export function StudentYearlyReport({
                             background: white !important;
                             display: block !important;
                             box-sizing: border-box !important;
-                            
-                            /* Ensure text is sharp */
                             text-rendering: optimizeLegibility;
                             -webkit-font-smoothing: antialiased;
-                            
-                            /* Scaling logic to ensure fit */
                             transform-origin: top left;
                         }
-
-                        /* Ensure all children are visible */
                         #printable-report * {
                             visibility: visible !important;
                             -webkit-print-color-adjust: exact !important;
                             print-color-adjust: exact !important;
                         }
-
-                        /* Hide browser default header/footer if possible (standard practice) */
                         @page {
-                            margin: 0; 
+                            margin: 0;
                         }
                     }
                     .custom-scrollbar::-webkit-scrollbar {

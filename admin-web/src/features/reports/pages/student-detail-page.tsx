@@ -6,25 +6,27 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { format, startOfMonth, endOfMonth, isSameDay } from 'date-fns'
 import { id } from 'date-fns/locale'
-import { 
-    Calendar, 
-    Clock, 
-    MapPin, 
-    Image as ImageIcon, 
-    ArrowLeft, 
-    RefreshCw, 
-    FileText, 
-    User, 
-    Phone, 
-    Home, 
-    Pencil, 
-    CheckCircle2, 
-    AlertCircle, 
+import {
+    Calendar,
+    Clock,
+    MapPin,
+    Image as ImageIcon,
+    ArrowLeft,
+    RefreshCw,
+    FileText,
+    User,
+    Phone,
+    MessageCircle,
+    Home,
+    Pencil,
+    CheckCircle2,
+    AlertCircle,
     XCircle,
     CalendarDays,
     ChevronLeft,
     ChevronRight,
-    Download
+    Download,
+    Building2,
 } from 'lucide-react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState, useMemo } from 'react'
@@ -64,8 +66,8 @@ export function StudentDetailPage() {
         queryKey: ['attendance', studentId, format(selectedDate, 'yyyy-MM')],
         queryFn: async () => {
             if (!studentId) return []
-            const start = startOfMonth(selectedDate).toISOString()
-            const end = endOfMonth(selectedDate).toISOString()
+            const start = format(startOfMonth(selectedDate), 'yyyy-MM-dd')
+            const end = format(endOfMonth(selectedDate), 'yyyy-MM-dd')
 
             const { data, error } = await supabase
                 .from('attendance_logs')
@@ -73,7 +75,7 @@ export function StudentDetailPage() {
                 .eq('student_id', studentId)
                 .gte('created_at', start)
                 .lte('created_at', end)
-                .order('created_at', { ascending: false })
+                .order('date', { ascending: false })
 
             if (error) throw error
             return data
@@ -86,16 +88,16 @@ export function StudentDetailPage() {
         queryKey: ['journals', studentId, format(selectedDate, 'yyyy-MM')],
         queryFn: async () => {
             if (!studentId) return []
-            const start = startOfMonth(selectedDate).toISOString()
-            const end = endOfMonth(selectedDate).toISOString()
+            const start = format(startOfMonth(selectedDate), 'yyyy-MM-dd')
+            const end = format(endOfMonth(selectedDate), 'yyyy-MM-dd')
 
             const { data, error } = await supabase
                 .from('daily_journals')
                 .select('*')
                 .eq('student_id', studentId)
-                .gte('created_at', start)
-                .lte('created_at', end)
-                .order('created_at', { ascending: false })
+                .gte('date', start)
+                .lte('date', end)
+                .order('date', { ascending: false })
 
             if (error) throw error
             return data
@@ -144,7 +146,7 @@ export function StudentDetailPage() {
 
         const totalDays = dayMap.size
         const attendanceRate = totalDays > 0 ? Math.round(((present + late) / totalDays) * 100) : 0
-        
+
         return {
             attendanceRate,
             totalJournals: journals.length,
@@ -180,7 +182,7 @@ export function StudentDetailPage() {
                     <AlertCircle className="h-12 w-12 text-muted-foreground opacity-20" />
                 </div>
                 <h2 className="text-xl font-bold">Siswa tidak ditemukan</h2>
-                <Button variant="outline" onClick={() => navigate('/monitoring')}>Kembali ke Monitoring</Button>
+                <Button variant="outline" onClick={() => navigate('/students')}>Kembali ke Manajemen Siswa</Button>
             </div>
         )
     }
@@ -199,17 +201,39 @@ export function StudentDetailPage() {
         }
     }
 
+    const handleWaClick = () => {
+        if (!student.phone_number) return
+        const cleaned = student.phone_number.replace(/\D/g, '')
+        const wa = cleaned.startsWith('0')
+            ? '62' + cleaned.slice(1)
+            : cleaned.startsWith('62')
+            ? cleaned
+            : '62' + cleaned
+        window.open(`https://wa.me/${wa}`, '_blank')
+    }
+
+    const handleParentWaClick = () => {
+        if (!student.parent_phone_number) return
+        const cleaned = student.parent_phone_number.replace(/\D/g, '')
+        const wa = cleaned.startsWith('0')
+            ? '62' + cleaned.slice(1)
+            : cleaned.startsWith('62')
+            ? cleaned
+            : '62' + cleaned
+        window.open(`https://wa.me/${wa}`, '_blank')
+    }
+
     return (
         <div className="container mx-auto py-6 max-w-6xl space-y-8 px-4 md:px-6">
             {/* Breadcrumb / Back */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
+                <Button
+                    variant="ghost"
+                    size="sm"
                     className="-ml-2 h-8 gap-1 font-normal hover:bg-transparent hover:text-foreground"
-                    onClick={() => navigate('/monitoring')}
+                    onClick={() => navigate('/students')}
                 >
-                    <ArrowLeft className="h-4 w-4" /> Monitoring
+                    <ArrowLeft className="h-4 w-4" /> Manajemen Siswa
                 </Button>
                 <span>/</span>
                 <span className="text-foreground font-medium truncate">{student.full_name}</span>
@@ -245,10 +269,10 @@ export function StudentDetailPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    <Button 
-                        variant="outline" 
-                        className="shadow-sm" 
-                        onClick={() => window.open(`/monitoring/${studentId}/report/${selectedDate.getFullYear()}`, '_blank')}
+                    <Button
+                        variant="outline"
+                        className="shadow-sm"
+                        onClick={() => navigate(`/monitoring/${studentId}/report/${selectedDate.getFullYear()}`)}
                     >
                         <Download className="mr-2 h-4 w-4" /> Laporan
                     </Button>
@@ -265,7 +289,7 @@ export function StudentDetailPage() {
                         <CalendarDays className="h-5 w-5 text-primary" />
                         Ringkasan {format(selectedDate, 'MMMM yyyy', { locale: id })}
                     </h2>
-                    
+
                     <div className="flex items-center gap-1 bg-background border rounded-md p-1 shadow-sm">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevMonth}>
                             <ChevronLeft className="h-4 w-4" />
@@ -273,10 +297,10 @@ export function StudentDetailPage() {
                         <div className="px-3 text-sm font-medium min-w-[120px] text-center">
                             {format(selectedDate, 'MMM yyyy', { locale: id })}
                         </div>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8" 
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
                             onClick={handleNextMonth}
                             disabled={isSameDay(startOfMonth(selectedDate), startOfMonth(new Date()))}
                         >
@@ -320,22 +344,13 @@ export function StudentDetailPage() {
             {/* Main Tabs */}
             <Tabs defaultValue="profile" className="space-y-6">
                 <TabsList className="w-full h-auto justify-start gap-1 overflow-x-auto overflow-y-hidden no-scrollbar">
-                    <TabsTrigger
-                        value="profile"
-                        className="whitespace-nowrap"
-                    >
+                    <TabsTrigger value="profile" className="whitespace-nowrap">
                         Profil & Data
                     </TabsTrigger>
-                    <TabsTrigger
-                        value="attendance"
-                        className="whitespace-nowrap"
-                    >
+                    <TabsTrigger value="attendance" className="whitespace-nowrap">
                         Log Absensi
                     </TabsTrigger>
-                    <TabsTrigger
-                        value="journals"
-                        className="whitespace-nowrap"
-                    >
+                    <TabsTrigger value="journals" className="whitespace-nowrap">
                         Jurnal PKL
                     </TabsTrigger>
                 </TabsList>
@@ -404,6 +419,7 @@ export function StudentDetailPage() {
 
                         {/* Kontak & Orang Tua */}
                         <div className="space-y-6">
+                            {/* ── Kontak ── */}
                             <Card className="overflow-hidden">
                                 <CardHeader className="bg-muted/30 border-b py-4">
                                     <CardTitle className="text-base flex items-center gap-2">
@@ -411,27 +427,52 @@ export function StudentDetailPage() {
                                         Kontak
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="p-4 space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="space-y-0.5">
-                                            <p className="text-[10px] uppercase font-bold text-muted-foreground">No. WhatsApp</p>
-                                            <p className="text-sm font-medium">{student.phone_number || '-'}</p>
+                                <CardContent className="p-4 space-y-3">
+
+                                    {/* WhatsApp Siswa */}
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className={cn(
+                                                "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
+                                                student.phone_number
+                                                    ? "bg-green-100 dark:bg-green-900/30"
+                                                    : "bg-muted"
+                                            )}>
+                                                <MessageCircle className={cn(
+                                                    "h-4 w-4",
+                                                    student.phone_number
+                                                        ? "text-green-600 dark:text-green-400"
+                                                        : "text-muted-foreground"
+                                                )} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                                                    WhatsApp
+                                                </p>
+                                                {student.phone_number ? (
+                                                    <p className="text-sm font-medium">{student.phone_number}</p>
+                                                ) : (
+                                                    <p className="text-sm text-muted-foreground italic">Belum diisi</p>
+                                                )}
+                                            </div>
                                         </div>
                                         {student.phone_number && (
-                                            <Button variant="outline" size="sm" className="h-8" onClick={() => window.open(`https://wa.me/${student.phone_number.replace(/\D/g, '')}`, '_blank')}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 shrink-0 text-green-700 border-green-200 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:border-green-800 dark:bg-green-900/20"
+                                                onClick={handleWaClick}
+                                            >
+                                                <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
                                                 Chat
                                             </Button>
                                         )}
                                     </div>
-                                    <div className="flex items-center justify-between">
-                                        <div className="space-y-0.5">
-                                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Email</p>
-                                            <p className="text-sm font-medium truncate max-w-[150px]">{student.email || '-'}</p>
-                                        </div>
-                                    </div>
+
                                 </CardContent>
                             </Card>
 
+                            {/* ── Orang Tua / Wali ── */}
                             <Card className="overflow-hidden border-primary/10">
                                 <CardHeader className="bg-primary/[0.03] border-b py-4">
                                     <CardTitle className="text-base flex items-center gap-2">
@@ -451,13 +492,40 @@ export function StudentDetailPage() {
                                         </div>
                                     </div>
                                     <Separator />
-                                    <div className="flex items-center justify-between">
-                                        <div className="space-y-0.5">
-                                            <p className="text-[10px] uppercase font-bold text-muted-foreground">No. WhatsApp Ortu</p>
-                                            <p className="text-sm font-medium">{student.parent_phone_number || '-'}</p>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className={cn(
+                                                "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
+                                                student.parent_phone_number
+                                                    ? "bg-green-100 dark:bg-green-900/30"
+                                                    : "bg-muted"
+                                            )}>
+                                                <MessageCircle className={cn(
+                                                    "h-4 w-4",
+                                                    student.parent_phone_number
+                                                        ? "text-green-600 dark:text-green-400"
+                                                        : "text-muted-foreground"
+                                                )} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                                                    No. WhatsApp Ortu
+                                                </p>
+                                                {student.parent_phone_number ? (
+                                                    <p className="text-sm font-medium">{student.parent_phone_number}</p>
+                                                ) : (
+                                                    <p className="text-sm text-muted-foreground italic">Belum diisi</p>
+                                                )}
+                                            </div>
                                         </div>
                                         {student.parent_phone_number && (
-                                            <Button variant="outline" size="sm" className="h-8" onClick={() => window.open(`https://wa.me/${student.parent_phone_number.replace(/\D/g, '')}`, '_blank')}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 shrink-0 text-green-700 border-green-200 bg-green-50 hover:bg-green-100 dark:text-green-400 dark:border-green-800 dark:bg-green-900/20"
+                                                onClick={handleParentWaClick}
+                                            >
+                                                <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
                                                 Hubungi
                                             </Button>
                                         )}
@@ -492,11 +560,11 @@ export function StudentDetailPage() {
                                             <div className="flex items-start gap-4">
                                                 <div className={cn(
                                                     "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
-                                                    log.status === 'Hadir' ? "bg-green-100 text-green-600" : 
-                                                    log.status === 'Terlambat' ? "bg-orange-100 text-orange-600" : "bg-red-100 text-red-600"
+                                                    log.status === 'Hadir' ? "bg-green-100 text-green-600" :
+                                                        log.status === 'Terlambat' ? "bg-orange-100 text-orange-600" : "bg-red-100 text-red-600"
                                                 )}>
-                                                    {log.status === 'Hadir' ? <CheckCircle2 className="h-5 w-5" /> : 
-                                                     log.status === 'Terlambat' ? <Clock className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+                                                    {log.status === 'Hadir' ? <CheckCircle2 className="h-5 w-5" /> :
+                                                        log.status === 'Terlambat' ? <Clock className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
                                                 </div>
                                                 <div className="space-y-0.5">
                                                     <p className="font-semibold text-sm">{format(new Date(log.created_at), 'EEEE, d MMMM yyyy', { locale: id })}</p>
@@ -511,7 +579,7 @@ export function StudentDetailPage() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="flex flex-wrap items-center gap-4 md:text-right">
                                                 <div className="flex flex-col gap-1">
                                                     {log.check_in_location && (
@@ -526,8 +594,8 @@ export function StudentDetailPage() {
                                                     )}
                                                 </div>
                                                 <Badge className="min-w-[80px] justify-center" variant={
-                                                    log.status === 'Hadir' ? 'default' : 
-                                                    log.status === 'Terlambat' ? 'outline' : 'destructive'
+                                                    log.status === 'Hadir' ? 'default' :
+                                                        log.status === 'Terlambat' ? 'outline' : 'destructive'
                                                 }>
                                                     {log.status}
                                                 </Badge>
@@ -555,40 +623,53 @@ export function StudentDetailPage() {
                         <div className="grid md:grid-cols-2 gap-6">
                             {journals.map((journal) => (
                                 <Card key={journal.id} className="overflow-hidden hover:shadow-md transition-shadow group border-primary/5">
-                                    <div className="p-5 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="bg-primary/5 px-2 py-1 rounded text-[10px] font-bold text-primary flex items-center gap-1.5">
-                                                <Calendar className="h-3 w-3" />
-                                                {format(new Date(journal.created_at), 'dd MMM yyyy', { locale: id })}
-                                            </div>
-                                            <Badge variant={journal.is_approved ? 'default' : 'secondary'} className="text-[10px] h-5">
-                                                {journal.is_approved ? 'Disetujui' : 'Menunggu'}
-                                            </Badge>
-                                        </div>
-                                        
-                                        <div className="space-y-2">
-                                            <h4 className="font-bold text-sm line-clamp-1">{journal.activity_title}</h4>
-                                            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 italic">
-                                                "{journal.description}"
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {journal.evidence_photo && (
-                                        <div 
-                                            className="h-40 bg-muted relative cursor-zoom-in overflow-hidden"
-                                            onClick={() => window.open(journal.evidence_photo, '_blank')}
+                                    {journal.image_url && (
+                                        <div
+                                            className="h-44 bg-muted relative cursor-zoom-in overflow-hidden"
+                                            onClick={() => window.open(journal.image_url, '_blank')}
                                         >
-                                            <img 
-                                                src={journal.evidence_photo} 
-                                                alt="Bukti Aktivitas" 
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                                            <img
+                                                src={journal.image_url}
+                                                alt="Bukti Aktivitas"
+                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                             />
                                             <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <ImageIcon className="h-6 w-6 text-white" />
                                             </div>
                                         </div>
                                     )}
+                                    <div className="p-5 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="bg-primary/5 px-2 py-1 rounded text-[10px] font-bold text-primary flex items-center gap-1.5">
+                                                <Calendar className="h-3 w-3" />
+                                                {format(new Date(journal.date), 'dd MMM yyyy', { locale: id })}
+                                            </div>
+                                            <Badge variant={journal.is_approved ? 'default' : 'secondary'} className="text-[10px] h-5">
+                                                {journal.is_approved ? 'Disetujui' : 'Menunggu'}
+                                            </Badge>
+                                        </div>
+
+                                        {journal.activities && (
+                                            <div className="space-y-0.5">
+                                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Aktivitas</p>
+                                                <p className="text-sm font-medium line-clamp-2">{journal.activities}</p>
+                                            </div>
+                                        )}
+
+                                        {journal.description && (
+                                            <div className="space-y-0.5">
+                                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Deskripsi</p>
+                                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{journal.description}</p>
+                                            </div>
+                                        )}
+
+                                        {journal.challenges && (
+                                            <div className="space-y-0.5">
+                                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Kendala</p>
+                                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{journal.challenges}</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </Card>
                             ))}
                         </div>
@@ -614,31 +695,6 @@ export function StudentDetailPage() {
 
 function Separator() {
     return <div className="h-px bg-border w-full" />
-}
-
-function Building2(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
-            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
-            <path d="M18 9h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2" />
-            <path d="M10 6h4" />
-            <path d="M10 10h4" />
-            <path d="M10 14h4" />
-            <path d="M10 18h4" />
-        </svg>
-    )
 }
 
 function getInitials(name: string) {

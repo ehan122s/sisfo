@@ -92,14 +92,21 @@ export const getStudentYearlyAttendance = async (
 
     const { data, error } = await supabase
         .from('attendance_logs')
-        .select('id, status, created_at')
+        .select('id, status, date, created_at')
         .eq('student_id', studentId)
         .gte('created_at', startDate)
         .lte('created_at', endDate)
         .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data
+
+    // Normalize: pakai kolom date kalau ada, fallback ke created_at
+    return (data ?? []).map(row => ({
+        ...row,
+        created_at: row.date
+            ? new Date(row.date).toISOString()
+            : row.created_at
+    }))
 }
 
 export const getClassList = async (): Promise<string[]> => {
