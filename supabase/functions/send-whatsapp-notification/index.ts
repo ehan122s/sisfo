@@ -15,6 +15,12 @@ const NOTIFICATION_MESSAGES: Record<string, (name: string) => string> = {
     izin: (name) => `📋 *PKL Update*\n\nYth. Orang Tua/Wali ${name},\n\nPutra/Putri Anda *tidak hadir karena izin* hari ini.\n\nTerima kasih 🙏`,
 }
 
+const SUPERVISOR_MESSAGES: Record<string, (name: string) => string> = {
+    absent: (name) => `❌ *PKL Alert*\n\nYth. Bapak/Ibu Pembimbing,\n\nSiswa *${name}* *tidak hadir* hari ini tanpa keterangan.\n\nMohon perhatiannya 🙏`,
+    sakit: (name) => `🏥 *PKL Alert*\n\nYth. Bapak/Ibu Pembimbing,\n\nSiswa *${name}* *tidak hadir karena sakit* hari ini.\n\nTerima kasih 🙏`,
+    izin: (name) => `📋 *PKL Alert*\n\nYth. Bapak/Ibu Pembimbing,\n\nSiswa *${name}* *tidak hadir karena izin* hari ini.\n\nTerima kasih 🙏`,
+}
+
 serve(async (req) => {
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
@@ -33,16 +39,11 @@ serve(async (req) => {
 
     try {
         const body = await req.json()
-        console.log('Payload diterima:', JSON.stringify(body))
-
         const record = body.record
         if (!record) throw new Error('Payload Webhook kosong')
 
         student_id = record.student_id
         const status_absen = record.status?.toLowerCase()
-
-        console.log('student_id:', student_id)
-        console.log('status_absen:', status_absen)
 
         if (!student_id) throw new Error('student_id tidak ditemukan')
 
@@ -53,25 +54,21 @@ serve(async (req) => {
         else if (status_absen === 'izin') notification_type = 'izin'
         else notification_type = 'absent'
 
-        const { data: configData, error: configError } = await supabase
+        const { data: configData } = await supabase
             .from('app_config')
             .select('key, value')
             .in('key', ['WA_GATEWAY_URL', 'WA_API_KEY'])
-
-        console.log('Config:', JSON.stringify(configData), 'Error:', configError)
 
         const gatewayUrl = configData?.find(c => c.key === 'WA_GATEWAY_URL')?.value ?? 'https://api.fonnte.com/send'
         const apiKey = configData?.find(c => c.key === 'WA_API_KEY')?.value
 
         if (!apiKey) throw new Error('API Key belum diisi di app_config')
 
-        const { data: student, error: studentError } = await supabase
+        const { data: student } = await supabase
             .from('profiles')
             .select('full_name, parent_phone_number')
             .eq('id', student_id)
             .single()
-
-        console.log('Student:', JSON.stringify(student), 'Error:', studentError)
 
         if (!student?.parent_phone_number) throw new Error('Nomor HP orang tua tidak tersedia')
 
@@ -83,8 +80,6 @@ serve(async (req) => {
         else if (phone.startsWith('8')) phone = '62' + phone
         else if (!phone.startsWith('62')) phone = '62' + phone
 
-        console.log('Kirim WA ke:', phone)
-
         const fonnteResponse = await fetch(gatewayUrl, {
             method: 'POST',
             headers: {
@@ -95,12 +90,58 @@ serve(async (req) => {
         })
 
         const fonnteResult = await fonnteResponse.json()
-        console.log('Fonnte result:', JSON.stringify(fonnteResult))
-
         isSuccess = fonnteResult.status === true || fonnteResult.status === 'true' || fonnteResult.process === true
 
+        if (['absent', 'sakit', 'izin'].includes(notification_type)) {
+            try {
+                const { data: placement } = await supabase
+                    .from('placements')
+                    .select('company_id')
+                    .eq('student_id', student_id)
+                    .single()
+
+                if (placement?.company_id) {
+                    const { data: supervisors } = await supabase
+                        .from('supervisor_assignments')
+                        .select('teacher_id')
+                        .eq('company_id', placement.company_id)
+
+                    if (supervisors && supervisors.length > 0) {
+                        for (const supervisor of supervisors) {
+                            const { data: teacher } = await supabase
+                                .from('profiles')
+                                .select('full_name, phone_number')
+                                .eq('id', supervisor.teacher_id)
+                                .single()
+
+                            if (!teacher?.phone_number) continue
+
+                            const supervisorMessage = SUPERVISOR_MESSAGES[notification_type]?.(student.full_name)
+                                ?? `Siswa ${student.full_name} tidak hadir hari ini`
+
+                            let teacherPhone = teacher.phone_number.replace(/\D/g, '')
+                            if (teacherPhone.startsWith('0')) teacherPhone = '62' + teacherPhone.slice(1)
+                            else if (teacherPhone.startsWith('8')) teacherPhone = '62' + teacherPhone
+                            else if (!teacherPhone.startsWith('62')) teacherPhone = '62' + teacherPhone
+
+                            await fetch(gatewayUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': apiKey,
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ target: teacherPhone, message: supervisorMessage }),
+                            })
+                        }
+                    }
+                }
+            } catch (supervisorErr) {
+                console.error('supervisor error:', supervisorErr.message)
+            }
+        }
+
     } catch (error) {
-        console.error('Error sebelum insert:', error.message)
+        console.error('error:', error.message)
         isSuccess = false
     }
 
@@ -113,14 +154,10 @@ serve(async (req) => {
                 message,
                 phone_number: phone || null,
             })
-            if (insertError) {
-                console.error('Gagal insert notification_logs:', JSON.stringify(insertError))
-            } else {
-                console.log('Berhasil insert notification_logs')
-            }
+            if (insertError) console.error('insert error:', JSON.stringify(insertError))
         }
     } catch (insertErr) {
-        console.error('Exception saat insert:', insertErr.message)
+        console.error('insert exception:', insertErr.message)
     }
 
     return new Response(JSON.stringify({ success: isSuccess }), {

@@ -26,7 +26,8 @@ const getStatusColor = (status: string) => {
 
 const formatTime = (time?: string | null) => {
     if (!time) return '-'
-    return new Date(time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    const match = time.match(/(\d{2}):(\d{2})/)
+    return match ? `${match[1]}.${match[2]}` : '-'
 }
 
 export const columns: ColumnDef<AttendanceReportRow>[] = [
