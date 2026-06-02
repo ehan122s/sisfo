@@ -104,7 +104,6 @@ const AVATAR_COLORS = [
     'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300',
 ]
 
-// Accent colors per stat card: top border + icon bg + number color
 const STAT_CARDS = [
     {
         key: 'Hadir',
@@ -115,7 +114,6 @@ const STAT_CARDS = [
         numColor: 'text-emerald-600 dark:text-emerald-400',
         bar: 'bg-emerald-500',
         barBg: 'bg-emerald-100 dark:bg-emerald-500/10',
-        darkColor: 'dark:text-emerald-400',
     },
     {
         key: 'Terlambat',
@@ -126,7 +124,6 @@ const STAT_CARDS = [
         numColor: 'text-amber-600 dark:text-amber-400',
         bar: 'bg-amber-500',
         barBg: 'bg-amber-100 dark:bg-amber-500/10',
-        darkColor: 'dark:text-amber-400',
     },
     {
         key: 'Izin',
@@ -137,7 +134,6 @@ const STAT_CARDS = [
         numColor: 'text-sky-600 dark:text-sky-400',
         bar: 'bg-sky-500',
         barBg: 'bg-sky-100 dark:bg-sky-500/10',
-        darkColor: 'dark:text-sky-400',
     },
     {
         key: 'Sakit',
@@ -148,7 +144,6 @@ const STAT_CARDS = [
         numColor: 'text-purple-600 dark:text-purple-400',
         bar: 'bg-purple-500',
         barBg: 'bg-purple-100 dark:bg-purple-500/10',
-        darkColor: 'dark:text-purple-400',
     },
     {
         key: 'Alpa',
@@ -159,7 +154,6 @@ const STAT_CARDS = [
         numColor: 'text-red-600 dark:text-red-400',
         bar: 'bg-red-500',
         barBg: 'bg-red-100 dark:bg-red-500/10',
-        darkColor: 'dark:text-red-400',
     },
 ]
 
@@ -326,8 +320,10 @@ export function AttendancePage() {
                 if (error) throw error
                 return data
             } else {
+                const now = new Date()
+                const timeStr = now.toTimeString().split(' ')[0]
                 const { data, error } = await supabase.from('attendance_logs')
-                    .insert({ student_id: studentId, status, created_at: `${dateStr}T12:00:00` })
+                    .insert({ student_id: studentId, status, created_at: `${dateStr}T${timeStr}` })
                     .select().single()
                 if (error) throw error
                 return data
@@ -339,7 +335,9 @@ export function AttendancePage() {
             queryClient.setQueryData<AttendanceRecord[]>(activeQueryKey, (old = []) => {
                 const idx = old.findIndex(l => l.student_id === studentId)
                 if (idx !== -1) { const n = [...old]; n[idx] = { ...n[idx], status }; return n }
-                return [...old, { student_id: studentId, status, created_at: `${dateStr}T12:00:00`, id: -Date.now() }]
+                const now = new Date()
+                const timeStr = now.toTimeString().split(' ')[0]
+                return [...old, { student_id: studentId, status, created_at: `${dateStr}T${timeStr}`, id: -Date.now() }]
             })
             return { previousLogs }
         },
@@ -369,8 +367,11 @@ export function AttendancePage() {
     const getAvatarColor = (name: string) =>
         AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
 
-    const formatTime = (time?: string) =>
-        time ? new Date(time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : null
+    const formatTime = (time?: string) => {
+        if (!time) return null
+        const match = time.match(/(\d{2}):(\d{2})/)
+        return match ? `${match[1]}.${match[2]}` : null
+    }
 
     const getClassStats = (classStudents: Student[]) => {
         const counts: Record<string, number> = {}
@@ -452,18 +453,22 @@ export function AttendancePage() {
 
             if (!toUpdate.length) { toast.info('Semua sudah diabsen via app'); setIsBulkUpdating(false); return }
 
+            const now = new Date()
+            const timeStr = now.toTimeString().split(' ')[0]
+            const currentTimestamp = `${dateStr}T${timeStr}`
+
             const prev = queryClient.getQueryData<AttendanceRecord[]>(['attendance_logs', dateStr]) || []
             const optimistic = [...prev]
             toUpdate.forEach(({ student_id }) => {
                 const idx = optimistic.findIndex(l => l.student_id === student_id)
                 if (idx >= 0) optimistic[idx] = { ...optimistic[idx], status: 'Hadir' }
-                else optimistic.push({ student_id, status: 'Hadir', created_at: `${dateStr}T12:00:00`, id: -Date.now() - Math.random() })
+                else optimistic.push({ student_id, status: 'Hadir', created_at: currentTimestamp, id: -Date.now() - Math.random() })
             })
             queryClient.setQueryData(['attendance_logs', dateStr], optimistic)
 
             const toInsert = toUpdate
                 .filter(({ existingLog }) => !(existingLog?.id && existingLog.id > 0))
-                .map(({ student_id }) => ({ student_id, status: 'Hadir', created_at: `${dateStr}T12:00:00` }))
+                .map(({ student_id }) => ({ student_id, status: 'Hadir', created_at: currentTimestamp }))
             const toUpdateIds = toUpdate
                 .filter(({ existingLog }) => existingLog?.id && existingLog.id > 0)
                 .map(({ existingLog }) => existingLog!.id!)
@@ -497,10 +502,8 @@ export function AttendancePage() {
 
             {/* ── HEADER ── */}
             <div className="space-y-5">
-                {/* Title row */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                        {/* Accent line above title */}
                         <div className="flex items-center gap-2 mb-3">
                             <div className="h-1 w-8 rounded-full bg-blue-600 dark:bg-blue-500" />
                             <div className="h-1 w-3 rounded-full bg-blue-300 dark:bg-blue-700" />
@@ -514,9 +517,7 @@ export function AttendancePage() {
                         </p>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center gap-3 self-start flex-wrap">
-                        {/* Date picker */}
                         <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white shadow-sm px-3.5 py-2.5 dark:border-white/10 dark:bg-white/5">
                             <CalendarIcon className="h-4 w-4 text-slate-400 dark:text-blue-400 shrink-0" />
                             <Input
@@ -568,14 +569,13 @@ export function AttendancePage() {
                 {/* Stat Cards */}
                 {viewMode === 'input' && students.length > 0 && !isLoading && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                        {STAT_CARDS.map(({ key, label, icon: Icon, accent, iconBg, numColor, bar, barBg, darkColor }) => {
+                        {STAT_CARDS.map(({ key, label, icon: Icon, accent, iconBg, numColor, bar, barBg }) => {
                             const count = summaryStats[key] || 0
                             const pct = totalCount > 0 ? Math.round((count / totalCount) * 100) : 0
                             return (
                                 <div
                                     key={key}
                                     className={cn(
-                                        // White card, border top accent (3px), subtle shadow
                                         'relative rounded-2xl bg-white border border-slate-100 border-t-[3px] shadow-sm',
                                         'dark:bg-[#111b30] dark:border-white/5 dark:border-t-[3px]',
                                         'p-4',
@@ -595,7 +595,6 @@ export function AttendancePage() {
                                             <Icon className="h-4 w-4" />
                                         </div>
                                     </div>
-                                    {/* Progress bar with colored track */}
                                     <div className={cn('h-1.5 w-full rounded-full overflow-hidden', barBg)}>
                                         <div
                                             className={cn('h-full rounded-full transition-all duration-500', bar)}
@@ -616,7 +615,6 @@ export function AttendancePage() {
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/5 dark:bg-[#0d1526]">
                 <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'input' | 'report')}>
 
-                    {/* Tab bar */}
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-5 pt-4 pb-4 border-b border-slate-100 dark:border-white/5">
                         <TabsList className="w-full sm:w-auto bg-blue-50 border border-blue-100 dark:bg-white/5 dark:border-white/5 p-1 rounded-xl h-auto">
                             <TabsTrigger
@@ -693,10 +691,8 @@ export function AttendancePage() {
                                     const stats = getClassStats(classStudents)
                                     return (
                                         <section key={className}>
-                                            {/* Class header — subtle blue-tinted bg */}
                                             <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 bg-blue-50/60 border-b border-blue-100/40 dark:bg-white/[0.03] dark:border-white/5">
                                                 <div className="flex items-center gap-2.5">
-                                                    {/* Left accent bar */}
                                                     <div className="h-4 w-[3px] rounded-full bg-blue-500" />
                                                     <h2 className="text-[11px] font-black uppercase tracking-widest text-blue-900 dark:text-slate-300">
                                                         {className}
@@ -728,7 +724,6 @@ export function AttendancePage() {
                                                             key={student.id}
                                                             className="flex items-center gap-3 py-3 px-3 rounded-xl hover:bg-blue-50/40 dark:hover:bg-white/[0.03] transition-colors"
                                                         >
-                                                            {/* Avatar */}
                                                             <div className={cn(
                                                                 'h-9 w-9 rounded-full shrink-0 flex items-center justify-center text-xs font-black ring-2 ring-white dark:ring-white/5',
                                                                 !student.avatar_url && getAvatarColor(student.full_name)
@@ -738,7 +733,6 @@ export function AttendancePage() {
                                                                     : getInitials(student.full_name)}
                                                             </div>
 
-                                                            {/* Info */}
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex items-center gap-1.5">
                                                                     <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{student.full_name}</p>
@@ -754,14 +748,12 @@ export function AttendancePage() {
                                                                 )}
                                                             </div>
 
-                                                            {/* Check-in time */}
                                                             {checkIn && (
                                                                 <span className="hidden sm:block text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-lg font-mono dark:bg-white/5 dark:border dark:border-white/10 dark:text-slate-400">
                                                                     {checkIn}
                                                                 </span>
                                                             )}
 
-                                                            {/* Status select */}
                                                             <Select
                                                                 value={record.status}
                                                                 onValueChange={(status) => updateStatusMutation.mutate({ studentId: student.id, status })}
@@ -792,7 +784,6 @@ export function AttendancePage() {
                                     )
                                 })}
 
-                                {/* Pagination */}
                                 <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 dark:border-white/5">
                                     <p className="text-xs text-slate-400 dark:text-slate-600">
                                         Menampilkan {students.length} dari {totalCount} siswa

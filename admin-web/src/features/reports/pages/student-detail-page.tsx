@@ -93,7 +93,7 @@ export function StudentDetailPage() {
 
             const { data, error } = await supabase
                 .from('daily_journals')
-                .select('*')
+                .select('*, evidence_url')
                 .eq('student_id', studentId)
                 .gte('date', start)
                 .lte('date', end)
@@ -428,7 +428,6 @@ export function StudentDetailPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="p-4 space-y-3">
-
                                     {/* WhatsApp Siswa */}
                                     <div className="flex items-center justify-between gap-3">
                                         <div className="flex items-center gap-3 min-w-0">
@@ -468,7 +467,6 @@ export function StudentDetailPage() {
                                             </Button>
                                         )}
                                     </div>
-
                                 </CardContent>
                             </Card>
 
@@ -608,10 +606,11 @@ export function StudentDetailPage() {
                     </Card>
                 </TabsContent>
 
+                {/* ── JURNAL PKL ── */}
                 <TabsContent value="journals" className="mt-0 space-y-4 outline-none animate-in fade-in-50 duration-300">
                     {isLoadingJournals ? (
                         <div className="grid md:grid-cols-2 gap-4">
-                            {[1, 2].map(i => <Skeleton key={i} className="h-40 w-full" />)}
+                            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full" />)}
                         </div>
                     ) : journals.length === 0 ? (
                         <div className="py-20 flex flex-col items-center justify-center text-center border-2 border-dashed rounded-xl bg-muted/20">
@@ -620,58 +619,96 @@ export function StudentDetailPage() {
                             <p className="text-sm text-muted-foreground mt-1 max-w-[250px]">Siswa belum mengunggah laporan aktivitas harian di bulan ini.</p>
                         </div>
                     ) : (
-                        <div className="grid md:grid-cols-2 gap-6">
-                            {journals.map((journal) => (
+                        <div className="grid md:grid-cols-2 gap-4">
+                            {journals.map((journal) => {
+                                const imgUrl = journal.evidence_url || journal.image_url || null
+                                return (
                                 <Card key={journal.id} className="overflow-hidden hover:shadow-md transition-shadow group border-primary/5">
-                                    {journal.image_url && (
-                                        <div
-                                            className="h-44 bg-muted relative cursor-zoom-in overflow-hidden"
-                                            onClick={() => window.open(journal.image_url, '_blank')}
-                                        >
-                                            <img
-                                                src={journal.image_url}
-                                                alt="Bukti Aktivitas"
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                            />
-                                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <ImageIcon className="h-6 w-6 text-white" />
+                                    <CardContent className="p-0">
+                                        <div className="flex gap-0">
+
+                                            {/* ── Foto kiri: ukuran kotak ── */}
+                                            <div
+                                                className={cn(
+                                                    "relative shrink-0 w-[170px] h-[170px] bg-muted overflow-hidden",
+                                                    imgUrl && "cursor-zoom-in"
+                                                )}
+                                                onClick={() => imgUrl && window.open(imgUrl, '_blank')}
+                                            >
+                                                {imgUrl ? (
+                                                    <>
+                                                        <img
+                                                            src={imgUrl}
+                                                            alt="Bukti Aktivitas"
+                                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <div className="bg-white/20 backdrop-blur-sm rounded-full p-2">
+                                                                <ImageIcon className="h-5 w-5 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground/30">
+                                                        <ImageIcon className="h-8 w-8" />
+                                                        <span className="text-[10px]">Tidak ada foto</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* ── Info kanan ── */}
+                                            <div className="flex flex-col justify-between flex-1 p-4 min-w-0">
+                                                {/* Baris atas: tanggal + badge */}
+                                                <div className="flex items-start justify-between gap-2 mb-2">
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {format(new Date(journal.date), 'dd MMM yyyy', { locale: id })}
+                                                        </p>
+                                                    </div>
+                                                    <Badge
+                                                        className={cn(
+                                                            "text-[10px] h-5 shrink-0 flex items-center gap-1",
+                                                            journal.is_approved
+                                                                ? "bg-green-600 hover:bg-green-600 text-white border-transparent"
+                                                                : "bg-muted text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        {journal.is_approved
+                                                            ? <><CheckCircle2 className="h-3 w-3" />Disetujui</>
+                                                            : <><Clock className="h-3 w-3" />Menunggu</>
+                                                        }
+                                                    </Badge>
+                                                </div>
+
+                                                {/* Aktivitas sebagai judul utama */}
+                                                {journal.activities && (
+                                                    <p className="text-sm font-semibold leading-snug line-clamp-2 mb-2">
+                                                        {journal.activities}
+                                                    </p>
+                                                )}
+
+                                                {/* Deskripsi */}
+                                                {journal.description && (
+                                                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mb-2">
+                                                        {journal.description}
+                                                    </p>
+                                                )}
+
+                                                {/* Kendala */}
+                                                {journal.challenges && (
+                                                    <div className="flex items-start gap-1 mt-auto">
+                                                        <AlertCircle className="h-3 w-3 text-orange-500 shrink-0 mt-0.5" />
+                                                        <p className="text-[11px] text-orange-600 dark:text-orange-400 line-clamp-1">
+                                                            {journal.challenges}
+                                                        </p>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
-                                    )}
-                                    <div className="p-5 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="bg-primary/5 px-2 py-1 rounded text-[10px] font-bold text-primary flex items-center gap-1.5">
-                                                <Calendar className="h-3 w-3" />
-                                                {format(new Date(journal.date), 'dd MMM yyyy', { locale: id })}
-                                            </div>
-                                            <Badge variant={journal.is_approved ? 'default' : 'secondary'} className="text-[10px] h-5">
-                                                {journal.is_approved ? 'Disetujui' : 'Menunggu'}
-                                            </Badge>
-                                        </div>
-
-                                        {journal.activities && (
-                                            <div className="space-y-0.5">
-                                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Aktivitas</p>
-                                                <p className="text-sm font-medium line-clamp-2">{journal.activities}</p>
-                                            </div>
-                                        )}
-
-                                        {journal.description && (
-                                            <div className="space-y-0.5">
-                                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Deskripsi</p>
-                                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{journal.description}</p>
-                                            </div>
-                                        )}
-
-                                        {journal.challenges && (
-                                            <div className="space-y-0.5">
-                                                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Kendala</p>
-                                                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{journal.challenges}</p>
-                                            </div>
-                                        )}
-                                    </div>
+                                    </CardContent>
                                 </Card>
-                            ))}
+                                )
+                            })}
                         </div>
                     )}
                 </TabsContent>
