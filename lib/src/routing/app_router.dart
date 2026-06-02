@@ -24,6 +24,9 @@ import '../features/teacher/presentation/teacher_student_detail_screen.dart';
 import '../features/teacher/presentation/notifications/notification_screen.dart';
 import '../features/authentication/presentation/splash_screen.dart';
 
+// ====== 1. MENAMBAHKAN IMPORT SURAT PKL SCREEN ======
+import '../features/surat_pkl/presentation/surat_pkl_screen.dart'; 
+
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -217,6 +220,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           return MainScreen(navigationShell: navigationShell);
         },
         branches: [
+          // Index 0: Home
           StatefulShellBranch(
             navigatorKey: _shellNavigatorKey,
             routes: [
@@ -244,6 +248,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
+          // Index 1: History
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -257,6 +262,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
+          // Index 2: Journal
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -292,6 +298,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
 
+          // ====== 2. MENYISIPKAN STATEFUL BRANCH SURAT PKL (Index 3) ======
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/surat-pkl',
+                pageBuilder: (c, s) => _buildPageWithTransition(
+                  context: c,
+                  state: s,
+                  child: const SuratPklScreen(),
+                ),
+              ),
+            ],
+          ),
+
+          // Index 4: Profile (Sekarang bergeser aman ke indeks terakhir)
           StatefulShellBranch(
             routes: [
               GoRoute(

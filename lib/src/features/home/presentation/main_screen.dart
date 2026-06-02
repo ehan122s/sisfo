@@ -52,7 +52,10 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             );
           },
           destinations: const [
-            NavigationDestination(icon: Icon(LucideIcons.home), label: 'Home'),
+            NavigationDestination(
+              icon: Icon(LucideIcons.home), 
+              label: 'Home',
+            ),
             NavigationDestination(
               icon: Icon(LucideIcons.history),
               label: 'Riwayat',
@@ -61,6 +64,14 @@ class _MainScreenState extends ConsumerState<MainScreen> {
               icon: Icon(LucideIcons.bookOpen),
               label: 'Jurnal',
             ),
+            
+            // ===== MENU SURAT PKL BARU (Disisipkan di sini) =====
+            NavigationDestination(
+              icon: Icon(LucideIcons.fileText), // Menggunakan ikon dokumen/surat khas Lucide
+              label: 'Surat PKL',
+            ),
+            // ===================================================
+
             NavigationDestination(
               icon: Icon(LucideIcons.user),
               label: 'Profil',
