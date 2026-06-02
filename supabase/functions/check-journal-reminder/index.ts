@@ -23,9 +23,9 @@ serve(async (req) => {
         // Ambil semua siswa yang hadir hari ini
         const { data: hadir, error: hadirError } = await supabase
             .from('attendance_logs')
-            .select('student_id')
-            .eq('date', today)
+            .select('student_id, date, created_at')
             .in('status', ['Hadir', 'Terlambat', 'hadir', 'terlambat'])
+            .or(`date.eq.${today},created_at.gte.${today}T00:00:00,created_at.lte.${today}T23:59:59`)
 
         if (hadirError) throw new Error('Gagal ambil data absensi: ' + hadirError.message)
         console.log('Siswa hadir hari ini:', hadir?.length)
@@ -36,6 +36,9 @@ serve(async (req) => {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             })
         }
+
+        // Deduplicate student_id
+        const uniqueStudents = [...new Map(hadir.map(a => [a.student_id, a])).values()]
 
         // Ambil siswa yang sudah isi jurnal hari ini
         const { data: sudahJurnal, error: jurnalError } = await supabase
@@ -49,7 +52,7 @@ serve(async (req) => {
         console.log('Siswa sudah isi jurnal:', sudahJurnalIds.size)
 
         // Filter siswa yang hadir tapi belum isi jurnal
-        const belumJurnal = hadir.filter(a => !sudahJurnalIds.has(a.student_id))
+        const belumJurnal = uniqueStudents.filter(a => !sudahJurnalIds.has(a.student_id))
         console.log('Siswa belum isi jurnal:', belumJurnal.length)
 
         if (belumJurnal.length === 0) {
