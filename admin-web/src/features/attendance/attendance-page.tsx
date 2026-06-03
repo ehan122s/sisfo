@@ -210,8 +210,8 @@ export function AttendancePage() {
             return {
                 students: raw.map((s) => ({
                     id: s.id,
-                    full_name: s.full_name,
-                    class_name: s.class_name,
+                    full_name: s.full_name ?? '',
+                    class_name: s.class_name ?? '',
                     avatar_url: s.avatar_url ?? undefined,
                     company_name: s.placements?.[0]?.companies?.name ?? null,
                 })) as Student[],
@@ -238,8 +238,8 @@ export function AttendancePage() {
             return {
                 students: raw.map((s) => ({
                     id: s.id,
-                    full_name: s.full_name,
-                    class_name: s.class_name,
+                    full_name: s.full_name ?? '',
+                    class_name: s.class_name ?? '',
                     avatar_url: s.avatar_url ?? undefined,
                     company_name: s.company_name ?? '-',
                     status: s.attendance_status ?? 'Alpa',
@@ -320,10 +320,8 @@ export function AttendancePage() {
                 if (error) throw error
                 return data
             } else {
-                const now = new Date()
-                const timeStr = now.toTimeString().split(' ')[0]
                 const { data, error } = await supabase.from('attendance_logs')
-                    .insert({ student_id: studentId, status, created_at: `${dateStr}T${timeStr}` })
+                    .insert({ student_id: studentId, status, created_at: `${dateStr}T12:00:00` })
                     .select().single()
                 if (error) throw error
                 return data
@@ -335,9 +333,7 @@ export function AttendancePage() {
             queryClient.setQueryData<AttendanceRecord[]>(activeQueryKey, (old = []) => {
                 const idx = old.findIndex(l => l.student_id === studentId)
                 if (idx !== -1) { const n = [...old]; n[idx] = { ...n[idx], status }; return n }
-                const now = new Date()
-                const timeStr = now.toTimeString().split(' ')[0]
-                return [...old, { student_id: studentId, status, created_at: `${dateStr}T${timeStr}`, id: -Date.now() }]
+                return [...old, { student_id: studentId, status, created_at: `${dateStr}T12:00:00`, id: -Date.now() }]
             })
             return { previousLogs }
         },
@@ -362,10 +358,10 @@ export function AttendancePage() {
     })
 
     const getInitials = (name: string) =>
-        name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+        (name ?? '').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
 
     const getAvatarColor = (name: string) =>
-        AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]
+        AVATAR_COLORS[((name ?? '').charCodeAt(0) || 0) % AVATAR_COLORS.length]
 
     const formatTime = (time?: string) => {
         if (!time) return null
@@ -453,22 +449,18 @@ export function AttendancePage() {
 
             if (!toUpdate.length) { toast.info('Semua sudah diabsen via app'); setIsBulkUpdating(false); return }
 
-            const now = new Date()
-            const timeStr = now.toTimeString().split(' ')[0]
-            const currentTimestamp = `${dateStr}T${timeStr}`
-
             const prev = queryClient.getQueryData<AttendanceRecord[]>(['attendance_logs', dateStr]) || []
             const optimistic = [...prev]
             toUpdate.forEach(({ student_id }) => {
                 const idx = optimistic.findIndex(l => l.student_id === student_id)
                 if (idx >= 0) optimistic[idx] = { ...optimistic[idx], status: 'Hadir' }
-                else optimistic.push({ student_id, status: 'Hadir', created_at: currentTimestamp, id: -Date.now() - Math.random() })
+                else optimistic.push({ student_id, status: 'Hadir', created_at: `${dateStr}T12:00:00`, id: -Date.now() - Math.random() })
             })
             queryClient.setQueryData(['attendance_logs', dateStr], optimistic)
 
             const toInsert = toUpdate
                 .filter(({ existingLog }) => !(existingLog?.id && existingLog.id > 0))
-                .map(({ student_id }) => ({ student_id, status: 'Hadir', created_at: currentTimestamp }))
+                .map(({ student_id }) => ({ student_id, status: 'Hadir', created_at: `${dateStr}T12:00:00` }))
             const toUpdateIds = toUpdate
                 .filter(({ existingLog }) => existingLog?.id && existingLog.id > 0)
                 .map(({ existingLog }) => existingLog!.id!)
@@ -784,6 +776,7 @@ export function AttendancePage() {
                                     )
                                 })}
 
+                                {/* Pagination */}
                                 <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 dark:border-white/5">
                                     <p className="text-xs text-slate-400 dark:text-slate-600">
                                         Menampilkan {students.length} dari {totalCount} siswa
