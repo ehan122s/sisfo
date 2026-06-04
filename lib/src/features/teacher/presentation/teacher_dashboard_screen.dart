@@ -174,7 +174,7 @@ class _TeacherDashboardScreenState
     '/teacher/dashboard',
     '/teacher/dashboard/attendance',
     '/teacher/dashboard/journals',
-    '/teacher/dashboard/assessment',
+    '/teacher/dashboard/profile',
     '/teacher/dashboard/reports',
   ];
 
@@ -224,11 +224,11 @@ class _TeacherDashboardScreenState
         route: '/teacher/dashboard/monitoring',
       ),
       _MenuItem(
-        icon: Icons.star_border_rounded,
-        label: 'Penilaian',
-        description: 'Evaluasi & sertifikasi',
+        icon: Icons.person_outline_rounded,
+        label: 'Profil Guru',
+        description: 'Lihat dan sunting data guru',
         color: AppColors.alertAmber,
-        route: '/teacher/dashboard/assessment',
+        route: '/teacher/dashboard/profile',
       ),
       _MenuItem(
         icon: Icons.description_outlined,
@@ -959,9 +959,9 @@ class _TeacherDashboardScreenState
                 ),
                 _buildDockItem(
                   3,
-                  Icons.star_border_rounded,
-                  Icons.star_rounded,
-                  'Nilai',
+                  Icons.person_outline_rounded,
+                  Icons.person_rounded,
+                  'Profil',
                 ),
               ],
             ),

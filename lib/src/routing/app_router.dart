@@ -21,6 +21,7 @@ import '../features/teacher/presentation/teacher_attendance_monitor_screen.dart'
 import '../features/teacher/presentation/teacher_journal_approval_screen.dart';
 import '../features/teacher/presentation/teacher_student_list_screen.dart';
 import '../features/teacher/presentation/teacher_student_detail_screen.dart';
+import '../features/teacher/presentation/profile_teacher.dart';
 import '../features/teacher/presentation/notifications/notification_screen.dart';
 import '../features/authentication/presentation/splash_screen.dart';
 
@@ -202,6 +203,15 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: 'dashboard/profile',
+            parentNavigatorKey: _rootNavigatorKey,
+            pageBuilder: (c, s) => _buildPageWithTransition(
+              context: c,
+              state: s,
+              child: const ProfileTeacherScreen(),
+            ),
           ),
           GoRoute(
             path: 'dashboard/notifications',
