@@ -10,7 +10,7 @@ import { useNotifications, type Notification } from '@/hooks/use-notifications'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
-// Formatter waktu biar lebih rapi
+
 function timeAgo(dateString: string) {
     const date = new Date(dateString)
     const now = new Date()
@@ -44,7 +44,7 @@ export function NotificationBell() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-80 md:w-96 p-0 overflow-hidden" align="end">
-                {/* Header Dropdown - Sekarang adaptif dark mode */}
+                {/* Header */}
                 <div className="flex items-center justify-between px-4 py-2.5 border-b bg-muted/30">
                     <h4 className="text-sm font-bold text-foreground">Notifikasi</h4>
                     <div className="flex gap-2">
@@ -109,16 +109,15 @@ function NotificationItem({ item, onRead }: { item: Notification; onRead: () => 
             className={cn(
                 "flex gap-3 px-4 py-3 transition-all cursor-pointer border-b border-border last:border-0 relative group",
                 "hover:bg-slate-50 dark:hover:bg-slate-900/80",
-                // Warna background kalau belum dibaca (biru tipis transparan)
                 !item.is_read && "bg-primary/[0.04] dark:bg-primary/[0.08]"
             )}
         >
-            {/* Indikator garis vertikal biru di kiri */}
+            {/* Indikator garis */}
             {!item.is_read && (
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
             )}
 
-            {/* Titik Status (Biru/Merah/Abu) */}
+            {/* Titik Status */}
             <div className={cn(
                 "mt-1.5 w-2 h-2 rounded-full flex-shrink-0 transition-all",
                 isAlert ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]" : "bg-primary shadow-[0_0_8px_rgba(59,130,246,0.4)]",

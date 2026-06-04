@@ -155,7 +155,6 @@ export function PklDashboardPage() {
                     </p>
                 </div>
 
-                {/* Tombol pembungkus dengan flex-row yang dipaksa sejajar di layar besar */}
                 <div className="flex flex-row flex-wrap items-center gap-3 mt-2 md:mt-0">
                     <Button
                         onClick={() => navigate('/reports')}
@@ -165,7 +164,6 @@ export function PklDashboardPage() {
                         <FileText className="w-4 h-4" /> Cetak Laporan
                     </Button>
                     
-                    {/* Urutan dikembalikan: Tanggal berada di tengah */}
                     <Popover>
                         <PopoverTrigger asChild>
                             <Button
@@ -181,7 +179,7 @@ export function PklDashboardPage() {
                         </PopoverContent>
                     </Popover>
 
-                    {/* Tombol Penempatan di paling kanan */}
+                    {/* Tombol Penempatan */}
                     <Button
                         onClick={() => navigate('/companies')}
                         className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-wider text-xs shadow-none px-5 h-10"

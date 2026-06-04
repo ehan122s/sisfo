@@ -85,7 +85,6 @@ export function AnnouncementsPage() {
     ]
 
     return (
-        // FIX: Tambahkan background light mode slate-50/50 agar konsisten dengan halaman lain
         <div className={cn(
             "space-y-8 p-4 pb-16 min-h-screen bg-slate-50/50 dark:bg-transparent transition-all duration-700 ease-out",
             isMounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
@@ -98,12 +97,10 @@ export function AnnouncementsPage() {
                         <div className="h-1 w-8 rounded-full bg-blue-500" />
                         <div className="h-1 w-4 rounded-full bg-blue-800" />
                     </div>
-                    {/* FIX: text-slate-900 untuk mode terang */}
                     <h1 className="text-4xl md:text-5xl font-black italic tracking-tight text-slate-900 dark:text-white uppercase">
                         MANAJEMEN{" "}
                         <span className="text-blue-600 dark:text-blue-400">PENGUMUMAN</span>
                     </h1>
-                    {/* FIX: text-slate-500 untuk mode terang */}
                     <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
                         Kelola dan broadcast pengumuman untuk siswa & guru
                     </p>
@@ -116,7 +113,6 @@ export function AnnouncementsPage() {
             {/* --- STATS --- */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {stats.map((stat, i) => (
-                    // FIX: bg-white untuk mode terang, border-slate-200, dan dark mode variant
                     <Card
                         key={i}
                         className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm transition-all duration-300"
@@ -124,16 +120,14 @@ export function AnnouncementsPage() {
                         <CardContent className="p-5">
                             <div className="flex items-start justify-between mb-4">
                                 <div>
-                                    {/* FIX: text-slate-400 dark:text-slate-500 */}
                                     <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{stat.label}</p>
-                                    {/* FIX: text-slate-900 dark:text-white */}
                                     <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">{stat.value}</p>
                                 </div>
                                 <div className={cn("p-3 rounded-xl", stat.iconBg)}>
                                     <stat.icon className={cn("w-6 h-6", stat.iconColor)} />
                                 </div>
                             </div>
-                            {/* FIX: progress bar tracker bg-slate-100 untuk mode terang */}
+                           
                             <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                 <div
                                     className={cn("h-full rounded-full transition-all duration-1000", stat.barColor)}
@@ -149,7 +143,7 @@ export function AnnouncementsPage() {
             {/* --- FILTER & SEARCH --- */}
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 {/* Filter Tabs */}
-                {/* FIX: Wrapper tab bg-white border-slate-200 untuk mode terang */}
+            
                 <div className="flex bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1 rounded-xl w-full md:w-auto shadow-sm">
                     {filters.map((f) => (
                         <button
@@ -170,7 +164,7 @@ export function AnnouncementsPage() {
                 {/* Search */}
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    {/* FIX: Input field bg-white, border-slate-200 text-slate-800 */}
+                   
                     <Input
                         placeholder="Cari pengumuman..."
                         className="pl-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:ring-1 focus-visible:ring-blue-500 focus-visible:border-blue-500 text-sm font-medium shadow-sm transition-colors"
@@ -190,7 +184,7 @@ export function AnnouncementsPage() {
                 ) : (
                     <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
                         {filteredData.length === 0 ? (
-                            // FIX: Empty State Card disesuaikan dengan light mode (bg-white border-slate-200)
+                            
                             <Card className="border border-dashed border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 rounded-2xl min-h-[400px] flex flex-col items-center justify-center text-center p-12 shadow-sm">
                                 <div className="bg-slate-100 dark:bg-slate-800 p-8 rounded-full mb-6">
                                     <BellOff className="w-14 h-14 text-slate-400 dark:text-slate-600" />

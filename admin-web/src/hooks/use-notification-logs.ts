@@ -38,9 +38,6 @@ interface NotificationFilters {
     status?: string
 }
 
-// ==========================================
-// 1. RIWAYAT NOTIFIKASI SISTEM (tabel notifications - 166 entri)
-// ==========================================
 export function useNotificationLogs(filters: NotificationFilters = {}) {
     return useQuery({
         queryKey: ['notification-logs', filters],
@@ -92,9 +89,9 @@ export function useNotificationStats() {
     })
 }
 
-// ==========================================
-// 2. RIWAYAT PENGIRIMAN WHATSAPP (tabel notification_logs)
-// ==========================================
+
+// RIWAYAT PENGIRIMAN WHATSAPP (tabel notification_logs)
+
 export function useWhatsAppLogs(filters: NotificationFilters = {}) {
     return useQuery({
         queryKey: ['whatsapp-logs', filters],
@@ -117,7 +114,7 @@ export function useWhatsAppLogs(filters: NotificationFilters = {}) {
 
             const { data, error, count } = await query
 
-            // ✅ DEBUG: Cek di browser console apakah ada error atau data kosong
+           
             console.log('[useWhatsAppLogs] result:', { data, error, count })
             if (error) {
                 console.error('[useWhatsAppLogs] Supabase error:', error)
@@ -129,9 +126,8 @@ export function useWhatsAppLogs(filters: NotificationFilters = {}) {
     })
 }
 
-// ==========================================
-// 3. STATS WHATSAPP LOGS
-// ==========================================
+// STATS WHATSAPP LOGS
+
 export function useWhatsAppStats() {
     return useQuery({
         queryKey: ['whatsapp-stats'],

@@ -28,7 +28,6 @@ const DEFAULT_FILTERS = {
     status: '',
 }
 
-// ✅ Sesuai nilai di tabel notification_logs
 const TYPE_LABELS: Record<string, string> = {
     on_time: 'Tepat Waktu',
     late: 'Terlambat',
@@ -100,7 +99,6 @@ export function NotificationHistoryPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    {/* ✅ FIX: Dari Tanggal pakai Popover + Calendar */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Dari Tanggal</label>
                         <Popover>
@@ -134,7 +132,6 @@ export function NotificationHistoryPage() {
                         </Popover>
                     </div>
 
-                    {/* ✅ FIX: Sampai Tanggal pakai Popover + Calendar */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Sampai Tanggal</label>
                         <Popover>
@@ -168,7 +165,6 @@ export function NotificationHistoryPage() {
                         </Popover>
                     </div>
 
-                    {/* ✅ Kategori sesuai nilai di notification_logs */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Kategori</label>
                         <select
@@ -184,7 +180,6 @@ export function NotificationHistoryPage() {
                         </select>
                     </div>
 
-                    {/* ✅ Status sesuai nilai di notification_logs */}
                     <div className="space-y-1.5">
                         <label className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Status</label>
                         <select

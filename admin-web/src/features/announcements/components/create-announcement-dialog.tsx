@@ -88,7 +88,7 @@ export function CreateAnnouncementDialog({ onSuccess }: CreateAnnouncementDialog
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                {/* Tombol pemicu dengan warna biru primer */}
+                {/* Tombol pemicu*/}
                 <Button className="bg-primary hover:bg-primary/90 text-white shadow-sm transition-all active:scale-95">
                     <Plus className="mr-2 h-4 w-4" />
                     Buat Pengumuman
@@ -97,7 +97,7 @@ export function CreateAnnouncementDialog({ onSuccess }: CreateAnnouncementDialog
             <DialogContent className="sm:max-w-[500px] border-primary/20">
                 <DialogHeader>
                     <div className="flex items-center gap-3 mb-2">
-                        {/* Ikon Megaphone biru untuk mempercantik */}
+                        {/*ikon*/}
                         <div className="p-2.5 rounded-full bg-primary/10 text-primary">
                             <Megaphone className="h-5 w-5" />
                         </div>

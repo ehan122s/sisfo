@@ -87,7 +87,6 @@ export function AnnouncementList({ data, onRefresh }: AnnouncementListProps) {
                         !item.is_active && 'opacity-70 grayscale-[0.5] bg-muted/30'
                     )}
                 >
-                    {/* Garis Aksen Gradasi di atas saat Hover */}
                     <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-700 via-blue-500 to-blue-400 rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
 
                     <div className="flex justify-between items-start mb-4">
@@ -156,7 +155,7 @@ export function AnnouncementList({ data, onRefresh }: AnnouncementListProps) {
                             </span>
                         </div>
                         
-                        {/* FITUR DETAIL DENGAN DIALOG */}
+                        {/* FITUR DETAIL */}
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button 
