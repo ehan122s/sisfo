@@ -16,7 +16,6 @@ import { StudentMonitoringPage } from '@/features/reports/pages/student-monitori
 import { StudentDetailPage } from '@/features/reports/pages/student-detail-page'
 import { StudentReportPage } from '@/features/reports/pages/student-report-page'
 import { TeachersPage } from '@/features/teachers/pages/teachers-page'
-import { TeacherAttendancePage } from '@/features/teacher-attendance/teacher-attendance-page'
 import { AuditLogsPage } from '@/features/audit-logs/audit-logs-page'
 import { AnnouncementsPage } from '@/features/announcements/announcements-page'
 import { SettingsPage } from '@/features/settings/settings-page'
@@ -59,7 +58,6 @@ function App() {
                 <Route path="/companies" element={<CompaniesPage />} />
                 <Route path="/pkl-dashboard" element={<PklDashboardPage />} />
                 <Route path="/attendance" element={<AttendancePage />} />
-                <Route path="/teacher-attendance" element={<TeacherAttendancePage />} />
                 <Route path="/journals" element={<JournalsPage />} />
                 <Route path="/teachers" element={<TeachersPage />} />
                 <Route path="/teachers" element={<TeachersPage />} />

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Link, useLocation } from "react-router-dom"
+import { useLocation } from "react-router-dom"
 import {
   IconDashboard,
   IconUsers,
@@ -15,7 +15,6 @@ import {
   IconMap,
   IconBroadcast,
   IconBell,
-  IconUserCheck,
   IconLayoutDashboard,
   IconChalkboard,
 } from "@tabler/icons-react"
@@ -36,7 +35,6 @@ const navMain = [
   { title: "Guru", url: "/teachers", icon: IconUserCog },
   { title: "Wali Kelas", url: "/wali-kelas", icon: IconChalkboard },
   { title: "Absensi Siswa", url: "/attendance", icon: IconCalendarCheck },
-  { title: "Absensi Guru", url: "/teacher-attendance", icon: IconUserCheck },
   {
     title: "PKL",
     url: "#",
