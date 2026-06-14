@@ -468,7 +468,7 @@ export default function DashboardPage() {
               {typedText.split('Admin!')[0]}
               {typedText.includes('Admin') && <em>Admin!</em>}
               {typedText.length < fullText.length && <span className="dash-hero-cursor"> </span>}
-              {typedText === fullText && ' 👋'}
+              {typedText === fullText && ' '}
             </h1>
           </div>
 
