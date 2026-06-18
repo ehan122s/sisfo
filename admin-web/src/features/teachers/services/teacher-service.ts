@@ -83,13 +83,11 @@ export const TeacherService = {
     },
 
     async deleteTeacher(teacherId: string) {
-        // Soft delete: set status to suspended
-        const { error } = await supabase
-            .from('profiles')
-            .update({ status: 'suspended' })
-            .eq('id', teacherId)
+    const { error } = await supabase.rpc('delete_teacher_user', {
+        target_id: teacherId,
+    })
 
-        if (error) throw error
-        return true
-    }
+    if (error) throw error
+    return true
+}
 }

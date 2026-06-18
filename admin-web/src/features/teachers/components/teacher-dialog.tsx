@@ -36,6 +36,14 @@ export function TeacherDialog({ teacher, onSuccess, open: controlledOpen, onOpen
     const [password, setPassword] = useState('')
     const [selectedCompanyIds, setSelectedCompanyIds] = useState<number[]>([])
 
+    // ── FIX 1: dipindah ke atas useEffect, supaya tidak "accessed before declared" ──
+    // Logic di dalamnya 100% sama seperti sebelumnya, hanya posisinya yang naik.
+    const fetchCompanies = async () => {
+        const { data } = await supabase.from('companies').select('id, name').order('name')
+        if (data) setCompanies(data)
+    }
+
+    /* eslint-disable react-hooks/set-state-in-effect -- prefill/reset form saat dialog dibuka, pola ini disengaja */
     useEffect(() => {
         if (open) {
             fetchCompanies()
@@ -54,11 +62,7 @@ export function TeacherDialog({ teacher, onSuccess, open: controlledOpen, onOpen
             }
         }
     }, [open, teacher])
-
-    const fetchCompanies = async () => {
-        const { data } = await supabase.from('companies').select('id, name').order('name')
-        if (data) setCompanies(data)
-    }
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -114,8 +118,10 @@ export function TeacherDialog({ teacher, onSuccess, open: controlledOpen, onOpen
 
             setOpen(false)
             onSuccess()
-        } catch (error: any) {
-            alert(error.message || 'Terjadi kesalahan')
+        } catch (error: unknown) {
+            // ── FIX 3: ganti `any` jadi `unknown` + narrowing, behavior tetap sama ──
+            const message = error instanceof Error ? error.message : 'Terjadi kesalahan'
+            alert(message)
         } finally {
             setLoading(false)
         }
@@ -183,17 +189,18 @@ export function TeacherDialog({ teacher, onSuccess, open: controlledOpen, onOpen
 
                     <div className="space-y-2">
                         <Label>Perusahaan Binaan (DUDI)</Label>
-                        <div className="border rounded-md p-2 h-48 overflow-y-auto space-y-1">
+                        {/* ── FIX TAMPILAN DARK MODE: hanya tambah className dark:, logic tidak berubah ── */}
+                        <div className="border rounded-md p-2 h-48 overflow-y-auto space-y-1 bg-background dark:border-white/10">
                             {companies.map(company => (
                                 <div
                                     key={company.id}
-                                    className={`flex items-center space-x-2 p-2 rounded cursor-pointer hover:bg-slate-100 ${selectedCompanyIds.includes(company.id) ? 'bg-slate-50' : ''}`}
+                                    className={`flex items-center space-x-2 p-2 rounded cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 ${selectedCompanyIds.includes(company.id) ? 'bg-slate-50 dark:bg-white/5' : ''}`}
                                     onClick={() => toggleCompany(company.id)}
                                 >
-                                    <div className={`w-4 h-4 border rounded flex items-center justify-center ${selectedCompanyIds.includes(company.id) ? 'bg-primary border-primary' : 'border-gray-300'}`}>
+                                    <div className={`w-4 h-4 border rounded flex items-center justify-center ${selectedCompanyIds.includes(company.id) ? 'bg-primary border-primary' : 'border-gray-300 dark:border-white/20'}`}>
                                         {selectedCompanyIds.includes(company.id) && <Check className="h-3 w-3 text-white" />}
                                     </div>
-                                    <span className="text-sm">{company.name}</span>
+                                    <span className="text-sm text-foreground dark:text-slate-200">{company.name}</span>
                                 </div>
                             ))}
                         </div>

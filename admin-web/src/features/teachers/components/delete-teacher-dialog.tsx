@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AuditLogService } from '@/features/audit-logs/services/audit-log-service'
 import { toast } from "sonner"
-import { supabase } from '@/lib/supabase'
+import { TeacherService } from '../services/teacher-service'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -25,25 +25,18 @@ interface DeleteTeacherDialogProps {
 export function DeleteTeacherDialog({ open, onOpenChange, teacher }: DeleteTeacherDialogProps) {
     const queryClient = useQueryClient()
 
-    // Delete mutation (soft delete - set status to inactive)
     const deleteMutation = useMutation({
         mutationFn: async () => {
             if (!teacher) throw new Error('No teacher selected')
 
-            // Soft delete: set status to suspended
-            const { error } = await supabase
-                .from('profiles')
-                .update({ status: 'suspended' })
-                .eq('id', teacher.id)
-
-            if (error) throw new Error(error.message)
+            await TeacherService.deleteTeacher(teacher.id)
 
             // Log action
             await AuditLogService.logAction(
-                'SUSPEND_TEACHER',
+                'DELETE_TEACHER',
                 'profiles',
                 teacher.id,
-                { reason: 'Soft delete via dialog' }
+                { reason: 'Hard delete via dialog' }
             )
 
             return true
@@ -51,7 +44,7 @@ export function DeleteTeacherDialog({ open, onOpenChange, teacher }: DeleteTeach
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['teachers'] })
             onOpenChange(false)
-            toast.success('Pembimbing berhasil dinonaktifkan')
+            toast.success('Pembimbing berhasil dihapus')
         },
         onError: (error) => {
             console.error('Delete teacher error:', error)
@@ -74,10 +67,10 @@ export function DeleteTeacherDialog({ open, onOpenChange, teacher }: DeleteTeach
                         {teacher?.assignments && teacher.assignments.length > 0 && (
                             <>
                                 Pembimbing ini sedang mengawasi <strong>{teacher.assignments.length} DUDI</strong>.
-                                <br />
+                                <br /><br />
                             </>
                         )}
-                        Data pembimbing akan dinonaktifkan (soft delete). Anda dapat mengaktifkannya kembali melalui menu Edit.
+                        Data pembimbing akan <strong>dihapus secara permanen</strong> dan tidak dapat dikembalikan.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
